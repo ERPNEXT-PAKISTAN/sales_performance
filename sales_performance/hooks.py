@@ -11,6 +11,9 @@ required_apps = ["erpnext"]
 
 app_include_css = ["/assets/sales_performance/css/desktop_icon.css"]
 
+after_install = "sales_performance.install.after_install"
+after_migrate = "sales_performance.install.after_migrate"
+
 add_to_apps_screen = [
 	{
 		"name": "sales_performance",

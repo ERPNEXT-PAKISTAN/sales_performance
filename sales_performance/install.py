@@ -25,6 +25,9 @@ def setup_sales_performance():
 	ensure_roles()
 	ensure_target_detail_trace_fields()
 	ensure_desktop()
+	from sales_performance.permissions import apply_sales_performance_roles
+
+	apply_sales_performance_roles()
 	frappe.clear_cache(doctype="Target Detail")
 	frappe.clear_cache(doctype="Sales Target Planning")
 	frappe.clear_cache()
@@ -137,9 +140,12 @@ def ensure_desktop():
 			"/assets/sales_performance/images/sales-performance-logo.png",
 		)
 		frappe.db.set_value("Desktop Icon", "Sales Performance", "sidebar", "Sales Performance")
-		frappe.db.set_value("Desktop Icon", "Sales Performance", "link", "/app/sales-performance")
-		frappe.db.set_value("Desktop Icon", "Sales Performance", "icon_type", "App")
+		frappe.db.set_value("Desktop Icon", "Sales Performance", "link_type", "Workspace Sidebar")
+		frappe.db.set_value("Desktop Icon", "Sales Performance", "link_to", "Sales Performance")
+		frappe.db.set_value("Desktop Icon", "Sales Performance", "icon_type", "Link")
 		frappe.db.set_value("Desktop Icon", "Sales Performance", "standard", 1)
+		frappe.db.set_value("Desktop Icon", "Sales Performance", "bg_color", "blue")
+		frappe.db.set_value("Desktop Icon", "Sales Performance", "icon", "chart-bar")
 
 	if frappe.db.exists("Workspace", "Sales Performance"):
 		frappe.db.set_value("Workspace", "Sales Performance", "public", 1)
@@ -179,4 +185,9 @@ def _ensure_workspace_exists():
 			"content": "[]",
 		}
 	)
+	from sales_performance.permissions import DESK_ROLES
+
+	for role in DESK_ROLES:
+		if frappe.db.exists("Role", role):
+			doc.append("roles", {"role": role})
 	doc.insert(ignore_permissions=True)

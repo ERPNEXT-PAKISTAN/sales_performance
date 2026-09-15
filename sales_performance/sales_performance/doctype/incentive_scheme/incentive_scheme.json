@@ -2,7 +2,8 @@
  "actions": [],
  "allow_import": 1,
  "autoname": "field:scheme_name",
- "creation": "2026-09-14 00:00:00",
+ "creation": "2026-09-15 11:52:37.878918",
+ "description": "Choose Achievement Based On (qty or amount % for slabs) and Pay Incentive On. Amount payout = surplus amount \u00d7 %. Qty payout = surplus qty \u00d7 %.",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -22,6 +23,7 @@
   {
    "fieldname": "scheme_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Scheme Name",
    "reqd": 1,
    "unique": 1
@@ -29,46 +31,46 @@
   {
    "fieldname": "company",
    "fieldtype": "Link",
-   "options": "Company",
-   "label": "Company"
+   "label": "Company",
+   "options": "Company"
   },
   {
    "fieldname": "fiscal_year",
    "fieldtype": "Link",
-   "options": "Fiscal Year",
-   "label": "Fiscal Year"
+   "label": "Fiscal Year",
+   "options": "Fiscal Year"
   },
   {
+   "default": "0",
    "fieldname": "disabled",
    "fieldtype": "Check",
-   "label": "Disabled",
-   "default": "0"
+   "label": "Disabled"
   },
   {
    "fieldname": "column_break_1",
    "fieldtype": "Column Break"
   },
   {
+   "default": "Qty Achievement",
+   "description": "Which % is used to pick Min / Max incentive rate from the slabs.",
    "fieldname": "based_on",
    "fieldtype": "Select",
    "label": "Achievement Based On",
-   "default": "Qty Achievement",
-   "options": "Qty Achievement\nAmount Achievement",
-   "description": "Which % is used to pick Min / Max incentive rate from the slabs."
+   "options": "Qty Achievement\nAmount Achievement"
   },
   {
+   "default": "Amount",
+   "description": "Amount: surplus sales value \u00d7 incentive %. Qty: surplus qty \u00d7 incentive % (not multiplied by selling price).",
    "fieldname": "pay_on",
    "fieldtype": "Select",
    "label": "Pay Incentive On",
-   "default": "Amount",
-   "options": "Amount\nQty",
-   "description": "Amount: surplus sales value × incentive %. Qty: surplus qty × incentive % (not multiplied by selling price)."
+   "options": "Amount\nQty"
   },
   {
+   "default": "Sales Person",
    "fieldname": "dimension",
    "fieldtype": "Select",
    "label": "Dimension",
-   "default": "Sales Person",
    "options": "Sales Person\nItem Group\nTerritory\nCustomer Group"
   },
   {
@@ -84,75 +86,146 @@
   {
    "fieldname": "slabs",
    "fieldtype": "Table",
-   "options": "Incentive Scheme Slab",
-   "label": "Slabs"
+   "label": "Slabs",
+   "options": "Incentive Scheme Slab"
   }
  ],
+ "links": [],
+ "modified": "2026-09-15 14:21:05.167660",
+ "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Incentive Scheme",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
   {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
    "role": "Sales Performance Admin",
-   "read": 1,
-   "email": 1,
-   "print": 1,
-   "report": 1,
    "share": 1,
-   "create": 1,
-   "write": 1,
-   "delete": 1,
-   "submit": 0,
-   "cancel": 0,
-   "amend": 0
+   "write": 1
   },
   {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
    "role": "System Manager",
-   "read": 1,
-   "email": 1,
-   "print": 1,
-   "report": 1,
    "share": 1,
-   "create": 1,
-   "write": 1,
-   "delete": 1,
-   "submit": 0,
-   "cancel": 0,
-   "amend": 0
+   "write": 1
   },
   {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
    "role": "Sales Target Manager",
-   "read": 1,
-   "email": 1,
-   "print": 1,
-   "report": 1,
    "share": 1,
-   "create": 1,
-   "write": 1,
-   "delete": 1,
-   "submit": 0,
-   "cancel": 0,
-   "amend": 0
+   "write": 1
   },
   {
-   "role": "Sales Performance Manager",
-   "read": 1,
    "email": 1,
    "print": 1,
+   "read": 1,
    "report": 1,
-   "share": 0,
-   "create": 0,
-   "write": 0,
-   "delete": 0,
-   "submit": 0,
-   "cancel": 0,
-   "amend": 0
+   "role": "Sales Performance Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Desk User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Target User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Target Approver",
+   "share": 1,
+   "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": [],
- "track_changes": 1,
-   "description": "Choose Achievement Based On (qty or amount % for slabs) and Pay Incentive On. Amount payout = surplus amount × %. Qty payout = surplus qty × %."
+ "track_changes": 1
 }

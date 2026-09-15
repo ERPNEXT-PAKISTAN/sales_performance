@@ -5,6 +5,8 @@
  "name": "performance-analytics",
  "page_name": "performance-analytics",
  "roles": [
+  { "role": "All" },
+  { "role": "Desk User" },
   { "role": "Sales Target User" },
   { "role": "Sales Target Manager" },
   { "role": "Sales Target Approver" },

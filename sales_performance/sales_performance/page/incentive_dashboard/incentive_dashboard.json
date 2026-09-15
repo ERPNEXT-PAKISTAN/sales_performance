@@ -5,6 +5,8 @@
  "name": "incentive-dashboard",
  "page_name": "incentive-dashboard",
  "roles": [
+  { "role": "All" },
+  { "role": "Desk User" },
   { "role": "Sales Target User" },
   { "role": "Sales Target Manager" },
   { "role": "Sales Target Approver" },

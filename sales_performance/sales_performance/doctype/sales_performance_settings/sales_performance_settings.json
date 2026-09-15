@@ -1,9 +1,8 @@
 {
  "actions": [],
- "creation": "2026-09-14 00:00:00",
+ "creation": "2026-09-15 00:28:07.083564",
  "doctype": "DocType",
  "engine": "InnoDB",
- "issingle": 1,
  "field_order": [
   "default_pricing_method",
   "default_distribution_method",
@@ -20,40 +19,40 @@
  ],
  "fields": [
   {
+   "default": "Specific Price List",
    "fieldname": "default_pricing_method",
    "fieldtype": "Select",
    "label": "Default Pricing Method",
-   "default": "Specific Price List",
    "options": "Specific Price List\nLast Selling Price\nPrevious Year Average Selling Price\nManual Price"
   },
   {
+   "default": "Same Month Previous Year + Growth",
    "fieldname": "default_distribution_method",
    "fieldtype": "Select",
    "label": "Default Distribution Method",
-   "default": "Equal Monthly",
    "options": "Same Month Previous Year + Growth\nEqual Monthly\nEqual Quarterly\nEqual Half-Yearly\nManual Monthly\nCustom Percentage Distribution"
   },
   {
+   "default": "0",
    "fieldname": "default_growth_percent",
    "fieldtype": "Percent",
-   "label": "Default Growth %",
-   "default": "0"
+   "label": "Default Growth %"
   },
   {
    "fieldname": "column_break_1",
    "fieldtype": "Column Break"
   },
   {
+   "default": "1",
    "fieldname": "require_override_reason",
    "fieldtype": "Check",
-   "label": "Require Override Reason",
-   "default": "1"
+   "label": "Require Override Reason"
   },
   {
+   "default": "1",
    "fieldname": "block_approval_without_price",
    "fieldtype": "Check",
-   "label": "Block Approval Without Price",
-   "default": "1"
+   "label": "Block Approval Without Price"
   },
   {
    "fieldname": "incentive_accounts_section",
@@ -63,14 +62,14 @@
   {
    "fieldname": "incentive_expense_account",
    "fieldtype": "Link",
-   "options": "Account",
-   "label": "Incentive Expense Account"
+   "label": "Incentive Expense Account",
+   "options": "Account"
   },
   {
    "fieldname": "incentive_payable_account",
    "fieldtype": "Link",
-   "options": "Account",
-   "label": "Incentive Payable Account"
+   "label": "Incentive Payable Account",
+   "options": "Account"
   },
   {
    "fieldname": "column_break_inc",
@@ -79,63 +78,133 @@
   {
    "fieldname": "incentive_paid_from_account",
    "fieldtype": "Link",
-   "options": "Account",
-   "label": "Pay From Account (Bank / Cash)"
+   "label": "Pay From Account (Bank / Cash)",
+   "options": "Account"
   },
   {
    "fieldname": "incentive_cost_center",
    "fieldtype": "Link",
-   "options": "Cost Center",
-   "label": "Default Cost Center"
+   "label": "Default Cost Center",
+   "options": "Cost Center"
   }
  ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-15 14:21:05.441257",
+ "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Sales Performance Settings",
  "owner": "Administrator",
  "permissions": [
   {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
    "role": "Sales Performance Admin",
-   "read": 1,
-   "email": 1,
-   "print": 1,
-   "report": 1,
    "share": 1,
-   "create": 1,
-   "write": 1,
-   "delete": 1,
-   "submit": 0,
-   "cancel": 0,
-   "amend": 0
+   "write": 1
   },
   {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
    "role": "System Manager",
-   "read": 1,
-   "email": 1,
-   "print": 1,
-   "report": 1,
    "share": 1,
-   "create": 1,
-   "write": 1,
-   "delete": 1,
-   "submit": 0,
-   "cancel": 0,
-   "amend": 0
+   "write": 1
   },
   {
-   "role": "Sales Target Manager",
-   "read": 1,
    "email": 1,
    "print": 1,
-   "report": 1,
-   "share": 0,
-   "create": 0,
-   "write": 1,
-   "delete": 0,
-   "submit": 0,
-   "cancel": 0,
-   "amend": 0
+   "read": 1,
+   "role": "Sales Target Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Desk User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Sales User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Sales Target User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Sales Target Approver",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Sales Performance Manager",
+   "share": 1,
+   "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
  "states": []
