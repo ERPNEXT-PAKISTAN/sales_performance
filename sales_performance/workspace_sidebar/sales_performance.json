@@ -93,18 +93,6 @@
   {
    "child": 0,
    "collapsible": 0,
-   "icon": "file",
-   "indent": 0,
-   "keep_closed": 0,
-   "label": "Item Group Growth Rule",
-   "link_to": "Item Group Growth Rule",
-   "link_type": "DocType",
-   "show_arrow": 0,
-   "type": "Link"
-  },
-  {
-   "child": 0,
-   "collapsible": 0,
    "icon": "bar-chart-2",
    "indent": 0,
    "keep_closed": 0,

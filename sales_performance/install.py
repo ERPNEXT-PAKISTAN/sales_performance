@@ -131,22 +131,6 @@ def ensure_desktop():
 
 	_ensure_workspace_exists()
 
-	if frappe.db.exists("Desktop Icon", "Sales Performance"):
-		frappe.db.set_value("Desktop Icon", "Sales Performance", "hidden", 0)
-		frappe.db.set_value(
-			"Desktop Icon",
-			"Sales Performance",
-			"logo_url",
-			"/assets/sales_performance/images/sales-performance-logo.png",
-		)
-		frappe.db.set_value("Desktop Icon", "Sales Performance", "sidebar", "Sales Performance")
-		frappe.db.set_value("Desktop Icon", "Sales Performance", "link_type", "Workspace Sidebar")
-		frappe.db.set_value("Desktop Icon", "Sales Performance", "link_to", "Sales Performance")
-		frappe.db.set_value("Desktop Icon", "Sales Performance", "icon_type", "Link")
-		frappe.db.set_value("Desktop Icon", "Sales Performance", "standard", 1)
-		frappe.db.set_value("Desktop Icon", "Sales Performance", "bg_color", "blue")
-		frappe.db.set_value("Desktop Icon", "Sales Performance", "icon", "chart-bar")
-
 	if frappe.db.exists("Workspace", "Sales Performance"):
 		frappe.db.set_value("Workspace", "Sales Performance", "public", 1)
 		frappe.db.set_value("Workspace", "Sales Performance", "is_hidden", 0)
@@ -157,7 +141,97 @@ def ensure_desktop():
 	except Exception:
 		frappe.log_error(title="Sales Performance desktop icon setup")
 
+	_force_desktop_icon()
+	_inject_icon_into_desktop_layouts()
 	clear_desktop_icons_cache()
+	frappe.cache.delete_key("desktop_icons")
+
+
+def _force_desktop_icon():
+	if not frappe.db.exists("Desktop Icon", "Sales Performance"):
+		return
+	values = {
+		"hidden": 0,
+		"standard": 1,
+		"icon_type": "App",
+		"link_type": "External",
+		"link": "/app/sales-performance",
+		"sidebar": "Sales Performance",
+		"logo_url": "/assets/sales_performance/images/sales-performance-logo.png",
+		"bg_color": "blue",
+		"icon": "chart-bar",
+		"idx": 1,
+		"parent_icon": "",
+		"app": "sales_performance",
+	}
+	for field, value in values.items():
+		frappe.db.set_value("Desktop Icon", "Sales Performance", field, value, update_modified=False)
+
+
+def _inject_icon_into_desktop_layouts():
+	import json
+
+	for name in frappe.get_all("Desktop Layout", pluck="name"):
+		doc = frappe.get_doc("Desktop Layout", name)
+		try:
+			layout = json.loads(doc.layout or "[]")
+		except Exception:
+			continue
+		if not isinstance(layout, list):
+			continue
+		if any(isinstance(row, dict) and row.get("label") == "Sales Performance" for row in layout):
+			continue
+		icon = frappe.get_doc("Desktop Icon", "Sales Performance")
+		layout.append(
+			{
+				"label": icon.label,
+				"icon_type": icon.icon_type,
+				"link_type": icon.link_type,
+				"link": icon.link,
+				"logo_url": icon.logo_url,
+				"icon": icon.icon,
+				"bg_color": icon.bg_color,
+				"hidden": 0,
+				"standard": 1,
+				"idx": icon.idx,
+				"name": icon.name,
+				"app": icon.app,
+			}
+		)
+		doc.layout = json.dumps(layout)
+		doc.flags.ignore_permissions = True
+		doc.save()
+
+
+def boot_session(bootinfo):
+	"""Put the app tile on desk even if a saved layout omitted it."""
+	icons = list(bootinfo.get("desktop_icons") or [])
+	if any(icon.get("label") == "Sales Performance" and not icon.get("hidden") for icon in icons):
+		return
+	if not frappe.db.exists("Desktop Icon", "Sales Performance"):
+		return
+	icon = frappe.get_doc("Desktop Icon", "Sales Performance")
+	icons.append(
+		{
+			"label": icon.label,
+			"bg_color": icon.bg_color,
+			"link": icon.link,
+			"link_type": icon.link_type,
+			"app": icon.app,
+			"icon_type": icon.icon_type,
+			"parent_icon": None,
+			"icon": icon.icon,
+			"link_to": icon.link_to,
+			"idx": icon.idx or 1,
+			"standard": 1,
+			"logo_url": icon.logo_url,
+			"hidden": 0,
+			"name": icon.name,
+			"restrict_removal": icon.restrict_removal,
+			"icon_image": icon.icon_image,
+		}
+	)
+	bootinfo.desktop_icons = icons
 
 
 def _ensure_workspace_exists():
