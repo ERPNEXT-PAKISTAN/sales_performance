@@ -1,0 +1,262 @@
+{
+ "app": "sales_performance",
+ "charts": [
+  {
+   "chart_name": "Planning by Status",
+   "label": "Planning by Status"
+  },
+  {
+   "chart_name": "Salesperson Approved Qty",
+   "label": "Salesperson Approved Qty"
+  }
+ ],
+ "content": "[{\"id\":\"sp-h1\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Sales Performance</b></span>\",\"col\":12}},{\"id\":\"sp-nc1\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Approved Plans\",\"col\":3}},{\"id\":\"sp-nc2\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Annual Target Qty\",\"col\":3}},{\"id\":\"sp-nc3\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Annual Target\",\"col\":3}},{\"id\":\"sp-nc4\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Rows Requiring Review\",\"col\":3}},{\"id\":\"sp-ch1\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Planning by Status\",\"col\":6}},{\"id\":\"sp-ch2\",\"type\":\"chart\",\"data\":{\"chart_name\":\"Salesperson Approved Qty\",\"col\":6}},{\"id\":\"sp-h2\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Shortcuts</b></span>\",\"col\":12}},{\"id\":\"sp-s1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Target Planning\",\"col\":4}},{\"id\":\"sp-s2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Performance Analytics\",\"col\":4}},{\"id\":\"sp-s3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Incentive Dashboard\",\"col\":4}},{\"id\":\"sp-s4\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Incentive Payout\",\"col\":4}},{\"id\":\"sp-s5\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Incentive Scheme\",\"col\":4}},{\"id\":\"sp-s6\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Performance Settings\",\"col\":4}},{\"id\":\"sp-s7\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Sales Target Achievement\",\"col\":4}},{\"id\":\"sp-s8\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Monthly Performance\",\"col\":4}},{\"id\":\"sp-s9\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Planning Audit\",\"col\":4}},{\"id\":\"sp-h3\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Masters &amp; Reports</b></span>\",\"col\":12}},{\"id\":\"sp-c1\",\"type\":\"card\",\"data\":{\"card_name\":\"Planning\",\"col\":4}},{\"id\":\"sp-c2\",\"type\":\"card\",\"data\":{\"card_name\":\"Incentives\",\"col\":4}},{\"id\":\"sp-c3\",\"type\":\"card\",\"data\":{\"card_name\":\"Reports\",\"col\":4}}]",
+ "creation": "2026-09-14 00:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "chart-bar",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Sales Performance",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Planning",
+   "link_count": 2,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Target Planning",
+   "link_to": "Sales Target Planning",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Performance Settings",
+   "link_to": "Sales Performance Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Incentives",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Incentive Payout",
+   "link_to": "Sales Incentive Payout",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Incentive Scheme",
+   "link_to": "Incentive Scheme",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Incentive Dashboard",
+   "link_to": "incentive-dashboard",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Performance Analytics",
+   "link_to": "performance-analytics",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Sales Target Achievement",
+   "link_to": "Sales Target Achievement",
+   "link_type": "Report",
+   "onboard": 0,
+   "report_ref_doctype": "Sales Target Planning",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Sales Target Monthly Performance",
+   "link_to": "Sales Target Monthly Performance",
+   "link_type": "Report",
+   "onboard": 0,
+   "report_ref_doctype": "Sales Target Planning",
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Target Planning Audit",
+   "link_to": "Target Planning Audit",
+   "link_type": "Report",
+   "onboard": 0,
+   "report_ref_doctype": "Sales Target Planning",
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-09-15 14:20:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sales Performance",
+ "name": "Sales Performance",
+ "number_cards": [
+  {
+   "label": "Approved Plans",
+   "number_card_name": "Approved Plans"
+  },
+  {
+   "label": "Annual Target Qty",
+   "number_card_name": "Annual Target Qty"
+  },
+  {
+   "label": "Annual Target",
+   "number_card_name": "Annual Target"
+  },
+  {
+   "label": "Rows Requiring Review",
+   "number_card_name": "Rows Requiring Review"
+  }
+ ],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "All"
+  },
+  {
+   "role": "Desk User"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Sales Target User"
+  },
+  {
+   "role": "Sales Target Manager"
+  },
+  {
+   "role": "Sales Target Approver"
+  },
+  {
+   "role": "Sales Performance Manager"
+  },
+  {
+   "role": "Sales Performance Admin"
+  }
+ ],
+ "sequence_id": 8.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Sales Target Planning",
+   "link_to": "Sales Target Planning",
+   "type": "DocType"
+  },
+  {
+   "color": "Purple",
+   "label": "Performance Analytics",
+   "link_to": "performance-analytics",
+   "type": "Page"
+  },
+  {
+   "color": "Orange",
+   "label": "Incentive Dashboard",
+   "link_to": "incentive-dashboard",
+   "type": "Page"
+  },
+  {
+   "color": "Green",
+   "doc_view": "List",
+   "label": "Sales Incentive Payout",
+   "link_to": "Sales Incentive Payout",
+   "type": "DocType"
+  },
+  {
+   "color": "Cyan",
+   "doc_view": "List",
+   "label": "Incentive Scheme",
+   "link_to": "Incentive Scheme",
+   "type": "DocType"
+  },
+  {
+   "color": "Gray",
+   "doc_view": "List",
+   "label": "Sales Performance Settings",
+   "link_to": "Sales Performance Settings",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "label": "Sales Target Achievement",
+   "link_to": "Sales Target Achievement",
+   "report_ref_doctype": "Sales Target Planning",
+   "type": "Report"
+  },
+  {
+   "color": "Green",
+   "label": "Monthly Performance",
+   "link_to": "Sales Target Monthly Performance",
+   "report_ref_doctype": "Sales Target Planning",
+   "type": "Report"
+  },
+  {
+   "color": "Yellow",
+   "label": "Planning Audit",
+   "link_to": "Target Planning Audit",
+   "report_ref_doctype": "Sales Target Planning",
+   "type": "Report"
+  }
+ ],
+ "title": "Sales Performance",
+ "type": "Workspace"
+}
