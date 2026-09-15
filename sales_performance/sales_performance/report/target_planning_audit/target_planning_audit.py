@@ -11,6 +11,7 @@ def execute(filters=None):
 		{"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 110},
 		{"fieldname": "company", "label": _("Company"), "fieldtype": "Link", "options": "Company", "width": 140},
 		{"fieldname": "fiscal_year", "label": _("Fiscal Year"), "fieldtype": "Link", "options": "Fiscal Year", "width": 120},
+		{"fieldname": "customer_group", "label": _("Customer Group"), "fieldtype": "Link", "options": "Customer Group", "width": 140},
 		{"fieldname": "owner", "label": _("Created By"), "fieldtype": "Link", "options": "User", "width": 140},
 		{"fieldname": "creation", "label": _("Created On"), "fieldtype": "Datetime", "width": 150},
 		{"fieldname": "approved_by", "label": _("Approved By"), "fieldtype": "Link", "options": "User", "width": 140},
@@ -27,25 +28,32 @@ def execute(filters=None):
 		flt["fiscal_year"] = filters.fiscal_year
 	if filters.get("status"):
 		flt["status"] = filters.status
+	fields = [
+		"name",
+		"title",
+		"planning_version",
+		"status",
+		"company",
+		"fiscal_year",
+		"owner",
+		"creation",
+		"approved_by",
+		"approved_on",
+		"rows_count",
+		"rows_overridden",
+		"rows_requiring_review",
+		"summary_warnings",
+	]
+	if frappe.db.has_column("Sales Target Planning", "customer_group"):
+		if filters.get("customer_group"):
+			flt["customer_group"] = filters.customer_group
+		fields.append("customer_group")
+	else:
+		columns = [col for col in columns if col["fieldname"] != "customer_group"]
 	data = frappe.get_all(
 		"Sales Target Planning",
 		filters=flt,
-		fields=[
-			"name",
-			"title",
-			"planning_version",
-			"status",
-			"company",
-			"fiscal_year",
-			"owner",
-			"creation",
-			"approved_by",
-			"approved_on",
-			"rows_count",
-			"rows_overridden",
-			"rows_requiring_review",
-			"summary_warnings",
-		],
+		fields=fields,
 		order_by="creation desc",
 	)
 	return columns, data

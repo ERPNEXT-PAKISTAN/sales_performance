@@ -91,7 +91,8 @@ class PerformanceAnalytics {
 			this.set_control_value(this.filters.group_by, "sales_person"),
 		])
 			.then(() => this.set_fiscal_year_default())
-			.then(() => this.wait_for_required());
+			.then(() => this.wait_for_required())
+			.then(() => this.period_visibility());
 	}
 
 	make_filters() {
@@ -100,12 +101,13 @@ class PerformanceAnalytics {
 			["company", "Link", __("Company"), "Company", this.default_company()],
 			["fiscal_year", "Link", __("Fiscal Year"), "Fiscal Year", fy],
 			["period", "Select", __("Incentive Period"), "Monthly\nQuarterly\nAnnual", "Annual"],
-			["group_by", "Select", __("Incentive Group"), "sales_person\nterritory\nitem_group\nitem\nperiod", "sales_person"],
 			["month", "Select", __("Month"), "\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12"],
 			["quarter", "Select", __("Quarter"), "\n1\n2\n3\n4"],
+			["group_by", "Select", __("Incentive Group"), "sales_person\nterritory\nitem_group\ncustomer_group\nitem\nperiod", "sales_person"],
 			["sales_person", "Link", __("Sales Person"), "Sales Person"],
 			["territory", "Link", __("Territory"), "Territory"],
 			["item_group", "Link", __("Item Group"), "Item Group"],
+			["customer_group", "Link", __("Customer Group"), "Customer Group"],
 			["customer", "Link", __("Customer"), "Customer"],
 			["item", "Link", __("Item"), "Item"],
 		];
@@ -113,14 +115,27 @@ class PerformanceAnalytics {
 		const host = this.wrapper.querySelector("#pa-filters");
 		fields.forEach(([name, fieldtype, label, options, value]) => {
 			const parent = document.createElement("div");
+			parent.className = "sp-filter-item";
 			host.appendChild(parent);
 			const control = frappe.ui.form.make_control({
 				parent: $(parent),
 				render_input: true,
-				df: { fieldname: name, fieldtype, label, options, default: value },
+				df: { fieldname: name, fieldtype, label, options, default: value, change: () => this.period_visibility() },
 			});
 			this.filters[name] = control;
 		});
+		if (this.filters.item_group) {
+			this.filters.item_group.df.get_query = () => ({
+				query: "sales_performance.api.planning.item_group_query",
+			});
+		}
+		this.period_visibility();
+	}
+
+	period_visibility() {
+		const period = this.filters.period.get_value();
+		sales_performance.set_filter_visible(this.filters.month, period === "Monthly");
+		sales_performance.set_filter_visible(this.filters.quarter, period === "Quarterly");
 	}
 
 	bind() {
@@ -137,6 +152,7 @@ class PerformanceAnalytics {
 				company: this.filters.company.get_value(),
 				fiscal_year: this.filters.fiscal_year.get_value(),
 				sales_person: this.filters.sales_person.get_value(),
+				customer_group: this.filters.customer_group.get_value(),
 			});
 		});
 		this.wrapper.querySelector("#pa-search").addEventListener("input", () => this.render());
@@ -159,6 +175,7 @@ class PerformanceAnalytics {
 			sales_person: this.filters.sales_person.get_value(),
 			territory: this.filters.territory.get_value(),
 			item_group: this.filters.item_group.get_value(),
+			customer_group: this.filters.customer_group.get_value(),
 			customer: this.filters.customer.get_value(),
 			item: this.filters.item.get_value(),
 		};
@@ -178,32 +195,57 @@ class PerformanceAnalytics {
 			args,
 			freeze: true,
 			freeze_message: __("Loading analytics..."),
-		}).then((r) => {
-			this.data = r.message || {};
-			this.render();
-			this.page.set_indicator(__("Updated"), "green");
-		}).catch(() => this.page.set_indicator(__("Failed"), "red"));
+			callback: (r) => {
+				this.data = r.message || {};
+				this.render();
+				this.page.set_indicator(__("Updated"), "green");
+			},
+			error: () => this.page.set_indicator(__("Failed"), "red"),
+		});
 	}
 
-	n(value, precision = 2) {
-		return Number(value || 0).toLocaleString(undefined, {
-			minimumFractionDigits: precision,
-			maximumFractionDigits: precision,
-		});
+	n(value, precision = 0) {
+		if (precision === 1) {
+			return window.sales_performance
+				? sales_performance.format_percent(value)
+				: format_number(value || 0, null, 1);
+		}
+		return window.sales_performance
+			? sales_performance.format_qty(value)
+			: format_number(value || 0, null, 0);
+	}
+
+	money(value) {
+		return window.sales_performance
+			? sales_performance.format_amount(value)
+			: format_currency(value || 0, frappe.defaults.get_default("currency"), 0);
 	}
 
 	pct(value) {
 		if (value == null || value === "") return "—";
 		const n = Number(value);
-		const klass = n > 0 ? "pa-up" : n < 0 ? "pa-down" : "";
+		const klass = n > 0 ? "sp-ok" : n < 0 ? "sp-bad" : "";
 		const arrow = n > 0 ? "↑" : n < 0 ? "↓" : "";
 		return `<span class="${klass}">${arrow} ${this.n(Math.abs(n), 1)}%</span>`;
 	}
 
-	delta(value) {
+	delta(value, as_money = false) {
 		const n = Number(value || 0);
-		const klass = n > 0 ? "pa-up" : n < 0 ? "pa-down" : "";
-		return `<span class="${klass}">${this.n(n)}</span>`;
+		const klass = n > 0 ? "sp-ok" : n < 0 ? "sp-bad" : "";
+		return `<span class="${klass}">${as_money ? this.money(n) : this.n(n)}</span>`;
+	}
+
+	ach(value) {
+		if (value == null || value === "") return "—";
+		const n = Number(value);
+		const klass = n >= 100 ? "sp-ok" : "sp-bad";
+		return `<span class="${klass}">${this.n(n, 1)}%</span>`;
+	}
+
+	inc(value, as_money = false) {
+		const n = Number(value || 0);
+		const html = as_money ? this.money(n) : this.n(n);
+		return n > 0 ? `<span class="sp-ok">${html}</span>` : html;
 	}
 
 	render() {
@@ -254,32 +296,32 @@ class PerformanceAnalytics {
 		const p = (this.data.payout && this.data.payout.totals) || {};
 		if (this.tab === "incentive") {
 			return [
-				[__("Incentive"), this.n(i.incentive_amount)],
-				[__("Min band"), this.n(i.min_incentive_amount)],
-				[__("Max band"), this.n(i.max_incentive_amount)],
-				[__("Target Amt"), this.n(i.target_amount)],
-				[__("Actual Amt"), this.n(i.actual_amount)],
-				[__("Qty Ach %"), `${this.n(i.qty_achievement_percent, 1)}%`],
+				[__("Incentive"), this.money(i.incentive_amount)],
+				[__("Min band"), this.money(i.min_incentive_amount)],
+				[__("Max band"), this.money(i.max_incentive_amount)],
+				[__("Target Qty"), this.n(i.target_qty, 0)],
+				[__("Target Amt"), this.money(i.target_amount)],
+				[__("Qty Ach %"), this.ach(i.qty_achievement_percent)],
 			];
 		}
 		if (this.tab === "payout") {
 			return [
 				[__("Payouts"), this.n(p.count, 0)],
-				[__("Draft"), this.n(p.draft)],
-				[__("Accrued"), this.n(p.accrued)],
-				[__("Paid"), this.n(p.paid)],
-				[__("Not Paid"), this.n(p.unpaid)],
-				[__("Incentive calc"), this.n(i.incentive_amount)],
+				[__("Draft"), this.money(p.draft)],
+				[__("Accrued"), this.money(p.accrued)],
+				[__("Paid"), this.money(p.paid)],
+				[__("Not Paid"), this.money(p.unpaid)],
+				[__("Incentive calc"), this.money(i.incentive_amount)],
 			];
 		}
 		const o = this.summarize(this.tab_rows());
 		return [
-			[__("Previous Year Amt"), this.n(o.previous_amount)],
-			[__("This Year Amt"), this.n(o.current_amount)],
-			[__("Amount Δ"), this.delta(o.amount_variance)],
-			[__("Amount %"), this.pct(o.amount_variance_percent)],
-			[__("Plan Growth %"), this.plan_pct(o.growth_percent)],
-			[__("Up / Down"), `${o.up_count || 0} / ${o.down_count || 0}`],
+			[__("Previous Year Amt"), this.money(o.previous_amount)],
+			[__("This Year Amt"), this.money(o.current_amount)],
+			[__("Target Qty"), this.n(o.target_qty, 0)],
+			[__("Target Amt"), this.money(o.target_amount)],
+			[__("Qty Ach %"), this.ach(o.qty_achievement_percent)],
+			[__("Amt Ach %"), this.ach(o.amount_achievement_percent)],
 		];
 	}
 
@@ -295,6 +337,7 @@ class PerformanceAnalytics {
 			sales_person: "by_sales_person",
 			territory: "by_territory",
 			item_group: "by_item_group",
+			customer_group: "by_customer_group",
 			item: "by_item",
 			period: "by_period",
 		};
@@ -313,6 +356,7 @@ class PerformanceAnalytics {
 			salesperson: this.sales_rows("sales_person"),
 			territory: this.sales_rows("territory"),
 			itemgroup: this.sales_rows("item_group"),
+			customergroup: this.sales_rows("customer_group"),
 			item: this.sales_rows("item"),
 			customer: this.sales_rows("customer"),
 			incentive: this.incentive_rows(),
@@ -344,7 +388,21 @@ class PerformanceAnalytics {
 			host.innerHTML = `<div class="pa-empty" style="display:block">${__("No chart data")}</div>`;
 			return;
 		}
-		new frappe.Chart(host, { data: { labels, datasets }, type: type === "bar" ? "bar" : "line", height: 240, colors: ["#2490ef", "#98d1ff"] });
+		const chart = new frappe.Chart(
+			host,
+			Object.assign(
+				{
+					data: { labels, datasets },
+					type: type === "bar" ? "bar" : "line",
+					height: 240,
+					colors: ["#2490ef", "#98d1ff"],
+				},
+				sales_performance.chart_number_opts(0)
+			)
+		);
+		if (sales_performance.finish_chart) {
+			sales_performance.finish_chart(chart);
+		}
 	}
 
 	render_table() {
@@ -358,6 +416,7 @@ class PerformanceAnalytics {
 			salesperson: __("Sales Person"),
 			territory: __("Territory"),
 			itemgroup: __("Item Group"),
+			customergroup: __("Customer Group"),
 			item: __("Item"),
 			customer: __("Customer"),
 		};
@@ -388,14 +447,14 @@ class PerformanceAnalytics {
 				<td>${this.plan_pct(r.growth_percent)}</td>
 				<td>${this.n(r.previous_qty, 0)}</td>
 				<td>${this.n(r.current_qty, 0)}</td>
+				<td>${this.n(r.target_qty, 0)}</td>
 				<td>${this.delta(r.qty_variance)}</td>
-				<td>${this.pct(r.qty_variance_percent)}</td>
-				<td>${this.n(r.previous_amount)}</td>
-				<td>${this.n(r.current_amount)}</td>
-				<td>${this.delta(r.amount_variance)}</td>
-				<td>${this.pct(r.amount_variance_percent)}</td>
-				<td>${this.n(r.target_amount)}</td>
-				<td>${r.amount_achievement_percent == null ? "—" : `${this.n(r.amount_achievement_percent, 1)}%`}</td>
+				<td>${this.ach(r.qty_achievement_percent)}</td>
+				<td>${this.money(r.previous_amount)}</td>
+				<td>${this.money(r.current_amount)}</td>
+				<td>${this.money(r.target_amount)}</td>
+				<td>${this.delta(r.amount_variance, true)}</td>
+				<td>${this.ach(r.amount_achievement_percent)}</td>
 			</tr>`
 			)
 			.join("");
@@ -403,9 +462,8 @@ class PerformanceAnalytics {
 			<thead><tr>
 				<th>${__("Name")}</th>
 				<th>${__("Growth %")}</th>
-				<th>${__("PY Qty")}</th><th>${__("TY Qty")}</th><th>${__("Qty Δ")}</th><th>${__("Qty %")}</th>
-				<th>${__("PY Amt")}</th><th>${__("TY Amt")}</th><th>${__("Amt Δ")}</th><th>${__("Amt %")}</th>
-				<th>${__("Target Amt")}</th><th>${__("Amt Ach %")}</th>
+				<th>${__("PY Qty")}</th><th>${__("TY Qty")}</th><th>${__("Target Qty")}</th><th>${__("Qty Δ")}</th><th>${__("Qty Ach %")}</th>
+				<th>${__("PY Amt")}</th><th>${__("TY Amt")}</th><th>${__("Target Amt")}</th><th>${__("Amt Δ")}</th><th>${__("Amt Ach %")}</th>
 			</tr></thead>
 			<tbody>${body}</tbody>
 			<tfoot><tr>
@@ -413,14 +471,14 @@ class PerformanceAnalytics {
 				<td>${this.plan_pct(tot.growth_percent)}</td>
 				<td>${this.n(tot.previous_qty, 0)}</td>
 				<td>${this.n(tot.current_qty, 0)}</td>
+				<td>${this.n(tot.target_qty, 0)}</td>
 				<td>${this.delta(tot.qty_variance)}</td>
-				<td>${this.pct(tot.qty_variance_percent)}</td>
-				<td>${this.n(tot.previous_amount)}</td>
-				<td>${this.n(tot.current_amount)}</td>
-				<td>${this.delta(tot.amount_variance)}</td>
-				<td>${this.pct(tot.amount_variance_percent)}</td>
-				<td>${this.n(tot.target_amount)}</td>
-				<td>${tot.amount_achievement_percent == null ? "—" : `${this.n(tot.amount_achievement_percent, 1)}%`}</td>
+				<td>${this.ach(tot.qty_achievement_percent)}</td>
+				<td>${this.money(tot.previous_amount)}</td>
+				<td>${this.money(tot.current_amount)}</td>
+				<td>${this.money(tot.target_amount)}</td>
+				<td>${this.delta(tot.amount_variance, true)}</td>
+				<td>${this.ach(tot.amount_achievement_percent)}</td>
 			</tr></tfoot>
 		</table></div>`;
 	}
@@ -433,14 +491,15 @@ class PerformanceAnalytics {
 				<td>${esc(r.dimension)}</td>
 				<td>${this.n(r.target_qty, 0)}</td>
 				<td>${this.n(r.actual_qty, 0)}</td>
-				<td>${r.qty_achievement_percent == null ? "—" : `${this.n(r.qty_achievement_percent, 1)}%`}</td>
-				<td>${this.n(r.target_amount)}</td>
-				<td>${this.n(r.actual_amount)}</td>
-				<td>${this.n(r.min_incentive_amount)}</td>
-				<td>${this.n(r.max_incentive_amount)}</td>
-				<td>${this.n(r.incentive_on_amount)}</td>
-				<td>${this.n(r.incentive_on_qty)}</td>
-				<td>${this.n(r.incentive_amount)}</td>
+				<td>${this.ach(r.qty_achievement_percent)}</td>
+				<td>${this.money(r.target_amount)}</td>
+				<td>${this.money(r.actual_amount)}</td>
+				<td>${this.ach(r.amount_achievement_percent)}</td>
+				<td>${this.inc(r.min_incentive_amount, true)}</td>
+				<td>${this.inc(r.max_incentive_amount, true)}</td>
+				<td>${this.inc(r.incentive_on_amount, true)}</td>
+				<td>${this.inc(r.incentive_on_qty)}</td>
+				<td>${this.inc(r.incentive_amount, true)}</td>
 			</tr>`
 			)
 			.join("");
@@ -448,7 +507,7 @@ class PerformanceAnalytics {
 			<thead><tr>
 				<th>${__("Name")}</th>
 				<th>${__("Target Qty")}</th><th>${__("Actual Qty")}</th><th>${__("Qty Ach %")}</th>
-				<th>${__("Target Amt")}</th><th>${__("Actual Amt")}</th>
+				<th>${__("Target Amt")}</th><th>${__("Actual Amt")}</th><th>${__("Amt Ach %")}</th>
 				<th>${__("Min Incentive")}</th><th>${__("Max Incentive")}</th>
 				<th>${__("Incentive on Amount")}</th><th>${__("Incentive on Qty")}</th><th>${__("Payable")}</th>
 			</tr></thead>
@@ -468,7 +527,7 @@ class PerformanceAnalytics {
 				(r) => `<tr>
 				<td>${esc(r.dimension)}</td>
 				<td>${this.n(r.rows, 0)}</td>
-				<td>${this.n(r.incentive_amount)}</td>
+				<td>${this.money(r.incentive_amount)}</td>
 			</tr>`
 			)
 			.join("");
@@ -479,7 +538,7 @@ class PerformanceAnalytics {
 				<td>${esc(d.sales_person)}</td>
 				<td>${esc(d.period || "")} ${esc(d.month || "")}</td>
 				<td>${esc(d.payment_status || (d.docstatus === 1 ? "Submitted" : "Draft"))}</td>
-				<td>${this.n(d.total_incentive_amount)}</td>
+				<td>${this.money(d.total_incentive_amount)}</td>
 			</tr>`
 			)
 			.join("");

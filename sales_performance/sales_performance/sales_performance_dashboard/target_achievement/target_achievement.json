@@ -1,0 +1,26 @@
+{
+ "cards": [
+  { "card": "Item Groups Achieved" },
+  { "card": "Item Groups Not Achieved" },
+  { "card": "Items Achieved" },
+  { "card": "Items Not Achieved" }
+ ],
+ "charts": [
+  {
+   "chart": "Item Groups vs Items Achievement",
+   "width": "Full"
+  }
+ ],
+ "creation": "2026-09-15 23:00:00",
+ "dashboard_name": "Target Achievement",
+ "docstatus": 0,
+ "doctype": "Dashboard",
+ "idx": 0,
+ "is_default": 0,
+ "is_standard": 1,
+ "modified": "2026-09-15 23:00:00",
+ "modified_by": "Administrator",
+ "module": "Sales Performance",
+ "name": "Target Achievement",
+ "owner": "Administrator"
+}

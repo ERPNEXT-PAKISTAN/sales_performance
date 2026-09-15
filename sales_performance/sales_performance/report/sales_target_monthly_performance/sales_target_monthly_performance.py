@@ -2,11 +2,11 @@ import frappe
 from frappe import _
 from frappe.utils import getdate
 
-from sales_performance.services.achievement_engine import compute_metrics
 from sales_performance.services.distribution_engine import MONTHS
-from sales_performance.services.incentive_engine import collect_period_incentive_rows, scheme_settings
+from sales_performance.services.incentive_engine import apply_scheme_payout, collect_period_incentive_rows, scheme_settings
 from sales_performance.services.numbers import nflt
 from sales_performance.services.planning_engine import fiscal_year_dates
+from sales_performance.services.precision import round_percent
 
 
 def execute(filters=None):
@@ -17,23 +17,26 @@ def execute(filters=None):
 
 
 def get_columns():
+	qty = {"fieldtype": "Float", "precision": 0, "width": 120}
+	amt = {"fieldtype": "Currency", "precision": 0, "width": 130}
+	pct = {"fieldtype": "Percent", "precision": 1, "width": 150}
 	return [
 		{"fieldname": "period", "label": _("Period"), "fieldtype": "Data", "width": 120},
-		{"fieldname": "growth_percent", "label": _("Growth %"), "fieldtype": "Percent", "width": 110},
-		{"fieldname": "target_qty", "label": _("Target Qty"), "fieldtype": "Float", "width": 120},
-		{"fieldname": "actual_qty", "label": _("Actual Qty"), "fieldtype": "Float", "width": 120},
-		{"fieldname": "qty_achievement_percent", "label": _("Qty Achievement %"), "fieldtype": "Percent", "width": 150},
-		{"fieldname": "target_amount", "label": _("Target Amount"), "fieldtype": "Currency", "width": 130},
-		{"fieldname": "actual_amount", "label": _("Actual Amount"), "fieldtype": "Currency", "width": 130},
-		{"fieldname": "amount_achievement_percent", "label": _("Amount Achievement %"), "fieldtype": "Percent", "width": 160},
+		{"fieldname": "growth_percent", "label": _("Growth %"), **pct, "width": 110},
+		{"fieldname": "target_qty", "label": _("Target Qty"), **qty},
+		{"fieldname": "actual_qty", "label": _("Actual Qty"), **qty},
+		{"fieldname": "qty_achievement_percent", "label": _("Qty Achievement %"), **pct},
+		{"fieldname": "target_amount", "label": _("Target Amount"), **amt},
+		{"fieldname": "actual_amount", "label": _("Actual Amount"), **amt},
+		{"fieldname": "amount_achievement_percent", "label": _("Amount Achievement %"), **pct, "width": 160},
 		{"fieldname": "pay_on", "label": _("Pay On"), "fieldtype": "Data", "width": 90},
-		{"fieldname": "incentive_rate_percent", "label": _("Incentive %"), "fieldtype": "Percent", "width": 110},
-		{"fieldname": "incentive_on_amount", "label": _("Incentive on Amount"), "fieldtype": "Currency", "width": 160},
-		{"fieldname": "incentive_on_qty", "label": _("Incentive on Qty"), "fieldtype": "Float", "width": 150},
-		{"fieldname": "incentive_amount", "label": _("Payable Incentive"), "fieldtype": "Currency", "width": 150},
+		{"fieldname": "incentive_rate_percent", "label": _("Incentive %"), **pct, "width": 110},
+		{"fieldname": "incentive_on_amount", "label": _("Incentive on Amount"), **amt, "width": 160},
+		{"fieldname": "incentive_on_qty", "label": _("Incentive on Qty"), **qty, "width": 150},
+		{"fieldname": "incentive_amount", "label": _("Payable Incentive"), **amt, "width": 150},
 		{"fieldname": "incentive_band", "label": _("Incentive Band"), "fieldtype": "Data", "width": 110},
-		{"fieldname": "variance_qty", "label": _("Variance Qty"), "fieldtype": "Float", "width": 110},
-		{"fieldname": "variance_amount", "label": _("Variance Amount"), "fieldtype": "Currency", "width": 130},
+		{"fieldname": "variance_qty", "label": _("Variance Qty"), **qty, "width": 110},
+		{"fieldname": "variance_amount", "label": _("Variance Amount"), **amt},
 	]
 
 
@@ -58,7 +61,7 @@ def get_data(filters):
 
 	today = getdate()
 	ytd_month = today.month if (getdate(start) <= today <= getdate(end)) else 12
-	_, _, pay_on = scheme_settings(filters)
+	slabs, based_on, pay_on = scheme_settings(filters)
 
 	def pack(label, month_numbers):
 		wanted = {int(m) for m in month_numbers}
@@ -67,32 +70,16 @@ def get_data(filters):
 		actual_qty = sum(nflt(r.get("actual_qty")) for r in subset)
 		target_amount = sum(nflt(r.get("target_amount")) for r in subset)
 		actual_amount = sum(nflt(r.get("actual_amount")) for r in subset)
-		row = compute_metrics(target_qty, actual_qty, target_amount, actual_amount)
-		row["incentive_amount"] = nflt(sum(nflt(r.get("incentive_amount")) for r in subset))
-		row["incentive_qty"] = nflt(sum(nflt(r.get("incentive_qty")) for r in subset))
-		row["incentive_on_amount"] = nflt(sum(nflt(r.get("incentive_on_amount")) for r in subset))
-		row["incentive_on_qty"] = nflt(sum(nflt(r.get("incentive_on_qty")) for r in subset))
-		row["pay_on"] = (subset[0].get("pay_on") if subset else pay_on) or pay_on
-		surplus = sum(
-			max(nflt(r.get("actual_amount")) - nflt(r.get("target_amount")), 0) for r in subset
+		row = apply_scheme_payout(
+			target_qty, actual_qty, target_amount, actual_amount, slabs, based_on, pay_on
 		)
-		weighted = sum(
-			nflt(r.get("incentive_rate_percent"))
-			* max(nflt(r.get("actual_amount")) - nflt(r.get("target_amount")), 0)
-			for r in subset
-		)
-		row["incentive_rate_percent"] = nflt(weighted / surplus, 2) if surplus else nflt(
-			(subset[0].get("incentive_rate_percent") if subset else 0)
-		)
-		bands = {r.get("incentive_band") for r in subset if r.get("incentive_band")}
-		row["incentive_band"] = next(iter(bands)) if len(bands) == 1 else ("Mixed" if bands else "")
 		growth_weight = sum(nflt(r.get("target_qty")) or 1 for r in subset if r.get("growth_percent") not in (None, ""))
 		growth_weighted = sum(
 			nflt(r.get("growth_percent")) * (nflt(r.get("target_qty")) or 1)
 			for r in subset
 			if r.get("growth_percent") not in (None, "")
 		)
-		row["growth_percent"] = nflt(growth_weighted / growth_weight, 2) if growth_weight else None
+		row["growth_percent"] = round_percent(growth_weighted / growth_weight) if growth_weight else None
 		row["period"] = label
 		return row
 

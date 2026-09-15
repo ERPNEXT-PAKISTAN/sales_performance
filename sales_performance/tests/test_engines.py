@@ -12,9 +12,14 @@ from sales_performance.services.distribution_engine import (
 	reconcile_to_total,
 	same_month_previous_year,
 )
-from sales_performance.services.growth_engine import apply_growth, resolve_growth_percent
+from sales_performance.services.growth_engine import (
+	apply_growth,
+	growth_rule_covers_item_group,
+	item_group_in_subtree,
+	resolve_growth_percent,
+)
 from sales_performance.services.historical_sales import rollup_monthly
-from sales_performance.services.planning_engine import apply_row_override
+from sales_performance.services.planning_engine import apply_row_override, complete_monthly_row
 from sales_performance.services.pricing_engine import average_selling_price
 from sales_performance.services.target_sync import _match_child, planning_key
 
@@ -38,6 +43,18 @@ class TestGrowth(unittest.TestCase):
 		self.assertEqual(pct, 15)
 		self.assertEqual(src, "GI Coil")
 
+	def test_item_group_subtree_and_rule_scope(self):
+		ancestors = ["GI Coil 0.6", "GI Coil", "All"]
+		self.assertTrue(item_group_in_subtree("GI Coil 0.6", "GI Coil", ancestors))
+		self.assertTrue(item_group_in_subtree("GI Coil", "GI Coil", ancestors))
+		self.assertFalse(item_group_in_subtree("CR Coil", "GI Coil", ["CR Coil", "All"]))
+		rules = [{"item_group": "GI Coil", "growth_percent": 10, "apply_to_children": 1, "priority": 1}]
+		self.assertTrue(growth_rule_covers_item_group("GI Coil 0.6", rules, ancestors))
+		self.assertFalse(growth_rule_covers_item_group("CR Coil", rules, ["CR Coil", "All"]))
+		exact_only = [{"item_group": "GI Coil", "growth_percent": 10, "apply_to_children": 0, "priority": 1}]
+		self.assertFalse(growth_rule_covers_item_group("GI Coil 0.6", exact_only, ancestors))
+		self.assertTrue(growth_rule_covers_item_group("GI Coil", exact_only, ["GI Coil", "All"]))
+
 
 class TestHistoricalNetting(unittest.TestCase):
 	def test_returns_reduce_qty_and_amount(self):
@@ -48,6 +65,7 @@ class TestHistoricalNetting(unittest.TestCase):
 				"item_code": "GI",
 				"item_name": "GI Coil",
 				"item_group": "GI Coil",
+				"customer_group": "Commercial",
 				"uom": "Kg",
 				"month_number": 1,
 				"qty": 100,
@@ -59,6 +77,7 @@ class TestHistoricalNetting(unittest.TestCase):
 				"item_code": "GI",
 				"item_name": "GI Coil",
 				"item_group": "GI Coil",
+				"customer_group": "Commercial",
 				"uom": "Kg",
 				"month_number": 1,
 				"qty": -20,
@@ -69,6 +88,7 @@ class TestHistoricalNetting(unittest.TestCase):
 		grain = out[("SP", "T", "GI")]
 		self.assertEqual(grain["qty"], 80)
 		self.assertEqual(grain["amount"], 19200)
+		self.assertEqual(grain["customer_group"], "Commercial")
 
 	def test_item_only_grain_matches_sales_target_report(self):
 		rows = [
@@ -78,6 +98,7 @@ class TestHistoricalNetting(unittest.TestCase):
 				"item_code": "GI",
 				"item_name": "GI Coil",
 				"item_group": "GI Coil",
+				"customer_group": "Commercial",
 				"uom": "Kg",
 				"month_number": 0,
 				"qty": 50,
@@ -89,6 +110,7 @@ class TestHistoricalNetting(unittest.TestCase):
 				"item_code": "GI",
 				"item_name": "GI Coil",
 				"item_group": "GI Coil",
+				"customer_group": "Commercial",
 				"uom": "Kg",
 				"month_number": 0,
 				"qty": 30,
@@ -109,6 +131,7 @@ class TestHistoricalNetting(unittest.TestCase):
 				"item_code": "GI",
 				"item_name": "GI Coil",
 				"item_group": "GI Coil",
+				"customer_group": "Commercial",
 				"uom": "Kg",
 				"month_number": 0,
 				"qty": 50,
@@ -120,6 +143,7 @@ class TestHistoricalNetting(unittest.TestCase):
 				"item_code": "GI",
 				"item_name": "GI Coil",
 				"item_group": "GI Coil",
+				"customer_group": "Commercial",
 				"uom": "Kg",
 				"month_number": 0,
 				"qty": 30,
@@ -209,7 +233,40 @@ class TestOverride(unittest.TestCase):
 		apply_row_override(row)
 		self.assertEqual(row.calculated_target_qty, 11500)
 		self.assertEqual(row.approved_target_amount, 3120000)
-		self.assertAlmostEqual(row.override_percent, (12000 - 11500) / 11500 * 100, places=2)
+		self.assertAlmostEqual(row.override_percent, 4.3, places=1)
+
+
+class TestMonthlyRowFields(unittest.TestCase):
+	def test_fills_rate_previous_actual_and_variance(self):
+		row = {
+			"row_key": "abc",
+			"sales_person": "Ali",
+			"item_code": "GI",
+			"item_group": "GI Coil",
+			"customer_group": "Commercial",
+			"approved_target_rate": 260,
+		}
+		month = {
+			"month": "January",
+			"month_number": 1,
+			"target_qty": 100,
+			"target_amount": 0,
+			"target_rate": 0,
+			"distribution_percent": 8.3,
+		}
+		grain = {"month_qty": {1: 90}, "month_amount": {1: 18000}}
+		actual = {"month_qty": {1: 80}, "month_amount": {1: 20000}}
+		out = complete_monthly_row(row, month, grain, actual)
+		self.assertEqual(out["target_rate"], 260)
+		self.assertEqual(out["target_amount"], 26000)
+		self.assertEqual(out["previous_year_qty"], 90)
+		self.assertEqual(out["previous_year_amount"], 18000)
+		self.assertEqual(out["actual_qty"], 80)
+		self.assertEqual(out["actual_amount"], 20000)
+		self.assertEqual(out["qty_variance"], -20)
+		self.assertEqual(out["amount_variance"], -6000)
+		self.assertEqual(out["qty_achievement_percent"], 80.0)
+		self.assertEqual(out["customer_group"], "Commercial")
 
 
 class TestAchievement(unittest.TestCase):
@@ -245,15 +302,19 @@ class TestIncentiveBands(unittest.TestCase):
 		from sales_performance.services.incentive_engine import incentive_on_surplus
 
 		payout = incentive_on_surplus(120, 100, 24000, 20000, 2, pay_on="Amount")
-		self.assertEqual(payout["incentive_qty"], 0.4)
+		self.assertEqual(payout["incentive_qty"], 0)
+		self.assertEqual(payout["incentive_on_qty"], 0)
 		self.assertEqual(payout["incentive_amount"], 80)
 		self.assertEqual(payout["incentive_on_amount"], 80)
-		self.assertEqual(payout["incentive_on_qty"], 0.4)
 		qty_pay = incentive_on_surplus(120, 100, 30000, 20000, 2, pay_on="Qty")
-		self.assertEqual(qty_pay["incentive_on_amount"], 200)
+		self.assertEqual(qty_pay["incentive_on_amount"], 0)
 		self.assertEqual(qty_pay["incentive_on_qty"], 0.4)
 		self.assertEqual(qty_pay["incentive_amount"], 0.4)
 		self.assertEqual(qty_pay["pay_on"], "Qty")
+		missed = incentive_on_surplus(80, 100, 16000, 20000, 2, pay_on="Amount")
+		self.assertEqual(missed["incentive_amount"], 0)
+		self.assertEqual(missed["incentive_on_amount"], 0)
+		self.assertEqual(missed["incentive_on_qty"], 0)
 
 
 class TestIncentivePayoutSummary(unittest.TestCase):
@@ -281,7 +342,7 @@ class TestPeriodBuckets(unittest.TestCase):
 		self.assertEqual(period_buckets("Quarterly", quarter=2), [("Q2", [4, 5, 6])])
 		self.assertEqual(period_buckets("Annual"), [("Annual", list(range(1, 13)))])
 
-	def test_annual_incentive_keeps_monthly_earnings(self):
+	def test_period_total_must_beat_target(self):
 		from sales_performance.services.incentive_engine import metrics_with_monthly_incentive
 
 		slabs = [
@@ -296,7 +357,7 @@ class TestPeriodBuckets(unittest.TestCase):
 			1: {"target_qty": 100, "target_amount": 10000},
 			2: {"target_qty": 100, "target_amount": 10000},
 		}
-		# Month 1 beats target; month 2 is zero. Net year actual = year target.
+		# Month 1 beats target; month 2 is zero. Period total is not above target.
 		row = metrics_with_monthly_incentive(
 			month_target,
 			{1: 200, 2: 0},
@@ -308,8 +369,77 @@ class TestPeriodBuckets(unittest.TestCase):
 		)
 		self.assertEqual(row["actual_amount"], 20000)
 		self.assertEqual(row["target_amount"], 20000)
-		self.assertEqual(row["incentive_amount"], 500)
-		self.assertGreater(row["incentive_amount"], 0)
+		self.assertEqual(row["incentive_amount"], 0)
+		self.assertEqual(row["incentive_on_qty"], 0)
+
+		beat = metrics_with_monthly_incentive(
+			month_target,
+			{1: 200, 2: 100},
+			{1: 20000, 2: 12000},
+			[1, 2],
+			slabs,
+			"Qty Achievement",
+			"Amount",
+		)
+		self.assertEqual(beat["incentive_amount"], 600)
+		self.assertEqual(beat["incentive_on_qty"], 0)
+
+	def test_grouped_row_uses_scheme_on_totals(self):
+		from sales_performance.services.incentive_engine import group_dashboard_rows
+
+		slabs = [
+			{
+				"min_achievement_percent": 100,
+				"min_incentive_percent": 2,
+				"max_achievement_percent": 100,
+				"max_incentive_percent": 2,
+			}
+		]
+		rows = [
+			{
+				"sales_person": "Ali",
+				"target_qty": 100,
+				"actual_qty": 150,
+				"target_amount": 10000,
+				"actual_amount": 15000,
+				"incentive_amount": 100,
+				"incentive_on_amount": 100,
+				"incentive_on_qty": 1,
+			},
+			{
+				"sales_person": "Ali",
+				"target_qty": 100,
+				"actual_qty": 40,
+				"target_amount": 10000,
+				"actual_amount": 4000,
+				"incentive_amount": 0,
+			},
+		]
+		grouped = group_dashboard_rows(rows, "sales_person", slabs, "Qty Achievement", "Amount")
+		self.assertEqual(len(grouped), 1)
+		self.assertEqual(grouped[0]["actual_qty"], 190)
+		self.assertEqual(grouped[0]["target_qty"], 200)
+		self.assertEqual(grouped[0]["incentive_amount"], 0)
+		self.assertEqual(grouped[0]["incentive_on_qty"], 0)
+
+
+class TestAchievementBoardSplit(unittest.TestCase):
+	def test_qty_amount_and_both(self):
+		from sales_performance.sales_performance.page.target_achievement.target_achievement import (
+			row_achieved,
+			split_rows,
+		)
+
+		over_qty = {"dimension": "A", "qty_achievement_percent": 110, "amount_achievement_percent": 90}
+		over_both = {"dimension": "B", "qty_achievement_percent": 120, "amount_achievement_percent": 105}
+		under = {"dimension": "C", "qty_achievement_percent": 80, "amount_achievement_percent": 70}
+		self.assertTrue(row_achieved(over_qty, "Qty"))
+		self.assertFalse(row_achieved(over_qty, "Amount"))
+		self.assertFalse(row_achieved(over_qty, "Both"))
+		self.assertTrue(row_achieved(over_both, "Both"))
+		ok, miss = split_rows([over_qty, over_both, under], "Qty")
+		self.assertEqual([r["dimension"] for r in ok], ["B", "A"])
+		self.assertEqual([r["dimension"] for r in miss], ["C"])
 
 
 class TestDuplicatePrevention(unittest.TestCase):
@@ -346,7 +476,7 @@ class TestAnalysisVariance(unittest.TestCase):
 			[{"dimension": "Ali", "qty": 100, "amount": 2000}],
 			{"Ali": {"qty": 110, "amount": 2200, "growth_percent": 10}},
 		)
-		self.assertEqual(merged[0]["qty_achievement_percent"], 109.09)
+		self.assertEqual(merged[0]["qty_achievement_percent"], 109.1)
 		self.assertEqual(merged[0]["growth_percent"], 10)
 
 

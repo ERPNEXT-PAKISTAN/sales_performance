@@ -3,7 +3,11 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, getdate, today
 
-from sales_performance.services.incentive_engine import collect_period_incentive_rows, summarize_payout_by_sales_person
+from sales_performance.services.incentive_engine import (
+	collect_period_incentive_rows,
+	scheme_settings,
+	summarize_payout_by_sales_person,
+)
 from sales_performance.services.planning_engine import fiscal_year_dates
 
 
@@ -104,13 +108,21 @@ class SalesIncentivePayout(Document):
 				"from_date": start,
 				"to_date": end,
 				"sales_person": self.sales_person,
+				"customer_group": self.customer_group,
 				"period": self.period or "Monthly",
 				"month": self.month,
 				"quarter": self.quarter,
 				"pay_on": self.pay_on or "Amount",
 			}
 		)
-		summary = summarize_payout_by_sales_person(rows)
+		slabs, based_on, pay_on = scheme_settings(
+			{
+				"company": self.company,
+				"fiscal_year": self.fiscal_year,
+				"pay_on": self.pay_on or "Amount",
+			}
+		)
+		summary = summarize_payout_by_sales_person(rows, slabs, based_on, pay_on)
 		self.set("items", [])
 		for row in summary:
 			employee = None
@@ -121,6 +133,7 @@ class SalesIncentivePayout(Document):
 				continue
 			child = self.append("items", {})
 			child.sales_person = row.get("sales_person") or None
+			child.customer_group = row.get("customer_group") or self.customer_group or None
 			child.employee = employee
 			child.period = row.get("period")
 			child.incentive_band = row.get("incentive_band")

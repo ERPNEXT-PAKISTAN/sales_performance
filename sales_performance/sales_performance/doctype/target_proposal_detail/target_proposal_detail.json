@@ -11,6 +11,7 @@
   "item_code",
   "item_name",
   "item_group",
+  "customer_group",
   "uom",
   "cb_hist",
   "previous_year_target_qty",
@@ -91,6 +92,14 @@
    "fetch_from": "item_code.item_group"
   },
   {
+   "fieldname": "customer_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer Group",
+   "options": "Customer Group"
+  },
+  {
    "fieldname": "uom",
    "fieldtype": "Link",
    "options": "UOM",
@@ -105,28 +114,32 @@
    "fieldname": "previous_year_target_qty",
    "fieldtype": "Float",
    "label": "Previous Year Target Qty",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 0
   },
   {
    "fieldname": "previous_year_actual_qty",
    "fieldtype": "Float",
    "label": "Previous Year Actual Qty",
    "read_only": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "precision": 0
   },
   {
    "fieldname": "previous_year_target_amount",
    "fieldtype": "Currency",
    "label": "Previous Year Target Amount",
    "read_only": 1,
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "precision": 0
   },
   {
    "fieldname": "previous_year_actual_amount",
    "fieldtype": "Currency",
    "label": "Previous Year Actual Amount",
    "read_only": 1,
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "precision": 0
   },
   {
    "fieldname": "sec_calc",
@@ -137,14 +150,16 @@
    "fieldname": "growth_percent",
    "fieldtype": "Percent",
    "label": "Growth %",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 1
   },
   {
    "fieldname": "calculated_target_qty",
    "fieldtype": "Float",
    "label": "Calculated Target Qty",
    "read_only": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "precision": 0
   },
   {
    "fieldname": "pricing_method",
@@ -164,13 +179,15 @@
    "fieldtype": "Currency",
    "label": "Source Rate",
    "read_only": 1,
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "precision": 0
   },
   {
    "fieldname": "target_selling_rate",
    "fieldtype": "Currency",
    "label": "Target Selling Rate",
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "precision": 0
   },
   {
    "fieldname": "calculated_target_amount",
@@ -178,7 +195,8 @@
    "label": "Calculated Target Amount",
    "read_only": 1,
    "in_list_view": 1,
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "precision": 0
   },
   {
    "fieldname": "price_source",
@@ -201,26 +219,30 @@
    "fieldname": "approved_target_qty",
    "fieldtype": "Float",
    "label": "Approved Target Qty",
-   "in_list_view": 1
+   "in_list_view": 1,
+   "precision": 0
   },
   {
    "fieldname": "approved_target_rate",
    "fieldtype": "Currency",
    "label": "Approved Target Rate",
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "precision": 0
   },
   {
    "fieldname": "approved_target_amount",
    "fieldtype": "Currency",
    "label": "Approved Target Amount",
    "read_only": 1,
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "precision": 0
   },
   {
    "fieldname": "override_percent",
    "fieldtype": "Percent",
    "label": "Override %",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 1
   },
   {
    "fieldname": "override_reason",
@@ -265,6 +287,7 @@
   }
  ],
  "istable": 1,
+ "modified": "2026-09-15 22:35:00.000000",
  "module": "Sales Performance",
  "name": "Target Proposal Detail",
  "owner": "Administrator",

@@ -6,6 +6,7 @@ from sales_performance.services.incentive_engine import (
 	collect_period_incentive_rows,
 	dashboard_totals,
 	group_dashboard_rows,
+	scheme_settings,
 )
 
 
@@ -33,48 +34,38 @@ def get_dashboard_data(
 	sales_person=None,
 	territory=None,
 	item_group=None,
+	customer_group=None,
 	item=None,
 ):
 	if not company or not fiscal_year:
 		frappe.throw(_("Company and Fiscal Year are required"))
 
-	rows = collect_period_incentive_rows(
-		{
-			"company": company,
-			"fiscal_year": fiscal_year,
-			"period": period or "Monthly",
-			"month": month,
-			"quarter": quarter,
-			"sales_person": sales_person,
-			"territory": territory,
-			"item_group": item_group,
-			"item": item,
-		}
-	)
-	grouped = group_dashboard_rows(rows, group_by or "sales_person")
-	totals = dashboard_totals(rows)
+	filters = {
+		"company": company,
+		"fiscal_year": fiscal_year,
+		"period": period or "Monthly",
+		"month": month,
+		"quarter": quarter,
+		"sales_person": sales_person,
+		"territory": territory,
+		"item_group": item_group,
+		"customer_group": customer_group,
+		"item": item,
+	}
+	rows = collect_period_incentive_rows(filters)
+	slabs, based_on, pay_on = scheme_settings(filters)
+	grouped = group_dashboard_rows(rows, group_by or "sales_person", slabs, based_on, pay_on)
+	totals = dashboard_totals(rows, slabs, based_on, pay_on)
 	posted = _payout_totals(company, fiscal_year)
 	totals["posted_incentive"] = posted["accrued"]
 	totals["paid_incentive"] = posted["paid"]
 	totals["unpaid_incentive"] = posted["unpaid"]
 
 	if (period or "Monthly") == "Monthly" and not month:
-		month_chart = group_dashboard_rows(rows, "period")
+		month_chart = group_dashboard_rows(rows, "period", slabs, based_on, pay_on)
 	else:
-		month_chart = group_dashboard_rows(
-			collect_period_incentive_rows(
-				{
-					"company": company,
-					"fiscal_year": fiscal_year,
-					"period": "Monthly",
-					"sales_person": sales_person,
-					"territory": territory,
-					"item_group": item_group,
-					"item": item,
-				}
-			),
-			"period",
-		)
+		month_rows = collect_period_incentive_rows({**filters, "period": "Monthly", "month": None, "quarter": None})
+		month_chart = group_dashboard_rows(month_rows, "period", slabs, based_on, pay_on)
 	return {
 		"rows": rows,
 		"grouped": grouped,

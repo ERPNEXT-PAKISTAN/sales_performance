@@ -9,8 +9,15 @@ app_home = "/app/sales-performance"
 
 required_apps = ["erpnext"]
 
-app_include_css = ["/assets/sales_performance/css/desktop_icon.css"]
-app_include_js = ["/assets/sales_performance/js/desktop_icon.js"]
+app_include_css = [
+	"/assets/sales_performance/css/desktop_icon.css",
+	"/assets/sales_performance/css/indicators.css",
+	"/assets/sales_performance/css/desk_dashboard.css",
+]
+app_include_js = [
+	"/assets/sales_performance/js/desktop_icon.js",
+	"/assets/sales_performance/js/sp_runtime.js",
+]
 
 after_install = "sales_performance.install.after_install"
 after_migrate = "sales_performance.install.after_migrate"

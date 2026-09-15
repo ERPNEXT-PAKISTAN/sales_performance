@@ -1,38 +1,33 @@
 from sales_performance.services.numbers import ncint, nflt
 
+QTY_PRECISION = 0
+AMOUNT_PRECISION = 0
+PERCENT_PRECISION = 1
 
-def round_qty(qty, precision=3, whole_number=False):
-	if whole_number:
+
+def round_qty(qty, precision=None, whole_number=False):
+	if whole_number or precision == 0:
 		return float(round(nflt(qty)))
-	return nflt(qty, ncint(precision))
+	return nflt(qty, ncint(precision if precision is not None else QTY_PRECISION))
 
 
-def round_amount(amount, precision=2):
-	return nflt(amount, ncint(precision))
+def round_amount(amount, precision=None):
+	return nflt(amount, ncint(precision if precision is not None else AMOUNT_PRECISION))
 
 
-def get_qty_precision(uom=None, fallback=3):
-	"""Use UOM whole-number flag and System Settings float precision. Do not hardcode."""
-	try:
-		import frappe
-
-		if uom and frappe.db.get_value("UOM", uom, "must_be_whole_number"):
-			return 0
-		fp = frappe.db.get_single_value("System Settings", "float_precision")
-		if fp not in (None, ""):
-			return ncint(fp)
-	except Exception:
-		pass
-	return fallback
+def round_percent(value, precision=None):
+	if value in (None, ""):
+		return None
+	return nflt(value, ncint(precision if precision is not None else PERCENT_PRECISION))
 
 
-def get_currency_precision(fallback=2):
-	try:
-		import frappe
+def get_qty_precision(uom=None, fallback=None):
+	return QTY_PRECISION
 
-		cp = frappe.db.get_single_value("System Settings", "currency_precision")
-		if cp not in (None, ""):
-			return ncint(cp)
-	except Exception:
-		pass
-	return fallback
+
+def get_currency_precision(fallback=None):
+	return AMOUNT_PRECISION
+
+
+def get_percent_precision(fallback=None):
+	return PERCENT_PRECISION

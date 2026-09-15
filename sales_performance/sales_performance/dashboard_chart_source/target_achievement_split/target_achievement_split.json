@@ -1,0 +1,13 @@
+{
+ "creation": "2026-09-15 23:20:00",
+ "docstatus": 0,
+ "doctype": "Dashboard Chart Source",
+ "idx": 0,
+ "modified": "2026-09-15 23:20:00",
+ "modified_by": "Administrator",
+ "module": "Sales Performance",
+ "name": "Target Achievement Split",
+ "owner": "Administrator",
+ "source_name": "Target Achievement Split",
+ "timeseries": 0
+}

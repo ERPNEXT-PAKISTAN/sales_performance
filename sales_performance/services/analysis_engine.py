@@ -1,15 +1,19 @@
 """Sales / incentive / payout analysis by dimension for dashboards."""
 
-from frappe.utils import flt
-
-from sales_performance.services.historical_sales import EXCLUDED_ITEM_GROUPS
+from sales_performance.services.historical_sales import (
+	EXCLUDED_ITEM_GROUPS,
+	customer_group_subtree_sql,
+	item_group_subtree_sql,
+)
 from sales_performance.services.numbers import nflt
+from sales_performance.services.precision import round_percent
 
 
 DIMENSIONS = {
 	"sales_person": ("ifnull(st.sales_person, '')", True),
 	"territory": ("ifnull(si.territory, '')", False),
 	"item_group": ("ifnull(sii.item_group, '')", False),
+	"customer_group": ("ifnull(si.customer_group, '')", False),
 	"customer": ("ifnull(si.customer_name, si.customer)", False),
 	"item": ("sii.item_code", False),
 }
@@ -33,16 +37,16 @@ def variance_row(
 		"previous_qty": pq,
 		"current_qty": cq,
 		"qty_variance": qty_var,
-		"qty_variance_percent": nflt(qty_var / pq * 100.0, 2) if pq else None,
+		"qty_variance_percent": round_percent(qty_var / pq * 100.0) if pq else None,
 		"previous_amount": pa,
 		"current_amount": ca,
 		"amount_variance": amt_var,
-		"amount_variance_percent": nflt(amt_var / pa * 100.0, 2) if pa else None,
+		"amount_variance_percent": round_percent(amt_var / pa * 100.0) if pa else None,
 		"target_qty": tq,
 		"target_amount": ta,
-		"growth_percent": None if growth_percent in (None, "") else nflt(growth_percent, 2),
-		"qty_achievement_percent": nflt(cq / tq * 100.0, 2) if tq else None,
-		"amount_achievement_percent": nflt(ca / ta * 100.0, 2) if ta else None,
+		"growth_percent": round_percent(growth_percent),
+		"qty_achievement_percent": round_percent(cq / tq * 100.0) if tq else None,
+		"amount_achievement_percent": round_percent(ca / ta * 100.0) if ta else None,
 	}
 
 
@@ -54,6 +58,7 @@ def fetch_sales_by_dimension(
 	sales_person=None,
 	territory=None,
 	item_group=None,
+	customer_group=None,
 	customer=None,
 	item=None,
 ):
@@ -89,8 +94,11 @@ def fetch_sales_by_dimension(
 		)
 		values["territory"] = territory
 	if item_group:
-		conditions.append("sii.item_group = %(item_group)s")
+		conditions.append(item_group_subtree_sql())
 		values["item_group"] = item_group
+	if customer_group:
+		conditions.append(customer_group_subtree_sql())
+		values["customer_group"] = customer_group
 	if customer:
 		conditions.append("si.customer = %(customer)s")
 		values["customer"] = customer
@@ -153,8 +161,11 @@ def fetch_monthly_sales(company, from_date, to_date, **filters):
 		)
 		values["territory"] = filters["territory"]
 	if filters.get("item_group"):
-		conditions.append("sii.item_group = %(item_group)s")
+		conditions.append(item_group_subtree_sql())
 		values["item_group"] = filters["item_group"]
+	if filters.get("customer_group"):
+		conditions.append(customer_group_subtree_sql())
+		values["customer_group"] = filters["customer_group"]
 	if filters.get("customer"):
 		conditions.append("si.customer = %(customer)s")
 		values["customer"] = filters["customer"]
@@ -222,9 +233,12 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person"):
 		"sales_person": "sales_person",
 		"territory": "territory",
 		"item_group": "item_group",
+		"customer_group": "customer_group",
 		"item": "item_code",
 	}.get(dimension)
 	if not field:
+		return {}
+	if not frappe.db.has_column("Target Proposal Detail", field):
 		return {}
 	plans = frappe.get_all(
 		"Sales Target Planning",
@@ -260,7 +274,7 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person"):
 	for bucket in out.values():
 		w = bucket.pop("growth_weight", 0)
 		weighted = bucket.pop("growth_weighted", 0)
-		bucket["growth_percent"] = nflt(weighted / w, 2) if w else None
+		bucket["growth_percent"] = round_percent(weighted / w) if w else None
 	return out
 
 
@@ -334,7 +348,7 @@ def summarize_rows(rows):
 	base = variance_row(qty, pq, amt, pa, tq, ta)
 	if pairs:
 		tw = sum(w for _g, w in pairs)
-		base["growth_percent"] = nflt(sum(g * w for g, w in pairs) / tw, 2) if tw else None
+		base["growth_percent"] = round_percent(sum(g * w for g, w in pairs) / tw) if tw else None
 	base["up_count"] = sum(1 for r in rows if nflt(r.get("amount_variance")) > 0)
 	base["down_count"] = sum(1 for r in rows if nflt(r.get("amount_variance")) < 0)
 	return base

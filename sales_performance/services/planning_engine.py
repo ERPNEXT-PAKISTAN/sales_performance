@@ -16,10 +16,12 @@ from sales_performance.services.distribution_engine import (
 from sales_performance.services.growth_engine import (
 	apply_growth,
 	get_item_group_ancestors,
+	growth_rule_covers_item_group,
+	item_group_in_subtree,
 	resolve_growth_percent,
 )
 from sales_performance.services.historical_sales import fetch_historical_sales
-from sales_performance.services.precision import get_currency_precision, get_qty_precision, round_amount
+from sales_performance.services.precision import get_currency_precision, get_qty_precision, round_amount, round_percent
 from sales_performance.services.pricing_engine import get_target_price, prefetch_last_selling
 
 NO_HISTORY_REASON = "No previous-year sales history"
@@ -80,7 +82,6 @@ def recalculate_proposal(doc, preserve_overrides=True):
 	doc.from_date = prev_start
 	doc.to_date = prev_end
 
-	need_prev_month_shape = (doc.distribution_method or "") == "Same Month Previous Year + Growth"
 	history = fetch_historical_sales(
 		company=doc.company,
 		from_date=prev_start,
@@ -88,8 +89,10 @@ def recalculate_proposal(doc, preserve_overrides=True):
 		sales_person=doc.sales_person,
 		territory=doc.territory,
 		item_group=getattr(doc, "item_group", None),
-		include_monthly=need_prev_month_shape,
+		customer_group=getattr(doc, "customer_group", None),
+		include_monthly=True,
 	)
+	current_actuals = _fetch_current_year_monthly_actuals(doc)
 	prev_targets = {}
 
 	rules = []
@@ -102,7 +105,13 @@ def recalculate_proposal(doc, preserve_overrides=True):
 				"priority": r.priority,
 			}
 			for r in (doc.growth_rules or [])
+			if r.item_group
 		]
+		history = {
+			key: grain
+			for key, grain in history.items()
+			if _item_group_allowed_for_planning(grain.get("item_group"), doc, rules)
+		}
 
 	existing_overrides = {}
 	if preserve_overrides:
@@ -125,16 +134,19 @@ def recalculate_proposal(doc, preserve_overrides=True):
 	for grain in history.values():
 		row = _build_proposal_row(doc, grain, rules, prev_targets, cache, existing_overrides)
 		proposal.append(row)
-		monthly.extend(_distribute_row(doc, row, grain, custom_percents))
+		monthly.extend(_distribute_row(doc, row, grain, custom_percents, current_actuals))
 
 	for key, old in existing_overrides.items():
 		if key not in {r["row_key"] for r in proposal} and old.item_code:
+			if not _item_group_allowed_for_planning(old.item_group, doc, rules):
+				continue
 			grain = {
 				"sales_person": old.sales_person,
 				"territory": old.territory,
 				"item_code": old.item_code,
 				"item_name": old.item_name,
 				"item_group": old.item_group,
+				"customer_group": getattr(old, "customer_group", None) or "",
 				"uom": old.uom,
 				"qty": 0,
 				"amount": 0,
@@ -143,6 +155,7 @@ def recalculate_proposal(doc, preserve_overrides=True):
 			}
 			row = _build_proposal_row(doc, grain, rules, prev_targets, cache, existing_overrides)
 			proposal.append(row)
+			monthly.extend(_distribute_row(doc, row, grain, custom_percents, current_actuals))
 
 	doc.set("proposal_details", [])
 	for row in proposal:
@@ -219,6 +232,7 @@ def _build_proposal_row(doc, grain, rules, prev_targets, cache, existing_overrid
 		"item_code": grain.get("item_code"),
 		"item_name": grain.get("item_name"),
 		"item_group": item_group,
+		"customer_group": grain.get("customer_group") or "",
 		"uom": uom,
 		"previous_year_target_qty": nflt(prev_tgt.target_qty) if prev_tgt else 0,
 		"previous_year_actual_qty": prev_qty,
@@ -282,7 +296,7 @@ def _apply_override_percent(row):
 	calc_qty = nflt(row.get("calculated_target_qty") if isinstance(row, dict) else row.calculated_target_qty)
 	approved_qty = nflt(row.get("approved_target_qty") if isinstance(row, dict) else row.approved_target_qty)
 	if calc_qty:
-		pct = nflt((approved_qty - calc_qty) / calc_qty * 100.0, 2)
+		pct = round_percent((approved_qty - calc_qty) / calc_qty * 100.0) or 0
 	else:
 		pct = 0
 	if isinstance(row, dict):
@@ -291,7 +305,86 @@ def _apply_override_percent(row):
 		row.override_percent = pct
 
 
-def _distribute_row(doc, row, grain, custom_percents):
+def _fetch_current_year_monthly_actuals(doc):
+	"""Planning-year monthly actuals for Actual Qty / Amount on monthly rows."""
+	from frappe.utils import getdate, today
+
+	try:
+		fy_start, fy_end = fiscal_year_dates(doc.fiscal_year, doc.company)
+	except Exception:
+		return {}
+	as_on = getdate(today())
+	start = getdate(fy_start)
+	end = getdate(fy_end)
+	if as_on < start:
+		return {}
+	return fetch_historical_sales(
+		company=doc.company,
+		from_date=start,
+		to_date=min(as_on, end),
+		sales_person=doc.sales_person,
+		territory=doc.territory,
+		item_group=getattr(doc, "item_group", None),
+		customer_group=getattr(doc, "customer_group", None),
+		include_monthly=True,
+	)
+
+
+def complete_monthly_row(row, month, grain=None, actual_grain=None):
+	"""Fill target rate, previous-year, actuals, variance, and achievement on a month row."""
+	qp = get_qty_precision()
+	ap = get_currency_precision()
+	month_no = int(month.get("month_number") or 0)
+	target_qty = nflt(month.get("target_qty"), qp)
+	target_amount = nflt(month.get("target_amount"), ap)
+	rate = nflt(month.get("target_rate"), ap)
+	if not rate and target_qty:
+		rate = nflt(target_amount / target_qty, ap)
+	if not rate:
+		rate = nflt(row.get("approved_target_rate") or row.get("target_selling_rate"), ap)
+	if not target_amount and target_qty and rate:
+		target_amount = nflt(target_qty * rate, ap)
+
+	prev_qty = nflt(month.get("previous_year_qty"), qp)
+	prev_amount = nflt(month.get("previous_year_amount"), ap)
+	if grain:
+		prev_qty = nflt((grain.get("month_qty") or {}).get(month_no), qp) or prev_qty
+		prev_amount = nflt((grain.get("month_amount") or {}).get(month_no), ap) or prev_amount
+
+	actual_qty = nflt(month.get("actual_qty"), qp)
+	actual_amount = nflt(month.get("actual_amount"), ap)
+	if actual_grain:
+		actual_qty = nflt((actual_grain.get("month_qty") or {}).get(month_no), qp)
+		actual_amount = nflt((actual_grain.get("month_amount") or {}).get(month_no), ap)
+
+	qty_variance = nflt(actual_qty - target_qty, qp)
+	amount_variance = nflt(actual_amount - target_amount, ap)
+	return {
+		"row_key": row.get("row_key"),
+		"sales_person": row.get("sales_person"),
+		"item_code": row.get("item_code"),
+		"item_group": row.get("item_group"),
+		"customer_group": row.get("customer_group"),
+		"month": month.get("month"),
+		"month_number": month_no,
+		"target_qty": target_qty,
+		"target_amount": target_amount,
+		"target_rate": rate,
+		"distribution_percent": round_percent(month.get("distribution_percent")) or 0,
+		"previous_year_qty": prev_qty,
+		"previous_year_amount": prev_amount,
+		"actual_qty": actual_qty,
+		"actual_amount": actual_amount,
+		"qty_variance": qty_variance,
+		"amount_variance": amount_variance,
+		"qty_achievement_percent": round_percent(actual_qty / target_qty * 100.0) if target_qty else None,
+		"amount_achievement_percent": round_percent(actual_amount / target_amount * 100.0)
+		if target_amount
+		else None,
+	}
+
+
+def _distribute_row(doc, row, grain, custom_percents, current_actuals=None):
 	method = doc.distribution_method or "Same Month Previous Year + Growth"
 	precision = get_qty_precision(row.get("uom"))
 	amount_precision = get_currency_precision()
@@ -299,6 +392,8 @@ def _distribute_row(doc, row, grain, custom_percents):
 	annual_amount = nflt(row.get("approved_target_amount"))
 	rate = nflt(row.get("approved_target_rate"))
 	growth = nflt(row.get("growth_percent"))
+	prev_month_qty = grain.get("month_qty") or {}
+	prev_month_amount = grain.get("month_amount") or {}
 
 	if method == "Equal Monthly":
 		months = equal_monthly(annual_qty, annual_amount, precision, amount_precision)
@@ -309,35 +404,25 @@ def _distribute_row(doc, row, grain, custom_percents):
 	elif method == "Custom Percentage Distribution":
 		months = custom_percentage(annual_qty, custom_percents, annual_amount, precision, amount_precision)
 	elif method == "Manual Monthly":
-		# keep previous monthly if present; otherwise equal as a starting point
 		months = equal_monthly(annual_qty, annual_amount, precision, amount_precision)
-		for m in months:
-			m["previous_year_qty"] = nflt(grain.get("month_qty", {}).get(m["month_number"]))
-			m["previous_year_amount"] = nflt(grain.get("month_amount", {}).get(m["month_number"]))
 	else:
 		months = same_month_previous_year(
 			annual_qty,
-			grain.get("month_qty") or {},
+			prev_month_qty,
 			growth,
 			annual_amount,
-			grain.get("month_amount") or {},
+			prev_month_amount,
 			rate,
 			precision,
 			amount_precision,
 		)
 
-	out = []
-	for m in months:
-		out.append(
-			{
-				"row_key": row["row_key"],
-				"sales_person": row.get("sales_person"),
-				"item_code": row.get("item_code"),
-				"item_group": row.get("item_group"),
-				**m,
-			}
-		)
-	return out
+	actual_grain = None
+	if current_actuals:
+		key = (row.get("sales_person") or "", row.get("territory") or "", row.get("item_code"))
+		actual_grain = current_actuals.get(key) or current_actuals.get(("", "", row.get("item_code")))
+
+	return [complete_monthly_row(row, month, grain, actual_grain) for month in months]
 
 
 def refresh_summary(doc):
@@ -370,6 +455,16 @@ def refresh_summary(doc):
 	doc.summary_warnings = "\n".join(warnings)
 
 
+def _item_group_allowed_for_planning(item_group, doc, rules):
+	scope = getattr(doc, "item_group", None)
+	ancestors = get_item_group_ancestors(item_group) if (scope or rules) else []
+	if scope and not item_group_in_subtree(item_group, scope, ancestors):
+		return False
+	if doc.growth_method == "Item Group Rules":
+		return growth_rule_covers_item_group(item_group, rules, ancestors)
+	return True
+
+
 def _validate_header(doc):
 	import frappe
 
@@ -380,13 +475,22 @@ def _validate_header(doc):
 	if doc.pricing_method == "Specific Price List" and not doc.price_list:
 		frappe.throw("Price List is required for Specific Price List pricing")
 	if doc.growth_method == "Item Group Rules":
+		if not doc.growth_rules:
+			frappe.throw("Add at least one Item Group Growth Rule to set targets for selected groups")
 		seen = set()
+		scope = getattr(doc, "item_group", None)
 		for rule in doc.growth_rules or []:
 			if not rule.item_group:
 				frappe.throw("Each growth rule must have an Item Group")
 			if rule.item_group in seen:
 				frappe.throw(f"Duplicate growth rule for Item Group {rule.item_group}")
 			seen.add(rule.item_group)
+			if scope:
+				ancestors = get_item_group_ancestors(rule.item_group)
+				if not item_group_in_subtree(rule.item_group, scope, ancestors):
+					frappe.throw(
+						f"Growth rule Item Group {rule.item_group} must be {scope} or a child of it"
+					)
 	if doc.distribution_method == "Custom Percentage Distribution":
 		total = sum(nflt(p.distribution_percent) for p in (doc.custom_percents or []))
 		if abs(total - 100) > 0.01:

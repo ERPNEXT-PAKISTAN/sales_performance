@@ -6,6 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "sales_person",
+  "customer_group",
   "period",
   "incentive_on_amount",
   "incentive_on_qty",
@@ -25,6 +26,14 @@
    "columns": 2
   },
   {
+   "fieldname": "customer_group",
+   "fieldtype": "Link",
+   "label": "Customer Group",
+   "options": "Customer Group",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
    "fieldname": "period",
    "fieldtype": "Data",
    "label": "Period",
@@ -38,7 +47,8 @@
    "label": "Incentive on Amount",
    "read_only": 1,
    "in_list_view": 1,
-   "columns": 2
+   "columns": 2,
+   "precision": 0
   },
   {
    "fieldname": "incentive_on_qty",
@@ -46,7 +56,7 @@
    "label": "Incentive on Qty",
    "read_only": 1,
    "in_list_view": 1,
-   "precision": "3",
+   "precision": 0,
    "columns": 2
   },
   {
@@ -56,13 +66,15 @@
    "in_list_view": 1,
    "default": "0",
    "read_only": 1,
-   "columns": 2
+   "columns": 2,
+   "precision": 0
   },
   {
    "fieldname": "incentive_rate_percent",
    "fieldtype": "Percent",
    "label": "Rate %",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 1
   },
   {
    "fieldname": "incentive_band",
@@ -81,10 +93,12 @@
    "fieldname": "incentive_qty",
    "fieldtype": "Float",
    "label": "Incentive Qty",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 0
   }
  ],
  "istable": 1,
+ "modified": "2026-09-15 22:35:00.000000",
  "module": "Sales Performance",
  "name": "Sales Incentive Payout Item",
  "owner": "Administrator",

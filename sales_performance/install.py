@@ -15,10 +15,12 @@ ROLES = [
 
 def after_install():
 	setup_sales_performance()
+	ensure_customer_group_columns()
 
 
 def after_migrate():
 	setup_sales_performance()
+	ensure_customer_group_columns()
 
 
 def setup_sales_performance():
@@ -31,6 +33,30 @@ def setup_sales_performance():
 	frappe.clear_cache(doctype="Target Detail")
 	frappe.clear_cache(doctype="Sales Target Planning")
 	frappe.clear_cache()
+
+
+def ensure_customer_group_columns():
+	"""Add Customer Group columns when DocType JSON is ahead of the MariaDB table."""
+	doctypes = (
+		("target_proposal_detail", "Target Proposal Detail"),
+		("sales_target_monthly_detail", "Sales Target Monthly Detail"),
+		("sales_target_planning", "Sales Target Planning"),
+		("sales_incentive_payout", "Sales Incentive Payout"),
+		("sales_incentive_payout_item", "Sales Incentive Payout Item"),
+	)
+	for filename, doctype in doctypes:
+		try:
+			frappe.reload_doc("sales_performance", "doctype", filename, force=True)
+		except Exception:
+			frappe.log_error(title=f"Sales Performance reload {doctype}")
+		if not frappe.db.has_column(doctype, "customer_group"):
+			try:
+				frappe.db.sql(
+					f"ALTER TABLE `tab{doctype}` ADD COLUMN `customer_group` varchar(140) DEFAULT NULL"
+				)
+			except Exception:
+				frappe.log_error(title=f"Sales Performance add customer_group on {doctype}")
+			frappe.clear_cache(doctype=doctype)
 
 
 def ensure_roles():
@@ -116,12 +142,26 @@ def ensure_desktop():
 		if path and os.path.exists(path):
 			import_file_by_path(path, force=True)
 
-	for page_name in ("incentive_dashboard", "performance_analytics"):
+	for page_name in ("incentive_dashboard", "performance_analytics", "target_achievement", "achievement_graphics"):
 		page_json = frappe.get_app_path(
 			"sales_performance", "sales_performance", "page", page_name, f"{page_name}.json"
 		)
 		if page_json and os.path.exists(page_json):
 			import_file_by_path(page_json, force=True)
+
+	for parts in (
+		("report", "target_achievement_status", "target_achievement_status.json"),
+		("number_card", "item_groups_achieved", "item_groups_achieved.json"),
+		("number_card", "item_groups_not_achieved", "item_groups_not_achieved.json"),
+		("number_card", "items_achieved", "items_achieved.json"),
+		("number_card", "items_not_achieved", "items_not_achieved.json"),
+		("dashboard_chart_source", "target_achievement_split", "target_achievement_split.json"),
+		("dashboard_chart", "item_groups_vs_items_achievement", "item_groups_vs_items_achievement.json"),
+		("sales_performance_dashboard", "target_achievement", "target_achievement.json"),
+	):
+		path = frappe.get_app_path("sales_performance", "sales_performance", *parts)
+		if path and os.path.exists(path):
+			import_file_by_path(path, force=True)
 
 	workspace = frappe.get_app_path(
 		"sales_performance", "sales_performance", "workspace", "sales_performance", "sales_performance.json"

@@ -18,6 +18,7 @@
   "sales_person",
   "territory",
   "item_group",
+  "customer_group",
   "previous_planning",
   "naming_hint",
   "historical_section",
@@ -148,12 +149,20 @@
    "options": "Territory"
   },
   {
-   "description": "Optional filter. Leave empty to include all item groups (except excluded groups).",
+   "description": "Restrict planning to this item group and its children. Item Group Growth Rules can only pick from this tree. Leave empty to allow any group (except excluded groups).",
    "fieldname": "item_group",
    "fieldtype": "Link",
    "in_standard_filter": 1,
    "label": "Item Group",
    "options": "Item Group"
+  },
+  {
+   "description": "Optional filter. Include this customer group and its children. Leave empty to include all customer groups.",
+   "fieldname": "customer_group",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Customer Group",
+   "options": "Customer Group"
   },
   {
    "fieldname": "previous_planning",
@@ -217,10 +226,11 @@
   {
    "default": "0",
    "depends_on": "eval:doc.growth_method=='Uniform Percent'",
-   "description": "Same as Target % on Sales Target. Monthly target = (previous year qty \u00f7 12) \u00d7 (1 + this %). Quarter = monthly \u00d7 3. Year = monthly \u00d7 12.",
+   "description": "Same as Target % on Sales Target. Monthly target = (previous year qty ÷ 12) × (1 + this %). Quarter = monthly × 3. Year = monthly × 12.",
    "fieldname": "uniform_growth_percent",
    "fieldtype": "Percent",
-   "label": "Growth %"
+   "label": "Growth %",
+   "precision": 1
   },
   {
    "collapsible": 1,
@@ -230,6 +240,7 @@
    "label": "3. Growth Rules (optional)"
   },
   {
+   "description": "Targets are created only for the item groups listed here (and children when Apply to Children is checked).",
    "fieldname": "growth_rules",
    "fieldtype": "Table",
    "label": "Item Group Growth Rules",
@@ -265,7 +276,7 @@
   },
   {
    "default": "Equal Monthly",
-   "description": "Equal Monthly uses previous-year average (PY \u00f7 12) for every month. Quarter = monthly \u00d7 3. Year = monthly \u00d7 12.",
+   "description": "Equal Monthly uses previous-year average (PY ÷ 12) for every month. Quarter = monthly × 3. Year = monthly × 12.",
    "fieldname": "distribution_method",
    "fieldtype": "Select",
    "label": "Distribution Method",
@@ -307,7 +318,7 @@
    "options": "Target Proposal Detail"
   },
   {
-   "collapsible": 1,
+   "collapsible": 0,
    "fieldname": "monthly_section",
    "fieldtype": "Section Break",
    "label": "Monthly Target Detail"
@@ -349,40 +360,46 @@
    "fieldname": "total_previous_qty",
    "fieldtype": "Float",
    "label": "Previous Year Qty",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 0
   },
   {
    "fieldname": "total_previous_amount",
    "fieldtype": "Currency",
    "label": "Previous Year Amount",
    "options": "Company:company:default_currency",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 0
   },
   {
    "fieldname": "total_calculated_qty",
    "fieldtype": "Float",
    "label": "Calculated Target Qty",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 0
   },
   {
    "fieldname": "total_calculated_amount",
    "fieldtype": "Currency",
    "label": "Calculated Target Amount",
    "options": "Company:company:default_currency",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 0
   },
   {
    "fieldname": "total_approved_qty",
    "fieldtype": "Float",
    "label": "Approved Target Qty",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 0
   },
   {
    "fieldname": "total_approved_amount",
    "fieldtype": "Currency",
    "label": "Approved Target Amount",
    "options": "Company:company:default_currency",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 0
   },
   {
    "fieldname": "column_break_sum2",
@@ -579,7 +596,7 @@
   }
  ],
  "row_format": "Dynamic",
- "search_fields": "title,company,fiscal_year,sales_person,status",
+ "search_fields": "title,company,fiscal_year,sales_person,item_group,customer_group,status",
  "show_name_in_global_search": 1,
  "sort_field": "modified",
  "sort_order": "DESC",

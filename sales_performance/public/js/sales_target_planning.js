@@ -1,6 +1,7 @@
 frappe.ui.form.on("Sales Target Planning", {
 	refresh(frm) {
 		frm.trigger("set_indicators");
+		frm.trigger("set_item_group_queries");
 		const locked = ["Approved", "Cancelled", "Superseded"].includes(frm.doc.status);
 		frm.set_df_property("proposal_details", "read_only", locked);
 		frm.set_df_property("growth_rules", "read_only", locked);
@@ -82,6 +83,24 @@ frappe.ui.form.on("Sales Target Planning", {
 		fetch_previous_year_sales(frm);
 	},
 
+	item_group(frm) {
+		frm.trigger("set_item_group_queries");
+	},
+
+	set_item_group_queries(frm) {
+		const query = "sales_performance.api.planning.item_group_query";
+		frm.set_query("item_group", () => ({
+			query,
+			filters: {},
+		}));
+		frm.set_query("item_group", "growth_rules", () => ({
+			query,
+			filters: {
+				parent_item_group: frm.doc.item_group || undefined,
+			},
+		}));
+	},
+
 	set_indicators(frm) {
 		const colors = {
 			Draft: "gray",
@@ -144,7 +163,7 @@ function render_previous_sales_table(frm) {
 	const search_value = (frm._stp_search || "").trim().toLowerCase();
 	const visible = rows.filter((row) => {
 		if (!search_value) return true;
-		return [row.item_group, row.item_code, row.item_name, row.sales_person]
+		return [row.item_group, row.customer_group, row.item_code, row.item_name, row.sales_person]
 			.join(" ")
 			.toLowerCase()
 			.includes(search_value);
@@ -173,7 +192,7 @@ function render_previous_sales_table(frm) {
 			<div class="stp-toolbar">
 				<div>
 					<div class="stp-hint">${__("Yearly target = previous calendar year. Monthly = PY ÷ 12. Quarter = monthly × 3. Growth % applies on top of that average.")}</div>
-					<div class="stp-hint">${period} · ${visible.length} ${__("items")} · ${__("Growth")} ${flt(frm.doc.uniform_growth_percent)}% · ${frappe.utils.escape_html(frm.doc.distribution_method || "")}</div>
+					<div class="stp-hint">${period} · ${visible.length} ${__("items")} · ${__("Growth")} ${Number(flt(frm.doc.uniform_growth_percent) || 0).toFixed(1)}% · ${frappe.utils.escape_html(frm.doc.distribution_method || "")}</div>
 				</div>
 				<input type="search" class="form-control input-sm" id="stp-search" placeholder="${__("Search item / group")}" value="${frappe.utils.escape_html(frm._stp_search || "")}">
 			</div>
@@ -193,15 +212,16 @@ function render_previous_sales_table(frm) {
 	}
 
 	const escape = (value) => frappe.utils.escape_html(String(value == null ? "" : value));
-	const num = (value, precision = 2) =>
-		Number(value || 0).toLocaleString(undefined, {
-			minimumFractionDigits: precision,
-			maximumFractionDigits: precision,
-		});
+	const num = (value) =>
+		window.sales_performance ? sales_performance.format_qty(value) : format_number(value || 0, null, 0);
+	const money = (value) =>
+		window.sales_performance
+			? sales_performance.format_amount(value)
+			: format_currency(value || 0, frappe.defaults.get_default("currency"), 0);
 	const head = [
 		__("Item Group / Item"),
-		__("Item Code"),
 		__("Sales Person"),
+		__("Customer Group"),
 		__("PY Qty"),
 		__("Avg / Month"),
 		__("Monthly Target"),
@@ -224,28 +244,28 @@ function render_previous_sales_table(frm) {
 					(row) => `
 					<tr class="stp-item" data-parent="${index}">
 						<td>${escape(row.item_name || row.item_code)}</td>
-						<td>${escape(row.item_code)}</td>
 						<td>${escape(row.sales_person || __("Not Set"))}</td>
-						<td>${num(row.previous_year_actual_qty, 0)}</td>
-						<td>${num(avg_month(row.previous_year_actual_qty), 0)}</td>
-						<td>${num(monthly_target(row), 0)}</td>
-						<td>${num(quarter_target(row), 0)}</td>
-						<td>${num(row.calculated_target_qty, 0)}</td>
-						<td>${num(row.target_selling_rate)}</td>
-						<td>${num(row.calculated_target_amount)}</td>
+						<td>${escape(row.customer_group || __("Not Set"))}</td>
+						<td>${num(row.previous_year_actual_qty)}</td>
+						<td>${num(avg_month(row.previous_year_actual_qty))}</td>
+						<td>${num(monthly_target(row))}</td>
+						<td>${num(quarter_target(row))}</td>
+						<td>${num(row.calculated_target_qty)}</td>
+						<td>${money(row.target_selling_rate)}</td>
+						<td>${money(row.calculated_target_amount)}</td>
 					</tr>`
 				)
 				.join("");
 			return `
 				<tr class="stp-group" data-group="${index}">
 					<td colspan="3"><span class="stp-caret">▶</span>${escape(group.item_group)} (${group.items.length})</td>
-					<td>${num(group.previous_year_actual_qty, 0)}</td>
-					<td>${num(avg_month(group.previous_year_actual_qty), 0)}</td>
-					<td>${num(avg_month(group.calculated_target_qty), 0)}</td>
-					<td>${num(avg_month(group.calculated_target_qty) * 3, 0)}</td>
-					<td>${num(group.calculated_target_qty, 0)}</td>
+					<td>${num(group.previous_year_actual_qty)}</td>
+					<td>${num(avg_month(group.previous_year_actual_qty))}</td>
+					<td>${num(avg_month(group.calculated_target_qty))}</td>
+					<td>${num(avg_month(group.calculated_target_qty) * 3)}</td>
+					<td>${num(group.calculated_target_qty)}</td>
 					<td></td>
-					<td>${num(group.calculated_target_amount)}</td>
+					<td>${money(group.calculated_target_amount)}</td>
 				</tr>${items}`;
 		})
 		.join("");
@@ -259,13 +279,13 @@ function render_previous_sales_table(frm) {
 					${body}
 					<tr class="stp-total">
 						<td colspan="3">${__("Grand Total")}</td>
-						<td>${num(totals.previous_year_actual_qty, 0)}</td>
-						<td>${num(totals.previous_year_actual_qty / 12, 0)}</td>
-						<td>${num(totals.calculated_target_qty / 12, 0)}</td>
-						<td>${num((totals.calculated_target_qty / 12) * 3, 0)}</td>
-						<td>${num(totals.calculated_target_qty, 0)}</td>
+						<td>${num(totals.previous_year_actual_qty)}</td>
+						<td>${num(totals.previous_year_actual_qty / 12)}</td>
+						<td>${num(totals.calculated_target_qty / 12)}</td>
+						<td>${num((totals.calculated_target_qty / 12) * 3)}</td>
+						<td>${num(totals.calculated_target_qty)}</td>
 						<td></td>
-						<td>${num(totals.calculated_target_amount)}</td>
+						<td>${money(totals.calculated_target_amount)}</td>
 					</tr>
 				</tbody>
 			</table>

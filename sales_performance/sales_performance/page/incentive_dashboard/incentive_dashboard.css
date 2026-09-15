@@ -1,8 +1,10 @@
 .id-report { padding: 16px 4px 32px; }
 .id-filter-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
 .id-filter-title { font-weight: 650; font-size: 15px; margin-bottom: 10px; }
-.id-filters { display: grid; grid-template-columns: repeat(5, minmax(140px, 1fr)); gap: 10px 14px; }
+.id-filters { width: 100%; }
 .id-filters .form-group { margin-bottom: 0; }
+.id-filters .control-label { font-size: 10px !important; margin-bottom: 3px; }
+.id-filters .form-control, .id-filters input.input-with-feedback, .id-filters select { padding: 4px 8px !important; height: 28px !important; min-height: 28px !important; font-size: 12px !important; }
 .id-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color); }
 .id-actions-hint { color: var(--text-muted); font-size: 12px; max-width: 720px; }
 .id-summary { display: grid; grid-template-columns: repeat(6, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
@@ -12,7 +14,7 @@
 .id-card.id-accent { border-top: 3px solid var(--blue-500); }
 .id-card.id-green { border-top: 3px solid #16833b; }
 .id-card.id-orange { border-top: 3px solid #e67e22; }
-.id-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.id-charts { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 14px; }
 .id-chart-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 14px; min-height: 260px; }
 .id-chart-card h4 { margin: 0 0 8px; font-size: 13px; }
 .id-table-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden; }
@@ -24,7 +26,7 @@
 .id-wrap { overflow-x: auto; }
 .id-table { width: 100%; min-width: 980px; border-collapse: collapse; font-size: 12px; }
 .id-table th, .id-table td { padding: 8px 10px; border-bottom: 1px solid var(--border-color); text-align: right; white-space: nowrap; }
-.id-table th:nth-child(-n+3), .id-table td:nth-child(-n+3) { text-align: left; }
+.id-table th:first-child, .id-table td:first-child { text-align: left; }
 .id-table thead th { background: var(--subtle-fg); position: sticky; top: 0; }
 .id-table tfoot td { font-weight: 700; background: var(--subtle-fg); }
 .id-band-min { color: #1a73e8; font-weight: 650; }

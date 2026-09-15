@@ -3,6 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import now_datetime
 
+from sales_performance.services.growth_engine import get_item_group_ancestors, item_group_in_subtree
 from sales_performance.services.planning_engine import (
 	apply_row_override,
 	recalculate_proposal,
@@ -65,6 +66,8 @@ class SalesTargetPlanning(Document):
 			if not frappe.db.exists("Price List", self.price_list):
 				frappe.throw(_("Invalid Price List"))
 
+		if self.growth_method == "Item Group Rules" and not self.growth_rules:
+			frappe.throw(_("Add at least one Item Group Growth Rule to set targets for selected groups"))
 		seen_groups = set()
 		for rule in self.growth_rules or []:
 			if not rule.item_group:
@@ -72,6 +75,14 @@ class SalesTargetPlanning(Document):
 			if rule.item_group in seen_groups:
 				frappe.throw(_("Duplicate growth rule for Item Group {0}").format(rule.item_group))
 			seen_groups.add(rule.item_group)
+			if self.item_group:
+				ancestors = get_item_group_ancestors(rule.item_group)
+				if not item_group_in_subtree(rule.item_group, self.item_group, ancestors):
+					frappe.throw(
+						_("Growth rule Item Group {0} must be {1} or a child of it").format(
+							rule.item_group, self.item_group
+						)
+					)
 
 		if self.distribution_method == "Custom Percentage Distribution":
 			total = sum(float(p.distribution_percent or 0) for p in (self.custom_percents or []))

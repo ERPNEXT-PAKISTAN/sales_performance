@@ -35,13 +35,17 @@ frappe.query_reports["Sales Target Achievement"] = {
 		},
 		{ fieldname: "sales_person", label: __("Sales Person"), fieldtype: "Link", options: "Sales Person" },
 		{ fieldname: "territory", label: __("Territory"), fieldtype: "Link", options: "Territory" },
-		{ fieldname: "item_group", label: __("Item Group"), fieldtype: "Link", options: "Item Group" },
+		{ fieldname: "item_group", label: __("Item Group"), fieldtype: "Link", options: "Item Group",
+			get_query() { return { query: "sales_performance.api.planning.item_group_query" }; } },
+		{ fieldname: "customer_group", label: __("Customer Group"), fieldtype: "Link", options: "Customer Group" },
 		{ fieldname: "item", label: __("Item"), fieldtype: "Link", options: "Item" },
 		{ fieldname: "from_date", label: __("From Date"), fieldtype: "Date" },
 		{ fieldname: "to_date", label: __("To Date"), fieldtype: "Date" },
 	],
 	formatter(value, row, column, data, default_formatter) {
-		value = default_formatter(value, row, column, data);
+		value = (window.sales_performance && sales_performance.report_formatter)
+			? sales_performance.report_formatter(value, row, column, data, default_formatter)
+			: default_formatter(value, row, column, data);
 		if (!data) {
 			return value;
 		}

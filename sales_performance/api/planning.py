@@ -100,6 +100,42 @@ def apply_override(name, row_name, approved_qty, approved_rate, reason):
 	return row.as_dict()
 
 
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def item_group_query(doctype, txt, searchfield, start, page_len, filters):
+	"""Limit Item Group pickers to the planning scope and exclude non-sales groups."""
+	from sales_performance.services.historical_sales import EXCLUDED_ITEM_GROUPS
+
+	filters = frappe.parse_json(filters) if isinstance(filters, str) else (filters or {})
+	parent = filters.get("parent_item_group") or None
+	values = {
+		"txt": f"%{txt}%",
+		"start": int(start or 0),
+		"page_len": int(page_len or 20),
+		"excluded": EXCLUDED_ITEM_GROUPS,
+	}
+	conditions = [
+		"name not in %(excluded)s",
+		f"`{searchfield}` like %(txt)s" if searchfield else "name like %(txt)s",
+	]
+	if parent:
+		conditions.append(
+			"""lft >= (select lft from `tabItem Group` where name = %(parent)s)
+			and rgt <= (select rgt from `tabItem Group` where name = %(parent)s)"""
+		)
+		values["parent"] = parent
+	where = " and ".join(conditions)
+	return frappe.db.sql(
+		f"""
+		select name from `tabItem Group`
+		where {where}
+		order by name
+		limit %(start)s, %(page_len)s
+		""",
+		values,
+	)
+
+
 def _has_role(*roles):
 	user_roles = set(frappe.get_roles())
 	return bool(user_roles.intersection(roles))

@@ -15,6 +15,10 @@
 		parent_icon: null,
 	};
 
+	function already_first(list) {
+		return Array.isArray(list) && list[0] && list[0].label === "Sales Performance" && list[0].app === "sales_performance";
+	}
+
 	function merge(list) {
 		const rows = Array.isArray(list) ? list.filter((row) => row && row.label) : [];
 		const without = rows.filter((row) => row.label !== "Sales Performance");
@@ -25,25 +29,15 @@
 		if (!window.frappe || !frappe.boot) {
 			return;
 		}
-		frappe.boot.desktop_icons = merge(frappe.boot.desktop_icons);
-		if (Array.isArray(frappe.desktop_icons)) {
+		if (!already_first(frappe.boot.desktop_icons)) {
+			frappe.boot.desktop_icons = merge(frappe.boot.desktop_icons);
+		}
+		if (Array.isArray(frappe.desktop_icons) && !already_first(frappe.desktop_icons)) {
 			frappe.desktop_icons = merge(frappe.desktop_icons);
 		}
 	}
 
 	apply();
 	$(document).on("app_ready", apply);
-	$(document).on("desktop_screen", (_event, data) => {
-		apply();
-		const page = data && data.desktop;
-		if (!page || page._sp_icon_patched) {
-			return;
-		}
-		const has = (frappe.desktop_icons || []).some((row) => row.label === "Sales Performance");
-		if (has && (page.apps_icons || []).some((row) => row.label === "Sales Performance")) {
-			return;
-		}
-		page._sp_icon_patched = true;
-		page.update();
-	});
+	$(document).on("desktop_screen", apply);
 })();

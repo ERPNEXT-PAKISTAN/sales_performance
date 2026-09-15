@@ -8,146 +8,240 @@
   "row_key",
   "sales_person",
   "item_code",
+  "column_break_id",
   "item_group",
+  "customer_group",
   "month",
+  "column_break_id2",
   "month_number",
-  "target_qty",
-  "target_amount",
-  "target_rate",
   "distribution_percent",
+  "target_section",
+  "target_qty",
+  "column_break_tgt",
+  "target_amount",
+  "column_break_tgt2",
+  "target_rate",
+  "previous_section",
   "previous_year_qty",
+  "column_break_py",
   "previous_year_amount",
+  "actual_section",
   "actual_qty",
+  "column_break_act",
   "actual_amount",
+  "variance_section",
   "qty_variance",
-  "amount_variance",
   "qty_achievement_percent",
+  "column_break_var",
+  "amount_variance",
   "amount_achievement_percent"
  ],
  "fields": [
   {
    "fieldname": "row_key",
    "fieldtype": "Data",
-   "label": "Row Key",
    "hidden": 1,
+   "label": "Row Key",
    "read_only": 1
   },
   {
+   "columns": 2,
    "fieldname": "sales_person",
    "fieldtype": "Link",
-   "options": "Sales Person",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Sales Person",
-   "in_standard_filter": 1
+   "options": "Sales Person"
   },
   {
+   "columns": 2,
    "fieldname": "item_code",
    "fieldtype": "Link",
-   "options": "Item",
-   "label": "Item",
    "in_list_view": 1,
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "column_break_id",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "item_group",
    "fieldtype": "Link",
-   "options": "Item Group",
+   "in_standard_filter": 1,
    "label": "Item Group",
-   "in_standard_filter": 1
+   "options": "Item Group"
   },
   {
+   "fieldname": "customer_group",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Customer Group",
+   "options": "Customer Group"
+  },
+  {
+   "columns": 1,
    "fieldname": "month",
    "fieldtype": "Data",
-   "label": "Month",
-   "in_list_view": 1
+   "in_list_view": 1,
+   "label": "Month"
+  },
+  {
+   "fieldname": "column_break_id2",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "month_number",
    "fieldtype": "Int",
    "label": "Month Number",
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "target_qty",
-   "fieldtype": "Float",
-   "label": "Target Qty",
-   "in_list_view": 1
-  },
-  {
-   "fieldname": "target_amount",
-   "fieldtype": "Currency",
-   "label": "Target Amount",
-   "in_list_view": 1,
-   "options": "Company:company:default_currency"
-  },
-  {
-   "fieldname": "target_rate",
-   "fieldtype": "Currency",
-   "label": "Target Rate",
-   "options": "Company:company:default_currency"
+   "read_only": 1
   },
   {
    "fieldname": "distribution_percent",
    "fieldtype": "Percent",
-   "label": "Distribution %"
+   "label": "Distribution %",
+   "precision": 1
+  },
+  {
+   "fieldname": "target_section",
+   "fieldtype": "Section Break",
+   "label": "Target"
+  },
+  {
+   "columns": 1,
+   "fieldname": "target_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Target Qty",
+   "precision": 0
+  },
+  {
+   "fieldname": "column_break_tgt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 1,
+   "fieldname": "target_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Target Amount",
+   "options": "Company:company:default_currency",
+   "precision": 0
+  },
+  {
+   "fieldname": "column_break_tgt2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 1,
+   "fieldname": "target_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Target Rate",
+   "options": "Company:company:default_currency",
+   "precision": 0
+  },
+  {
+   "fieldname": "previous_section",
+   "fieldtype": "Section Break",
+   "label": "Previous Year"
   },
   {
    "fieldname": "previous_year_qty",
    "fieldtype": "Float",
    "label": "Previous Year Qty",
+   "precision": 0,
    "read_only": 1
   },
   {
+   "fieldname": "column_break_py",
+   "fieldtype": "Column Break"
+  },
+  {
+   "columns": 1,
    "fieldname": "previous_year_amount",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Previous Year Amount",
-   "read_only": 1,
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "precision": 0,
+   "read_only": 1
+  },
+  {
+   "fieldname": "actual_section",
+   "fieldtype": "Section Break",
+   "label": "Actual"
   },
   {
    "fieldname": "actual_qty",
    "fieldtype": "Float",
+   "in_list_view": 1,
    "label": "Actual Qty",
+   "precision": 0,
    "read_only": 1
+  },
+  {
+   "fieldname": "column_break_act",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "actual_amount",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Actual Amount",
-   "read_only": 1,
-   "options": "Company:company:default_currency"
+   "options": "Company:company:default_currency",
+   "precision": 0,
+   "read_only": 1
+  },
+  {
+   "fieldname": "variance_section",
+   "fieldtype": "Section Break",
+   "label": "Variance"
   },
   {
    "fieldname": "qty_variance",
    "fieldtype": "Float",
+   "in_list_view": 1,
    "label": "Qty Variance",
+   "precision": 0,
    "read_only": 1
-  },
-  {
-   "fieldname": "amount_variance",
-   "fieldtype": "Currency",
-   "label": "Amount Variance",
-   "read_only": 1,
-   "options": "Company:company:default_currency"
   },
   {
    "fieldname": "qty_achievement_percent",
    "fieldtype": "Percent",
    "label": "Qty Achievement %",
+   "precision": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_var",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amount_variance",
+   "fieldtype": "Currency",
+   "label": "Amount Variance",
+   "options": "Company:company:default_currency",
+   "precision": 0,
    "read_only": 1
   },
   {
    "fieldname": "amount_achievement_percent",
    "fieldtype": "Percent",
    "label": "Amount Achievement %",
+   "precision": 1,
    "read_only": 1
   }
  ],
  "istable": 1,
+ "modified": "2026-09-15 22:35:00.000000",
  "module": "Sales Performance",
  "name": "Sales Target Monthly Detail",
  "owner": "Administrator",
  "permissions": [],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

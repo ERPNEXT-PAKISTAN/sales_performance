@@ -21,6 +21,26 @@ EXCLUDED_ITEM_GROUPS = (
 )
 
 
+def item_group_subtree_sql(field="sii.item_group", param="item_group"):
+	"""SQL predicate: field is the selected item group or a child of it."""
+	return f"""{field} in (
+		select child.name from `tabItem Group` child
+		inner join `tabItem Group` parent
+			on child.lft >= parent.lft and child.rgt <= parent.rgt
+		where parent.name = %({param})s
+	)"""
+
+
+def customer_group_subtree_sql(field="si.customer_group", param="customer_group"):
+	"""SQL predicate: field is the selected customer group or a child of it."""
+	return f"""{field} in (
+		select child.name from `tabCustomer Group` child
+		inner join `tabCustomer Group` parent
+			on child.lft >= parent.lft and child.rgt <= parent.rgt
+		where parent.name = %({param})s
+	)"""
+
+
 def fetch_historical_sales(
 	company,
 	from_date,
@@ -28,6 +48,7 @@ def fetch_historical_sales(
 	sales_person=None,
 	territory=None,
 	item_group=None,
+	customer_group=None,
 	item_codes=None,
 	include_monthly=False,
 ):
@@ -67,8 +88,11 @@ def fetch_historical_sales(
 		)
 		values["territory"] = territory
 	if item_group:
-		conditions.append("sii.item_group = %(item_group)s")
+		conditions.append(item_group_subtree_sql())
 		values["item_group"] = item_group
+	if customer_group:
+		conditions.append(customer_group_subtree_sql())
+		values["customer_group"] = customer_group
 	if item_codes:
 		conditions.append("sii.item_code in %(item_codes)s")
 		values["item_codes"] = tuple(item_codes)
@@ -85,6 +109,7 @@ def fetch_historical_sales(
 			sii.item_code,
 			max(sii.item_name) as item_name,
 			max(sii.item_group) as item_group,
+			max(si.customer_group) as customer_group,
 			max(sii.stock_uom) as uom,
 			{month_select}
 			sum(sii.stock_qty * {share}) as qty,
@@ -114,6 +139,7 @@ def rollup_monthly(rows):
 				"item_code": row.get("item_code"),
 				"item_name": row.get("item_name"),
 				"item_group": row.get("item_group"),
+				"customer_group": row.get("customer_group") or "",
 				"uom": row.get("uom"),
 				"qty": 0.0,
 				"amount": 0.0,
@@ -133,6 +159,8 @@ def rollup_monthly(rows):
 			bucket["item_name"] = row.get("item_name")
 		if row.get("item_group"):
 			bucket["item_group"] = row.get("item_group")
+		if row.get("customer_group"):
+			bucket["customer_group"] = row.get("customer_group")
 		if row.get("uom"):
 			bucket["uom"] = row.get("uom")
 	return out

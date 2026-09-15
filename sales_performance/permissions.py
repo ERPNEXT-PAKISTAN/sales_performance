@@ -31,12 +31,13 @@ STANDARD_DOCTYPES = [
 	"Sales Performance Settings",
 ]
 
-PAGES = ["incentive-dashboard", "performance-analytics"]
+PAGES = ["incentive-dashboard", "performance-analytics", "target-achievement", "achievement-graphics"]
 
 REPORTS = [
 	"Sales Target Achievement",
 	"Sales Target Monthly Performance",
 	"Target Planning Audit",
+	"Target Achievement Status",
 ]
 
 

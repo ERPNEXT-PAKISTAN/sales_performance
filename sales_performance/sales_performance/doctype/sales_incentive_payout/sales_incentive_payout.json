@@ -18,6 +18,7 @@
   "from_date",
   "to_date",
   "sales_person",
+  "customer_group",
   "pay_on",
   "get_incentives",
   "items_section",
@@ -123,8 +124,15 @@
    "options": "Sales Person"
   },
   {
+   "fieldname": "customer_group",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Customer Group",
+   "options": "Customer Group"
+  },
+  {
    "default": "Amount",
-   "description": "Amount: surplus sales value \u00d7 incentive %. Qty: surplus qty \u00d7 incentive % (not multiplied by selling price). Used when you click Get Incentives.",
+   "description": "Amount: surplus sales value × incentive %. Qty: surplus qty × incentive % (not multiplied by selling price). Used when you click Get Incentives.",
    "fieldname": "pay_on",
    "fieldtype": "Select",
    "in_standard_filter": 1,
@@ -157,7 +165,8 @@
    "fieldtype": "Currency",
    "label": "Incentive on Amount",
    "options": "Company:company:default_currency",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 0
   },
   {
    "fieldname": "column_break_totals",
@@ -167,7 +176,7 @@
    "fieldname": "total_incentive_on_qty",
    "fieldtype": "Float",
    "label": "Incentive on Qty",
-   "precision": "3",
+   "precision": 0,
    "read_only": 1
   },
   {
@@ -180,7 +189,8 @@
    "in_list_view": 1,
    "label": "Payable Incentive",
    "options": "Company:company:default_currency",
-   "read_only": 1
+   "read_only": 1,
+   "precision": 0
   },
   {
    "fieldname": "accounts_section",

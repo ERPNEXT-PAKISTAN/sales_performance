@@ -1,0 +1,16 @@
+.sp-ok,
+.pa-up {
+	color: #16833b !important;
+	font-weight: 600;
+}
+.sp-bad,
+.pa-down {
+	color: #c0392b !important;
+	font-weight: 600;
+}
+.sp-ok-bg {
+	background: rgba(22, 131, 59, 0.08);
+}
+.sp-bad-bg {
+	background: rgba(192, 57, 43, 0.08);
+}

@@ -13,13 +13,20 @@ class IncentiveDashboard {
 		this.wrapper = wrapper;
 		this.page = page;
 		this.data = { rows: [], grouped: [], totals: {}, month_chart: [] };
+		this.charts = {};
 		this.loading_defaults = true;
 		this.make_filters();
 		this.bind();
-		this.ready_filters().finally(() => {
-			this.loading_defaults = false;
-			this.refresh();
-		});
+		this.ready_filters().then(
+			() => {
+				this.loading_defaults = false;
+				this.refresh();
+			},
+			() => {
+				this.loading_defaults = false;
+				this.refresh();
+			}
+		);
 	}
 
 	default_company() {
@@ -101,16 +108,18 @@ class IncentiveDashboard {
 			["period", "Select", __("Period"), "Monthly\nQuarterly\nAnnual", "Monthly"],
 			["month", "Select", __("Month"), "\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12"],
 			["quarter", "Select", __("Quarter"), "\n1\n2\n3\n4"],
-			["group_by", "Select", __("Group By"), "sales_person\nterritory\nitem_group\nitem\nperiod", "sales_person"],
+			["group_by", "Select", __("Group By"), "sales_person\nterritory\nitem_group\ncustomer_group\nitem\nperiod", "sales_person"],
 			["sales_person", "Link", __("Sales Person"), "Sales Person"],
 			["territory", "Link", __("Territory"), "Territory"],
 			["item_group", "Link", __("Item Group"), "Item Group"],
+			["customer_group", "Link", __("Customer Group"), "Customer Group"],
 			["item", "Link", __("Item"), "Item"],
 		];
 		this.filters = {};
 		const host = this.wrapper.querySelector("#id-filters");
 		fields.forEach(([name, fieldtype, label, options, value]) => {
 			const parent = document.createElement("div");
+			parent.className = "sp-filter-item";
 			host.appendChild(parent);
 			const control = frappe.ui.form.make_control({
 				parent: $(parent),
@@ -119,15 +128,18 @@ class IncentiveDashboard {
 			});
 			this.filters[name] = control;
 		});
+		if (this.filters.item_group) {
+			this.filters.item_group.df.get_query = () => ({
+				query: "sales_performance.api.planning.item_group_query",
+			});
+		}
 		this.period_visibility();
 	}
 
 	period_visibility() {
 		const period = this.filters.period.get_value();
-		this.filters.month.df.hidden = period !== "Monthly";
-		this.filters.quarter.df.hidden = period !== "Quarterly";
-		this.filters.month.refresh();
-		this.filters.quarter.refresh();
+		sales_performance.set_filter_visible(this.filters.month, period === "Monthly");
+		sales_performance.set_filter_visible(this.filters.quarter, period === "Quarterly");
 	}
 
 	bind() {
@@ -141,6 +153,7 @@ class IncentiveDashboard {
 				month: this.filters.month.get_value(),
 				quarter: this.filters.quarter.get_value(),
 				sales_person: this.filters.sales_person.get_value(),
+				customer_group: this.filters.customer_group.get_value(),
 			});
 		});
 		this.wrapper.querySelector("#id-search").addEventListener("input", (event) => this.render_table(event.target.value));
@@ -157,6 +170,7 @@ class IncentiveDashboard {
 			sales_person: this.filters.sales_person.get_value(),
 			territory: this.filters.territory.get_value(),
 			item_group: this.filters.item_group.get_value(),
+			customer_group: this.filters.customer_group.get_value(),
 			item: this.filters.item.get_value(),
 		};
 	}
@@ -175,20 +189,45 @@ class IncentiveDashboard {
 			args,
 			freeze: true,
 			freeze_message: __("Loading incentive dashboard..."),
-		}).then((response) => {
-			this.data = response.message || {};
-			this.render_summary();
-			this.render_charts();
-			this.render_table(this.wrapper.querySelector("#id-search").value);
-			this.page.set_indicator(__("Updated"), "green");
-		}).catch(() => this.page.set_indicator(__("Failed"), "red"));
+			callback: (response) => {
+				this.data = response.message || {};
+				this.render_summary();
+				this.render_charts();
+				this.render_table(this.wrapper.querySelector("#id-search").value);
+				this.page.set_indicator(__("Updated"), "green");
+			},
+			error: () => this.page.set_indicator(__("Failed"), "red"),
+		});
 	}
 
-	n(value, precision = 2) {
-		return Number(value || 0).toLocaleString(undefined, {
-			minimumFractionDigits: precision,
-			maximumFractionDigits: precision,
-		});
+	n(value, precision = 0) {
+		if (precision === 1) {
+			return window.sales_performance
+				? sales_performance.format_percent(value)
+				: format_number(value || 0, null, 1);
+		}
+		return window.sales_performance
+			? sales_performance.format_qty(value)
+			: format_number(value || 0, null, 0);
+	}
+
+	money(value) {
+		return window.sales_performance
+			? sales_performance.format_amount(value)
+			: format_currency(value || 0, frappe.defaults.get_default("currency"), 0);
+	}
+
+	ach(value) {
+		if (value == null || value === "") return "—";
+		const n = Number(value);
+		const klass = n >= 100 ? "sp-ok" : "sp-bad";
+		return `<span class="${klass}">${this.n(n, 1)}%</span>`;
+	}
+
+	inc(value, as_money = false) {
+		const n = Number(value || 0);
+		const html = as_money ? this.money(n) : this.n(n);
+		return n > 0 ? `<span class="sp-ok">${html}</span>` : html;
 	}
 
 	render_summary() {
@@ -196,13 +235,13 @@ class IncentiveDashboard {
 		const cards = [
 			[__("Target Qty"), this.n(t.target_qty, 0), ""],
 			[__("Actual Qty"), this.n(t.actual_qty, 0), ""],
-			[__("Achievement %"), `${this.n(t.qty_achievement_percent, 1)}%`, "id-accent"],
-			[__("Incentive on Amount"), this.n(t.incentive_on_amount), ""],
-			[__("Incentive on Qty"), this.n(t.incentive_on_qty), ""],
-			[__("Payable Incentive"), this.n(t.incentive_amount), "id-green"],
-			[__("Accrued"), this.n(t.posted_incentive), ""],
-			[__("Paid"), this.n(t.paid_incentive), "id-green"],
-			[__("Not Paid"), this.n(t.unpaid_incentive), "id-orange"],
+			[__("Achievement %"), this.ach(t.qty_achievement_percent), "id-accent"],
+			[__("Incentive on Amount"), this.inc(t.incentive_on_amount, true), ""],
+			[__("Incentive on Qty"), this.inc(t.incentive_on_qty), ""],
+			[__("Payable Incentive"), this.inc(t.incentive_amount, true), "id-green"],
+			[__("Accrued"), this.money(t.posted_incentive), ""],
+			[__("Paid"), this.money(t.paid_incentive), "id-green"],
+			[__("Not Paid"), this.money(t.unpaid_incentive), "id-orange"],
 		];
 		this.wrapper.querySelector("#id-summary").innerHTML = cards
 			.map(([label, value, klass]) => `<div class="id-card ${klass}"><span>${label}</span><strong>${value}</strong></div>`)
@@ -219,17 +258,46 @@ class IncentiveDashboard {
 
 	draw_chart(selector, labels, values) {
 		const host = this.wrapper.querySelector(selector);
+		if (!host) {
+			return;
+		}
+		if (this.charts && this.charts[selector] && this.charts[selector].destroy) {
+			try {
+				this.charts[selector].destroy();
+			} catch (e) {
+				/* ignore */
+			}
+		}
+		this.charts = this.charts || {};
 		host.innerHTML = "";
 		if (!labels.length || typeof frappe.Chart === "undefined") {
 			host.innerHTML = `<div class="id-empty" style="display:block">${__("No chart data")}</div>`;
 			return;
 		}
-		this[selector] = new frappe.Chart(host, {
-			data: { labels, datasets: [{ name: __("Incentive"), values }] },
-			type: "bar",
-			height: 220,
-			colors: ["#2490ef"],
-		});
+		const number_opts =
+			window.sales_performance && sales_performance.chart_number_opts
+				? sales_performance.chart_number_opts(0)
+				: { valuesOverPoints: 1, axisOptions: { shortenYAxisNumbers: 0 } };
+		try {
+			this.charts[selector] = new frappe.Chart(
+				host,
+				Object.assign(
+					{
+						data: { labels, datasets: [{ name: __("Incentive"), values }] },
+						type: "bar",
+						height: 280,
+						colors: ["#2490ef"],
+					},
+					number_opts
+				)
+			);
+			if (sales_performance.finish_chart) {
+				sales_performance.finish_chart(this.charts[selector]);
+			}
+		} catch (e) {
+			console.error(e);
+			host.innerHTML = `<div class="id-empty" style="display:block">${__("No chart data")}</div>`;
+		}
 	}
 
 	render_table(search) {
@@ -251,22 +319,24 @@ class IncentiveDashboard {
 				<td>${esc(row.dimension)}</td>
 				<td>${this.n(row.target_qty, 0)}</td>
 				<td>${this.n(row.actual_qty, 0)}</td>
-				<td>${row.qty_achievement_percent == null ? "—" : `${this.n(row.qty_achievement_percent, 1)}%`}</td>
-				<td>${this.n(row.target_amount)}</td>
-				<td>${this.n(row.actual_amount)}</td>
-				<td>${this.n(row.min_incentive_amount)}</td>
-				<td>${this.n(row.max_incentive_amount)}</td>
-				<td>${this.n(row.incentive_on_amount)}</td>
-				<td>${this.n(row.incentive_on_qty)}</td>
-				<td>${this.n(row.incentive_amount)}</td>
+				<td>${this.ach(row.qty_achievement_percent)}</td>
+				<td>${this.money(row.target_amount)}</td>
+				<td>${this.money(row.actual_amount)}</td>
+				<td>${this.ach(row.amount_achievement_percent)}</td>
+				<td>${this.inc(row.min_incentive_amount, true)}</td>
+				<td>${this.inc(row.max_incentive_amount, true)}</td>
+				<td>${this.inc(row.incentive_on_amount, true)}</td>
+				<td>${this.inc(row.incentive_on_qty)}</td>
+				<td>${this.inc(row.incentive_amount, true)}</td>
 			</tr>`
 			)
 			.join("");
 		const t = this.data.totals || {};
 		host.innerHTML = `<div class="id-wrap"><table class="id-table">
 			<thead><tr>
-				<th>${__("Group")}</th><th>${__("Target Qty")}</th><th>${__("Actual Qty")}</th><th>${__("Ach %")}</th>
-				<th>${__("Target Amt")}</th><th>${__("Actual Amt")}</th><th>${__("Min Incentive")}</th><th>${__("Max Incentive")}</th>
+				<th>${__("Group")}</th><th>${__("Target Qty")}</th><th>${__("Actual Qty")}</th><th>${__("Qty Ach %")}</th>
+				<th>${__("Target Amt")}</th><th>${__("Actual Amt")}</th><th>${__("Amt Ach %")}</th>
+				<th>${__("Min Incentive")}</th><th>${__("Max Incentive")}</th>
 				<th>${__("Incentive on Amount")}</th><th>${__("Incentive on Qty")}</th><th>${__("Payable")}</th>
 			</tr></thead>
 			<tbody>${body}</tbody>
@@ -274,14 +344,15 @@ class IncentiveDashboard {
 				<td>${__("Total")}</td>
 				<td>${this.n(t.target_qty, 0)}</td>
 				<td>${this.n(t.actual_qty, 0)}</td>
-				<td>${this.n(t.qty_achievement_percent, 1)}%</td>
-				<td>${this.n(t.target_amount)}</td>
-				<td>${this.n(t.actual_amount)}</td>
-				<td>${this.n(t.min_incentive_amount)}</td>
-				<td>${this.n(t.max_incentive_amount)}</td>
-				<td>${this.n(t.incentive_on_amount)}</td>
-				<td>${this.n(t.incentive_on_qty)}</td>
-				<td>${this.n(t.incentive_amount)}</td>
+				<td>${this.ach(t.qty_achievement_percent)}</td>
+				<td>${this.money(t.target_amount)}</td>
+				<td>${this.money(t.actual_amount)}</td>
+				<td>${this.ach(t.amount_achievement_percent)}</td>
+				<td>${this.inc(t.min_incentive_amount, true)}</td>
+				<td>${this.inc(t.max_incentive_amount, true)}</td>
+				<td>${this.inc(t.incentive_on_amount, true)}</td>
+				<td>${this.inc(t.incentive_on_qty)}</td>
+				<td>${this.inc(t.incentive_amount, true)}</td>
 			</tr></tfoot>
 		</table></div>`;
 	}

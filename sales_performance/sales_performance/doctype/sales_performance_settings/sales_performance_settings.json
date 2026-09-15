@@ -36,7 +36,8 @@
    "default": "0",
    "fieldname": "default_growth_percent",
    "fieldtype": "Percent",
-   "label": "Default Growth %"
+   "label": "Default Growth %",
+   "precision": 1
   },
   {
    "fieldname": "column_break_1",

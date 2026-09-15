@@ -13,6 +13,7 @@ from sales_performance.services.incentive_engine import (
 	collect_period_incentive_rows,
 	dashboard_totals,
 	group_dashboard_rows,
+	scheme_settings,
 )
 from sales_performance.services.planning_engine import calendar_previous_year_dates, fiscal_year_dates
 
@@ -24,6 +25,7 @@ def get_analytics(
 	sales_person=None,
 	territory=None,
 	item_group=None,
+	customer_group=None,
 	customer=None,
 	item=None,
 	period="Annual",
@@ -39,12 +41,13 @@ def get_analytics(
 		"sales_person": sales_person,
 		"territory": territory,
 		"item_group": item_group,
+		"customer_group": customer_group,
 		"customer": customer,
 		"item": item,
 	}
 
 	sales = {}
-	for dimension in ("sales_person", "territory", "item_group", "customer", "item"):
+	for dimension in ("sales_person", "territory", "item_group", "customer_group", "customer", "item"):
 		cy = fetch_sales_by_dimension(company, start, end, dimension, **filters)
 		py = fetch_sales_by_dimension(company, py_start, py_end, dimension, **filters)
 		targets = target_totals_by_dimension(company, fiscal_year, dimension)
@@ -68,34 +71,36 @@ def get_analytics(
 			}
 		)
 
-	incentive_rows = collect_period_incentive_rows(
-		{
-			"company": company,
-			"fiscal_year": fiscal_year,
-			"period": period or "Annual",
-			"month": month,
-			"quarter": quarter,
-			"sales_person": sales_person,
-			"territory": territory,
-			"item_group": item_group,
-			"item": item,
-		}
-	)
+	incentive_filters = {
+		"company": company,
+		"fiscal_year": fiscal_year,
+		"period": period or "Annual",
+		"month": month,
+		"quarter": quarter,
+		"sales_person": sales_person,
+		"territory": territory,
+		"item_group": item_group,
+		"customer_group": customer_group,
+		"item": item,
+	}
+	incentive_rows = collect_period_incentive_rows(incentive_filters)
+	slabs, based_on, pay_on = scheme_settings(incentive_filters)
 	payout = payout_analysis(company, fiscal_year, sales_person)
 	overview = summarize_rows(sales["sales_person"])
-	overview.update(dashboard_totals(incentive_rows))
+	overview.update(dashboard_totals(incentive_rows, slabs, based_on, pay_on))
 	overview.update(payout["totals"])
 	return {
 		"overview": overview,
 		"sales": sales,
 		"trend": trend,
 		"incentive": {
-			"by_sales_person": group_dashboard_rows(incentive_rows, "sales_person"),
-			"by_territory": group_dashboard_rows(incentive_rows, "territory"),
-			"by_item_group": group_dashboard_rows(incentive_rows, "item_group"),
-			"by_item": group_dashboard_rows(incentive_rows, "item"),
-			"by_period": group_dashboard_rows(incentive_rows, "period"),
-			"totals": dashboard_totals(incentive_rows),
+			"by_sales_person": group_dashboard_rows(incentive_rows, "sales_person", slabs, based_on, pay_on),
+			"by_territory": group_dashboard_rows(incentive_rows, "territory", slabs, based_on, pay_on),
+			"by_item_group": group_dashboard_rows(incentive_rows, "item_group", slabs, based_on, pay_on),
+			"by_customer_group": group_dashboard_rows(incentive_rows, "customer_group", slabs, based_on, pay_on),
+			"by_item": group_dashboard_rows(incentive_rows, "item", slabs, based_on, pay_on),
+			"by_period": group_dashboard_rows(incentive_rows, "period", slabs, based_on, pay_on),
+			"totals": dashboard_totals(incentive_rows, slabs, based_on, pay_on),
 		},
 		"payout": payout,
 	}

@@ -37,6 +37,56 @@ def resolve_growth_percent(item_group, rules, item_group_ancestors=None):
 	return 0.0, None
 
 
+def item_group_in_subtree(item_group, root_group, item_group_ancestors=None):
+	"""True when item_group is root_group or a descendant of it."""
+	if not root_group:
+		return True
+	if not item_group:
+		return False
+	if item_group == root_group:
+		return True
+	ancestors = item_group_ancestors if item_group_ancestors is not None else [item_group]
+	return root_group in ancestors
+
+
+def growth_rule_covers_item_group(item_group, rules, item_group_ancestors=None):
+	"""True when a growth rule applies to this item group (exact or children)."""
+	_pct, source = resolve_growth_percent(item_group, rules, item_group_ancestors)
+	return bool(source)
+
+
+def get_item_group_subtree_names(item_group):
+	"""Item group plus all descendants (nested-set)."""
+	import frappe
+
+	if not item_group:
+		return []
+	bounds = frappe.db.get_value("Item Group", item_group, ["lft", "rgt"], as_dict=True)
+	if not bounds:
+		return [item_group]
+	return frappe.get_all(
+		"Item Group",
+		filters={"lft": [">=", bounds.lft], "rgt": ["<=", bounds.rgt]},
+		pluck="name",
+	)
+
+
+def get_customer_group_subtree_names(customer_group):
+	"""Customer group plus all descendants (nested-set)."""
+	import frappe
+
+	if not customer_group:
+		return []
+	bounds = frappe.db.get_value("Customer Group", customer_group, ["lft", "rgt"], as_dict=True)
+	if not bounds:
+		return [customer_group]
+	return frappe.get_all(
+		"Customer Group",
+		filters={"lft": [">=", bounds.lft], "rgt": ["<=", bounds.rgt]},
+		pluck="name",
+	)
+
+
 def get_item_group_ancestors(item_group):
 	"""Return [leaf, parent, ..., root] using ERPNext Item Group tree."""
 	import frappe

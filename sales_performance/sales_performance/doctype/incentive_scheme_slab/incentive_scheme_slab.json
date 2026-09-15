@@ -19,35 +19,40 @@
    "label": "Min Achievement %",
    "in_list_view": 1,
    "reqd": 1,
-   "description": "Pay Min Incentive % when achievement is at least this value."
+   "description": "Pay Min Incentive % when achievement is at least this value.",
+   "precision": 1
   },
   {
    "fieldname": "min_incentive_percent",
    "fieldtype": "Percent",
    "label": "Min Incentive %",
    "in_list_view": 1,
-   "description": "Rate used from Min Achievement % up to (but not including) Max Achievement %."
+   "description": "Rate used from Min Achievement % up to (but not including) Max Achievement %.",
+   "precision": 1
   },
   {
    "fieldname": "max_achievement_percent",
    "fieldtype": "Percent",
    "label": "Max Achievement %",
    "in_list_view": 1,
-   "description": "At or above this achievement, Max Incentive % is used."
+   "description": "At or above this achievement, Max Incentive % is used.",
+   "precision": 1
   },
   {
    "fieldname": "max_incentive_percent",
    "fieldtype": "Percent",
    "label": "Max Incentive %",
    "in_list_view": 1,
-   "description": "Rate used when achievement reaches Max Achievement %."
+   "description": "Rate used when achievement reaches Max Achievement %.",
+   "precision": 1
   },
   {
    "fieldname": "incentive_percent",
    "fieldtype": "Percent",
    "label": "Incentive % (legacy)",
    "hidden": 1,
-   "description": "Fallback if Min Incentive % is empty."
+   "description": "Fallback if Min Incentive % is empty.",
+   "precision": 1
   },
   {
    "fieldname": "remarks",

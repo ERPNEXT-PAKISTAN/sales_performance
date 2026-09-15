@@ -2,8 +2,10 @@
 .pa-filter-card, .pa-table-card, .pa-chart-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; }
 .pa-filter-card { padding: 14px 16px; margin-bottom: 12px; }
 .pa-filter-title { font-weight: 650; font-size: 15px; margin-bottom: 10px; }
-.pa-filters { display: grid; grid-template-columns: repeat(5, minmax(140px, 1fr)); gap: 10px 14px; }
+.pa-filters { width: 100%; }
 .pa-filters .form-group { margin-bottom: 0; }
+.pa-filters .control-label { font-size: 10px !important; margin-bottom: 3px; }
+.pa-filters .form-control, .pa-filters input.input-with-feedback, .pa-filters select { padding: 4px 8px !important; height: 28px !important; min-height: 28px !important; font-size: 12px !important; }
 .pa-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color); }
 .pa-hint { color: var(--text-muted); font-size: 12px; max-width: 720px; }
 .pa-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }

@@ -1,6 +1,7 @@
 """Resolve min/max incentive rates from achievement slabs. No payout storage."""
 
 from sales_performance.services.numbers import nflt
+from sales_performance.services.precision import get_currency_precision, round_percent
 
 
 def resolve_incentive_rate(achievement_percent, slabs):
@@ -33,6 +34,18 @@ def normalize_pay_on(value):
 	return "Qty" if text.strip().lower().startswith("qty") else "Amount"
 
 
+def empty_incentive(pay_on="Amount"):
+	return {
+		"incentive_rate_percent": 0.0,
+		"incentive_qty": 0.0,
+		"incentive_on_amount": 0.0,
+		"incentive_on_qty": 0.0,
+		"incentive_amount": 0.0,
+		"incentive_band": "",
+		"pay_on": normalize_pay_on(pay_on),
+	}
+
+
 def incentive_on_surplus(
 	actual_qty,
 	target_qty,
@@ -41,28 +54,78 @@ def incentive_on_surplus(
 	rate_percent,
 	pay_on="Amount",
 ):
-	"""Pay incentive only on surplus above target.
+	"""Pay incentive only on surplus of the scheme's Pay On metric.
 
-	Amount: surplus amount × rate %.
-	Qty: surplus qty × rate %  (not converted by selling price).
+	No payable (and no qty/amount incentive columns) unless the rate is earned
+	and that metric beat target. The unused Pay On column stays zero.
 	"""
+	pay_on = normalize_pay_on(pay_on)
 	rate = nflt(rate_percent) / 100.0
+	if rate <= 0:
+		return empty_incentive(pay_on)
+
 	surplus_qty = max(nflt(actual_qty) - nflt(target_qty), 0)
 	surplus_amount = max(nflt(actual_amount) - nflt(target_amount), 0)
-	qty_pay = nflt(surplus_qty * rate)
-	amount_pay = nflt(surplus_amount * rate)
-	if normalize_pay_on(pay_on) == "Qty":
-		incentive_amount = qty_pay
-	else:
-		incentive_amount = amount_pay
+	if pay_on == "Qty":
+		if surplus_qty <= 0:
+			return empty_incentive(pay_on)
+		qty_pay = nflt(surplus_qty * rate)
+		return {
+			"incentive_rate_percent": round_percent(rate_percent) or 0.0,
+			"incentive_qty": qty_pay,
+			"incentive_on_qty": qty_pay,
+			"incentive_on_amount": 0.0,
+			"incentive_amount": qty_pay,
+			"pay_on": pay_on,
+		}
+
+	if surplus_amount <= 0:
+		return empty_incentive(pay_on)
+	amount_pay = nflt(surplus_amount * rate, get_currency_precision())
 	return {
-		"incentive_rate_percent": nflt(rate_percent),
-		"incentive_qty": qty_pay,
+		"incentive_rate_percent": round_percent(rate_percent) or 0.0,
+		"incentive_qty": 0.0,
+		"incentive_on_qty": 0.0,
 		"incentive_on_amount": amount_pay,
-		"incentive_on_qty": qty_pay,
-		"incentive_amount": incentive_amount,
-		"pay_on": normalize_pay_on(pay_on),
+		"incentive_amount": amount_pay,
+		"pay_on": pay_on,
 	}
+
+
+def apply_scheme_payout(
+	target_qty,
+	actual_qty,
+	target_amount,
+	actual_amount,
+	slabs,
+	based_on,
+	pay_on,
+):
+	"""Score this row's totals against Incentive Scheme slabs. Under-target = 0."""
+	from sales_performance.services.achievement_engine import compute_metrics
+
+	metrics = compute_metrics(target_qty, actual_qty, target_amount, actual_amount)
+	pay_on = normalize_pay_on(pay_on)
+	achievement = (
+		metrics["amount_achievement_percent"]
+		if based_on == "Amount Achievement"
+		else metrics["qty_achievement_percent"]
+	)
+	rate, band = resolve_incentive_rate(achievement, slabs)
+	payout = incentive_on_surplus(
+		actual_qty,
+		target_qty,
+		actual_amount,
+		target_amount,
+		rate if band else 0,
+		pay_on,
+	)
+	if nflt(payout.get("incentive_amount")) <= 0:
+		metrics.update(empty_incentive(pay_on))
+		return metrics
+	metrics.update(payout)
+	metrics["incentive_band"] = band or ""
+	return metrics
 
 
 def load_scheme_slabs(company=None, fiscal_year=None):
@@ -121,63 +184,25 @@ def metrics_with_monthly_incentive(
 	based_on,
 	pay_on,
 ):
-	"""Target/actual are summed across months. Incentive is summed month-by-month.
+	"""Sum target/actual for the period, then apply the scheme to those totals.
 
-	A month that misses target does not reduce incentive already earned in a month
-	that beat target. Annual/quarter totals are therefore >= any single month.
+	Incentive is paid only when this row's achievement meets the scheme and the
+	Pay On metric is above target. A strong month does not pay if the period missed.
 	"""
-	from sales_performance.services.achievement_engine import compute_metrics
-
 	target_qty = target_amount = actual_qty = actual_amount = 0.0
-	incentive_amount = incentive_qty = incentive_on_amount = incentive_on_qty = 0.0
-	weighted_rate = 0.0
-	surplus_weight = 0.0
-	bands = []
 	for month in months:
 		part = month_target.get(month) or {}
-		mtq = nflt(part.get("target_qty"))
-		mta = nflt(part.get("target_amount"))
-		maq = nflt(month_qty.get(month))
-		maa = nflt(month_amount.get(month))
-		target_qty += mtq
-		target_amount += mta
-		actual_qty += maq
-		actual_amount += maa
-		month_metrics = compute_metrics(mtq, maq, mta, maa)
-		achievement = (
-			month_metrics["amount_achievement_percent"]
-			if based_on == "Amount Achievement"
-			else month_metrics["qty_achievement_percent"]
-		)
-		rate, band = resolve_incentive_rate(achievement, slabs)
-		payout = incentive_on_surplus(maq, mtq, maa, mta, rate if band else 0, pay_on)
-		incentive_amount += nflt(payout["incentive_amount"])
-		incentive_qty += nflt(payout["incentive_qty"])
-		incentive_on_amount += nflt(payout.get("incentive_on_amount"))
-		incentive_on_qty += nflt(payout.get("incentive_on_qty"))
-		weight = max(maq - mtq, 0) if normalize_pay_on(pay_on) == "Qty" else max(maa - mta, 0)
-		if band:
-			bands.append(band)
-			weighted_rate += nflt(payout["incentive_rate_percent"]) * (weight or 1.0)
-			surplus_weight += weight or 1.0
-	metrics = compute_metrics(target_qty, actual_qty, target_amount, actual_amount)
-	uniq = set(bands)
-	metrics.update(
-		{
-			"incentive_amount": nflt(incentive_amount),
-			"incentive_qty": nflt(incentive_qty),
-			"incentive_on_amount": nflt(incentive_on_amount),
-			"incentive_on_qty": nflt(incentive_on_qty),
-			"incentive_rate_percent": nflt(weighted_rate / surplus_weight, 2) if surplus_weight else 0.0,
-			"incentive_band": next(iter(uniq)) if len(uniq) == 1 else ("Mixed" if uniq else ""),
-			"pay_on": normalize_pay_on(pay_on),
-		}
+		target_qty += nflt(part.get("target_qty"))
+		target_amount += nflt(part.get("target_amount"))
+		actual_qty += nflt(month_qty.get(month))
+		actual_amount += nflt(month_amount.get(month))
+	return apply_scheme_payout(
+		target_qty, actual_qty, target_amount, actual_amount, slabs, based_on, pay_on
 	)
-	return metrics
 
 
 def collect_achievement_rows(filters):
-	"""Item-wise annual achievement. Incentive = sum of monthly incentives (no clawback)."""
+	"""Item-wise annual achievement. Incentive follows the scheme on year totals."""
 	import frappe
 
 	filters = frappe._dict(filters or {})
@@ -187,20 +212,30 @@ def collect_achievement_rows(filters):
 	return collect_period_incentive_rows(filters)
 
 
-def summarize_payout_by_sales_person(rows):
-	"""One payable line per sales person (sums item-wise incentive)."""
+def summarize_payout_by_sales_person(rows, slabs=None, based_on="Qty Achievement", pay_on="Amount"):
+	"""One payable line per sales person.
+
+	When slabs are passed, incentive is recalculated on that person's totals so
+	a miss versus target does not keep child-row surplus.
+	"""
 	grouped = {}
 	for row in rows:
-		amount = nflt(row.get("incentive_amount"))
-		if amount <= 0:
-			continue
-		key = (row.get("sales_person") or "(Not Set)", row.get("period") or "")
+		key = (
+			row.get("sales_person") or "(Not Set)",
+			row.get("period") or "",
+			row.get("customer_group") or "",
+		)
 		bucket = grouped.setdefault(
 			key,
 			{
 				"sales_person": row.get("sales_person") or "",
+				"customer_group": row.get("customer_group") or "",
 				"period": row.get("period") or "",
 				"month_number": row.get("month_number") or 0,
+				"target_qty": 0.0,
+				"actual_qty": 0.0,
+				"target_amount": 0.0,
+				"actual_amount": 0.0,
 				"incentive_band": row.get("incentive_band") or "",
 				"incentive_rate_percent": nflt(row.get("incentive_rate_percent")),
 				"incentive_qty": 0.0,
@@ -209,14 +244,38 @@ def summarize_payout_by_sales_person(rows):
 				"incentive_on_qty": 0.0,
 			},
 		)
-		bucket["incentive_qty"] += nflt(row.get("incentive_qty"))
-		bucket["incentive_amount"] += amount
-		bucket["incentive_on_amount"] += nflt(row.get("incentive_on_amount"))
-		bucket["incentive_on_qty"] += nflt(row.get("incentive_on_qty"))
-		if nflt(row.get("incentive_rate_percent")) >= nflt(bucket["incentive_rate_percent"]):
-			bucket["incentive_rate_percent"] = nflt(row.get("incentive_rate_percent"))
-			bucket["incentive_band"] = row.get("incentive_band") or bucket["incentive_band"]
-	return list(grouped.values())
+		bucket["target_qty"] += nflt(row.get("target_qty"))
+		bucket["actual_qty"] += nflt(row.get("actual_qty"))
+		bucket["target_amount"] += nflt(row.get("target_amount"))
+		bucket["actual_amount"] += nflt(row.get("actual_amount"))
+		amount = nflt(row.get("incentive_amount"))
+		if amount > 0:
+			bucket["incentive_qty"] += nflt(row.get("incentive_qty"))
+			bucket["incentive_amount"] += amount
+			bucket["incentive_on_amount"] += nflt(row.get("incentive_on_amount"))
+			bucket["incentive_on_qty"] += nflt(row.get("incentive_on_qty"))
+			if nflt(row.get("incentive_rate_percent")) >= nflt(bucket["incentive_rate_percent"]):
+				bucket["incentive_rate_percent"] = nflt(row.get("incentive_rate_percent"))
+				bucket["incentive_band"] = row.get("incentive_band") or bucket["incentive_band"]
+	out = []
+	for bucket in grouped.values():
+		if slabs is not None:
+			paid = apply_scheme_payout(
+				bucket["target_qty"],
+				bucket["actual_qty"],
+				bucket["target_amount"],
+				bucket["actual_amount"],
+				slabs,
+				based_on,
+				pay_on,
+			)
+			if nflt(paid.get("incentive_amount")) <= 0:
+				continue
+			bucket.update(paid)
+		elif nflt(bucket.get("incentive_amount")) <= 0:
+			continue
+		out.append(bucket)
+	return out
 
 
 def period_buckets(view, month=None, quarter=None):
@@ -244,6 +303,7 @@ def collect_period_incentive_rows(filters):
 	from frappe.utils import getdate
 
 	from sales_performance.services.distribution_engine import equal_monthly
+	from sales_performance.services.growth_engine import get_customer_group_subtree_names, get_item_group_subtree_names
 	from sales_performance.services.historical_sales import fetch_historical_sales
 	from sales_performance.services.planning_engine import fiscal_year_dates
 
@@ -277,19 +337,22 @@ def collect_period_incentive_rows(filters):
 		if key not in latest:
 			latest[key] = p.name
 
+	detail_fields = [
+		"parent",
+		"sales_person",
+		"territory",
+		"item_group",
+		"item_code",
+		"approved_target_qty",
+		"approved_target_amount",
+		"growth_percent",
+	]
+	if frappe.db.has_column("Target Proposal Detail", "customer_group"):
+		detail_fields.append("customer_group")
 	rows = frappe.get_all(
 		"Target Proposal Detail",
 		filters={"parent": ("in", list(latest.values()))},
-		fields=[
-			"parent",
-			"sales_person",
-			"territory",
-			"item_group",
-			"item_code",
-			"approved_target_qty",
-			"approved_target_amount",
-			"growth_percent",
-		],
+		fields=detail_fields,
 		ignore_permissions=True,
 	)
 	start, end = fiscal_year_dates(filters.fiscal_year, filters.company)
@@ -302,11 +365,18 @@ def collect_period_incentive_rows(filters):
 		sales_person=filters.get("sales_person"),
 		territory=filters.get("territory"),
 		item_group=filters.get("item_group"),
+		customer_group=filters.get("customer_group"),
 		item_codes=[filters.item] if filters.get("item") else None,
 		include_monthly=True,
 	)
 	slabs, based_on, pay_on = scheme_settings(filters)
 	buckets = period_buckets(filters.get("period"), filters.get("month"), filters.get("quarter"))
+	allowed_groups = None
+	if filters.get("item_group"):
+		allowed_groups = set(get_item_group_subtree_names(filters.item_group))
+	allowed_customer_groups = None
+	if filters.get("customer_group"):
+		allowed_customer_groups = set(get_customer_group_subtree_names(filters.customer_group))
 	seen = set()
 	out = []
 	for row in rows:
@@ -314,7 +384,9 @@ def collect_period_incentive_rows(filters):
 			continue
 		if filters.get("territory") and row.territory != filters.territory:
 			continue
-		if filters.get("item_group") and row.item_group != filters.item_group:
+		if allowed_groups is not None and (row.item_group or "") not in allowed_groups:
+			continue
+		if allowed_customer_groups is not None and (row.get("customer_group") or "") not in allowed_customer_groups:
 			continue
 		if filters.get("item") and row.item_code != filters.item:
 			continue
@@ -340,20 +412,22 @@ def collect_period_incentive_rows(filters):
 					"sales_person": row.sales_person,
 					"territory": row.territory,
 					"item_group": row.item_group,
+					"customer_group": row.get("customer_group"),
 					"item_code": row.item_code,
 					"planning": row.parent,
-					"growth_percent": nflt(row.get("growth_percent"), 2),
+					"growth_percent": round_percent(row.get("growth_percent")),
 				}
 			)
 			out.append(metrics)
 	return out
 
 
-def group_dashboard_rows(rows, group_by="sales_person"):
+def group_dashboard_rows(rows, group_by="sales_person", slabs=None, based_on="Qty Achievement", pay_on="Amount"):
 	field = {
 		"sales_person": "sales_person",
 		"territory": "territory",
 		"item_group": "item_group",
+		"customer_group": "customer_group",
 		"item": "item_code",
 		"period": "period",
 	}.get(group_by or "sales_person", "sales_person")
@@ -368,54 +442,41 @@ def group_dashboard_rows(rows, group_by="sales_person"):
 				"actual_qty": 0.0,
 				"target_amount": 0.0,
 				"actual_amount": 0.0,
-				"incentive_amount": 0.0,
-				"incentive_qty": 0.0,
-				"incentive_on_amount": 0.0,
-				"incentive_on_qty": 0.0,
-				"min_incentive_amount": 0.0,
-				"max_incentive_amount": 0.0,
 			},
 		)
 		bucket["target_qty"] += nflt(row.get("target_qty"))
 		bucket["actual_qty"] += nflt(row.get("actual_qty"))
 		bucket["target_amount"] += nflt(row.get("target_amount"))
 		bucket["actual_amount"] += nflt(row.get("actual_amount"))
-		bucket["incentive_amount"] += nflt(row.get("incentive_amount"))
-		bucket["incentive_qty"] += nflt(row.get("incentive_qty"))
-		bucket["incentive_on_amount"] += nflt(row.get("incentive_on_amount"))
-		bucket["incentive_on_qty"] += nflt(row.get("incentive_on_qty"))
-		if row.get("incentive_band") == "Min":
-			bucket["min_incentive_amount"] += nflt(row.get("incentive_amount"))
-		elif row.get("incentive_band") == "Max":
-			bucket["max_incentive_amount"] += nflt(row.get("incentive_amount"))
-	out = list(grouped.values())
-	for bucket in out:
-		bucket["qty_achievement_percent"] = (
-			nflt(bucket["actual_qty"] / bucket["target_qty"] * 100.0, 2) if bucket["target_qty"] else None
+	out = []
+	for bucket in grouped.values():
+		paid = apply_scheme_payout(
+			bucket["target_qty"],
+			bucket["actual_qty"],
+			bucket["target_amount"],
+			bucket["actual_amount"],
+			slabs,
+			based_on,
+			pay_on,
 		)
+		bucket.update(paid)
+		bucket["min_incentive_amount"] = paid["incentive_amount"] if paid.get("incentive_band") == "Min" else 0.0
+		bucket["max_incentive_amount"] = paid["incentive_amount"] if paid.get("incentive_band") == "Max" else 0.0
+		out.append(bucket)
 	out.sort(key=lambda r: r["incentive_amount"], reverse=True)
 	return out
 
 
-def dashboard_totals(rows):
+def dashboard_totals(rows, slabs=None, based_on="Qty Achievement", pay_on="Amount"):
 	target_qty = sum(nflt(r.get("target_qty")) for r in rows)
 	actual_qty = sum(nflt(r.get("actual_qty")) for r in rows)
 	target_amount = sum(nflt(r.get("target_amount")) for r in rows)
 	actual_amount = sum(nflt(r.get("actual_amount")) for r in rows)
-	incentive_amount = sum(nflt(r.get("incentive_amount")) for r in rows)
-	incentive_on_amount = sum(nflt(r.get("incentive_on_amount")) for r in rows)
-	incentive_on_qty = sum(nflt(r.get("incentive_on_qty")) for r in rows)
-	return {
-		"target_qty": target_qty,
-		"actual_qty": actual_qty,
-		"target_amount": target_amount,
-		"actual_amount": actual_amount,
-		"incentive_amount": incentive_amount,
-		"incentive_on_amount": incentive_on_amount,
-		"incentive_on_qty": incentive_on_qty,
-		"qty_achievement_percent": nflt(actual_qty / target_qty * 100.0, 2) if target_qty else 0,
-		"min_incentive_amount": sum(nflt(r.get("incentive_amount")) for r in rows if r.get("incentive_band") == "Min"),
-		"max_incentive_amount": sum(nflt(r.get("incentive_amount")) for r in rows if r.get("incentive_band") == "Max"),
-		"rows_with_incentive": sum(1 for r in rows if nflt(r.get("incentive_amount")) > 0),
-	}
+	paid = apply_scheme_payout(
+		target_qty, actual_qty, target_amount, actual_amount, slabs, based_on, pay_on
+	)
+	paid["min_incentive_amount"] = paid["incentive_amount"] if paid.get("incentive_band") == "Min" else 0.0
+	paid["max_incentive_amount"] = paid["incentive_amount"] if paid.get("incentive_band") == "Max" else 0.0
+	paid["rows_with_incentive"] = sum(1 for r in rows if nflt(r.get("incentive_amount")) > 0)
+	return paid
 

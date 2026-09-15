@@ -19,5 +19,6 @@
  "number_of_groups": 8,
  "owner": "Administrator",
  "timeseries": 0,
- "type": "Bar"
+ "type": "Bar",
+ "show_values_over_chart": 1
 }

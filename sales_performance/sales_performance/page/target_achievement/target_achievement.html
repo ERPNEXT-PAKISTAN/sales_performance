@@ -1,0 +1,78 @@
+<div id="ta_dashboard_root" class="sp-dash">
+	<div class="sp-dash-hero">
+		<div>
+			<h1 class="sp-dash-title">Target Achievement</h1>
+			<div class="sp-dash-sub">
+				<p>Item groups and items that achieved target vs those that did not</p>
+				<span class="sp-dash-refresh-pill">Last refresh: <span id="ta-last-refresh">—</span></span>
+			</div>
+		</div>
+	</div>
+
+	<div class="sp-kpis">
+		<div class="sp-kpi sp-kpi-green">
+			<div class="sp-kpi-label">Item Groups Achieved</div>
+			<div class="sp-kpi-value" id="ta_stat_g_ok">0</div>
+		</div>
+		<div class="sp-kpi sp-kpi-red">
+			<div class="sp-kpi-label">Item Groups Not Achieved</div>
+			<div class="sp-kpi-value" id="ta_stat_g_miss">0</div>
+		</div>
+		<div class="sp-kpi sp-kpi-blue">
+			<div class="sp-kpi-label">Items Achieved</div>
+			<div class="sp-kpi-value" id="ta_stat_i_ok">0</div>
+		</div>
+		<div class="sp-kpi sp-kpi-purple">
+			<div class="sp-kpi-label">Items Not Achieved</div>
+			<div class="sp-kpi-value" id="ta_stat_i_miss">0</div>
+		</div>
+	</div>
+
+	<div id="ta-error" class="sp-dash-error"></div>
+	<div id="ta-loading" class="sp-dash-loading">Loading target achievement...</div>
+
+	<div id="ta-filters-panel" class="sp-filter-panel">
+		<div class="sp-filter-row">
+			<div class="sp-filter-grid" id="ta-filters"></div>
+			<div class="sp-filter-actions">
+				<button type="button" class="sp-btn sp-btn-primary" id="ta-refresh">Refresh</button>
+				<button type="button" class="sp-btn sp-btn-muted" id="ta-reset">Reset</button>
+				<button type="button" class="sp-btn sp-btn-green" id="ta-graphics">Graphics</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="sp-card">
+		<div class="sp-table-toolbar">
+			<h3>Detail Tables</h3>
+			<input id="ta-search" class="sp-search" type="search" placeholder="Search...">
+		</div>
+	</div>
+
+	<div class="sp-table-stack">
+		<div class="sp-card sp-ok-border">
+			<div class="sp-table-head">
+				<h3>Item Groups — Achieved <span id="ta-g-ok-count" style="color:#64748b;font-size:13px;font-weight:600;">0</span></h3>
+			</div>
+			<div id="ta-g-ok"></div>
+		</div>
+		<div class="sp-card sp-bad-border">
+			<div class="sp-table-head">
+				<h3>Item Groups — Not Achieved <span id="ta-g-miss-count" style="color:#64748b;font-size:13px;font-weight:600;">0</span></h3>
+			</div>
+			<div id="ta-g-miss"></div>
+		</div>
+		<div class="sp-card sp-ok-border">
+			<div class="sp-table-head">
+				<h3>Items — Achieved <span id="ta-i-ok-count" style="color:#64748b;font-size:13px;font-weight:600;">0</span></h3>
+			</div>
+			<div id="ta-i-ok"></div>
+		</div>
+		<div class="sp-card sp-bad-border">
+			<div class="sp-table-head">
+				<h3>Items — Not Achieved <span id="ta-i-miss-count" style="color:#64748b;font-size:13px;font-weight:600;">0</span></h3>
+			</div>
+			<div id="ta-i-miss"></div>
+		</div>
+	</div>
+</div>

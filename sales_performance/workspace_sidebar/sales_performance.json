@@ -45,6 +45,42 @@
   {
    "child": 0,
    "collapsible": 0,
+   "icon": "check-circle",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Target Achievement",
+   "link_to": "target-achievement",
+   "link_type": "Page",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 0,
+   "icon": "pie-chart",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Achievement Graphics",
+   "link_to": "achievement-graphics",
+   "link_type": "Page",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 0,
+   "icon": "layout",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Target Achievement Dashboard",
+   "link_to": "Target Achievement",
+   "link_type": "Dashboard",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 0,
    "icon": "bar-chart-2",
    "indent": 0,
    "keep_closed": 0,
@@ -127,7 +163,7 @@
    "type": "Link"
   }
  ],
- "modified": "2026-09-15 08:30:00.000000",
+ "modified": "2026-09-15 23:10:00.000000",
  "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Sales Performance",
