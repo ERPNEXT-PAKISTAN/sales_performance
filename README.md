@@ -26,9 +26,9 @@ From the bench:
 ```bash
 cd /home/frappe/frappe-bench
 bench get-app /path/to/sales_performance   # if installing from git
-bench --site ss.frappe.my install-app sales_performance
-bench --site ss.frappe.my migrate
-bench --site ss.frappe.my clear-cache
+bench --site site1.local install-app sales_performance
+bench --site site1.local migrate
+bench --site site1.local clear-cache
 ```
 
 On this computer the app lives at `apps/sales_performance`.
@@ -132,7 +132,7 @@ Reports:
 ## Testing
 
 ```bash
-bench --site ss.frappe.my run-tests --app sales_performance
+bench --site site1.local run-tests --app sales_performance
 ```
 
 Engine tests cover growth, distribution rounding, returns netting, pricing averages, override/lock rules, and duplicate-key matching. Full invoice integration tests are skipped unless ERPNext test masters exist.
