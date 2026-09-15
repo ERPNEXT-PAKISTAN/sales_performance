@@ -1,0 +1,33 @@
+<div class="id-report">
+  <div class="id-filter-card">
+    <div class="id-filter-title">Incentive Dashboard</div>
+    <div class="id-filters" id="id-filters"></div>
+    <div class="id-actions">
+      <button type="button" class="btn btn-primary btn-sm" id="id-refresh">Refresh</button>
+      <button type="button" class="btn btn-default btn-sm" id="id-payout">New Incentive Payout</button>
+      <span class="id-actions-hint">Monthly and quarterly incentive uses an equal 12-month split of approved targets vs actual sales. Min/Max rates come from Incentive Scheme.</span>
+    </div>
+  </div>
+  <div class="id-summary" id="id-summary"></div>
+  <div class="id-charts">
+    <div class="id-chart-card">
+      <h4>Incentive by Month</h4>
+      <div id="id-chart-month"></div>
+    </div>
+    <div class="id-chart-card">
+      <h4 id="id-chart-dim-title">Incentive by Dimension</h4>
+      <div id="id-chart-dim"></div>
+    </div>
+  </div>
+  <div class="id-table-card">
+    <div class="id-table-head">
+      <div>
+        <h4>Detail</h4>
+        <span id="id-row-count">0</span>
+      </div>
+      <input id="id-search" type="search" placeholder="Search">
+    </div>
+    <div id="id-table"></div>
+    <div id="id-empty" class="id-empty">No incentive rows for these filters.</div>
+  </div>
+</div>

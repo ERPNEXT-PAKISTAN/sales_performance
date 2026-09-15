@@ -1,0 +1,27 @@
+.desktop-icon[data-id="Sales Performance"] .icon-container {
+	padding: 4px;
+	background-color: var(--surface-white, #fff);
+	width: 64px;
+	height: 64px;
+	overflow: hidden;
+	border-radius: 16px;
+	border: 1.5px solid #9b1b32;
+	box-sizing: border-box;
+}
+
+.desktop-icon[data-id="Sales Performance"] .icon-container img {
+	width: 52px;
+	height: 52px;
+	object-fit: contain;
+}
+
+.sidebar-header img[src*="sales-performance-logo"] {
+	width: 28px;
+	height: 28px;
+	object-fit: contain;
+	border: 1.5px solid #9b1b32;
+	border-radius: 8px;
+	padding: 2px;
+	background: var(--surface-white, #fff);
+	box-sizing: border-box;
+}

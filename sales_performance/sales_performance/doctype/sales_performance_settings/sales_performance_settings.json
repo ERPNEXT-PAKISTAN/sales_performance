@@ -1,0 +1,142 @@
+{
+ "actions": [],
+ "creation": "2026-09-14 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "issingle": 1,
+ "field_order": [
+  "default_pricing_method",
+  "default_distribution_method",
+  "default_growth_percent",
+  "column_break_1",
+  "require_override_reason",
+  "block_approval_without_price",
+  "incentive_accounts_section",
+  "incentive_expense_account",
+  "incentive_payable_account",
+  "column_break_inc",
+  "incentive_paid_from_account",
+  "incentive_cost_center"
+ ],
+ "fields": [
+  {
+   "fieldname": "default_pricing_method",
+   "fieldtype": "Select",
+   "label": "Default Pricing Method",
+   "default": "Specific Price List",
+   "options": "Specific Price List\nLast Selling Price\nPrevious Year Average Selling Price\nManual Price"
+  },
+  {
+   "fieldname": "default_distribution_method",
+   "fieldtype": "Select",
+   "label": "Default Distribution Method",
+   "default": "Equal Monthly",
+   "options": "Same Month Previous Year + Growth\nEqual Monthly\nEqual Quarterly\nEqual Half-Yearly\nManual Monthly\nCustom Percentage Distribution"
+  },
+  {
+   "fieldname": "default_growth_percent",
+   "fieldtype": "Percent",
+   "label": "Default Growth %",
+   "default": "0"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "require_override_reason",
+   "fieldtype": "Check",
+   "label": "Require Override Reason",
+   "default": "1"
+  },
+  {
+   "fieldname": "block_approval_without_price",
+   "fieldtype": "Check",
+   "label": "Block Approval Without Price",
+   "default": "1"
+  },
+  {
+   "fieldname": "incentive_accounts_section",
+   "fieldtype": "Section Break",
+   "label": "Incentive Accounting"
+  },
+  {
+   "fieldname": "incentive_expense_account",
+   "fieldtype": "Link",
+   "options": "Account",
+   "label": "Incentive Expense Account"
+  },
+  {
+   "fieldname": "incentive_payable_account",
+   "fieldtype": "Link",
+   "options": "Account",
+   "label": "Incentive Payable Account"
+  },
+  {
+   "fieldname": "column_break_inc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "incentive_paid_from_account",
+   "fieldtype": "Link",
+   "options": "Account",
+   "label": "Pay From Account (Bank / Cash)"
+  },
+  {
+   "fieldname": "incentive_cost_center",
+   "fieldtype": "Link",
+   "options": "Cost Center",
+   "label": "Default Cost Center"
+  }
+ ],
+ "module": "Sales Performance",
+ "name": "Sales Performance Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "Sales Performance Admin",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  },
+  {
+   "role": "Sales Target Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 0,
+   "create": 0,
+   "write": 1,
+   "delete": 0,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

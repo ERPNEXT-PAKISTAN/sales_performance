@@ -1,0 +1,23 @@
+{
+ "content": null,
+ "doctype": "Page",
+ "module": "Sales Performance",
+ "name": "incentive-dashboard",
+ "page_name": "incentive-dashboard",
+ "roles": [
+  { "role": "Sales Target User" },
+  { "role": "Sales Target Manager" },
+  { "role": "Sales Target Approver" },
+  { "role": "Sales Performance Manager" },
+  { "role": "Sales Performance Admin" },
+  { "role": "Sales Manager" },
+  { "role": "Sales User" },
+  { "role": "Accounts Manager" },
+  { "role": "System Manager" }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Incentive Dashboard"
+}

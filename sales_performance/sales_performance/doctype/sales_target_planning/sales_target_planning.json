@@ -1,0 +1,603 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "naming_series:",
+ "title_field": "title",
+ "creation": "2026-09-14 00:00:00",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "editable_grid": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "planning_section",
+  "naming_series",
+  "title",
+  "company",
+  "fiscal_year",
+  "planning_version",
+  "status",
+  "column_break_plan",
+  "sales_person",
+  "territory",
+  "item_group",
+  "previous_planning",
+  "naming_hint",
+  "historical_section",
+  "previous_fiscal_year",
+  "from_date",
+  "to_date",
+  "column_break_hist",
+  "calculation_basis",
+  "growth_method",
+  "uniform_growth_percent",
+  "growth_section",
+  "growth_rules",
+  "pricing_section",
+  "pricing_method",
+  "price_list",
+  "distribution_section",
+  "distribution_method",
+  "custom_percents",
+  "proposal_section",
+  "get_previous_year_sales",
+  "previous_sales_html",
+  "proposal_edit_section",
+  "proposal_details",
+  "monthly_section",
+  "monthly_details",
+  "summary_section",
+  "rows_count",
+  "item_groups_count",
+  "sales_persons_count",
+  "column_break_sum",
+  "total_previous_qty",
+  "total_previous_amount",
+  "total_calculated_qty",
+  "total_calculated_amount",
+  "total_approved_qty",
+  "total_approved_amount",
+  "column_break_sum2",
+  "rows_requiring_review",
+  "rows_overridden",
+  "rows_without_price",
+  "summary_warnings",
+  "review_section",
+  "notes",
+  "approved_by",
+  "approved_on",
+  "erpnext_targets_synced_on",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "planning_section",
+   "fieldtype": "Section Break",
+   "label": "1. Planning Information"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "STP-.YYYY.-\nSTP-.FY.-",
+   "default": "STP-.YYYY.-",
+   "reqd": 1,
+   "no_copy": 1,
+   "set_only_once": 1,
+   "bold": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "label": "Company",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "fiscal_year",
+   "fieldtype": "Link",
+   "options": "Fiscal Year",
+   "label": "Fiscal Year",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "planning_version",
+   "fieldtype": "Int",
+   "label": "Planning Version",
+   "default": "1",
+   "reqd": 1,
+   "non_negative": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "reqd": 1,
+   "default": "Draft",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "options": "Draft\nCalculating\nCalculated\nUnder Review\nApproved\nRejected\nCancelled\nSuperseded"
+  },
+  {
+   "fieldname": "column_break_plan",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sales_person",
+   "fieldtype": "Link",
+   "options": "Sales Person",
+   "label": "Sales Person",
+   "in_standard_filter": 1,
+   "description": "Optional filter. Leave empty to load every previous-year sales person. Set it to load only that person."
+  },
+  {
+   "fieldname": "territory",
+   "fieldtype": "Link",
+   "options": "Territory",
+   "label": "Territory",
+   "in_standard_filter": 1,
+   "description": "Optional filter only. Does not split sales by territory."
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "options": "Item Group",
+   "label": "Item Group",
+   "in_standard_filter": 1,
+   "description": "Optional filter. Leave empty to include all item groups (except excluded groups)."
+  },
+  {
+   "fieldname": "previous_planning",
+   "fieldtype": "Link",
+   "options": "Sales Target Planning",
+   "label": "Previous Planning",
+   "read_only": 1
+  },
+  {
+   "fieldname": "naming_hint",
+   "fieldtype": "Small Text",
+   "label": "Internal Notes",
+   "hidden": 1
+  },
+  {
+   "fieldname": "historical_section",
+   "fieldtype": "Section Break",
+   "label": "2. Previous Calendar Year",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "previous_fiscal_year",
+   "fieldtype": "Link",
+   "options": "Fiscal Year",
+   "label": "Previous Fiscal Year",
+   "read_only": 1
+  },
+  {
+   "fieldname": "from_date",
+   "fieldtype": "Date",
+   "label": "From Date",
+   "read_only": 1,
+   "description": "Filled automatically: 1 Jan of the previous calendar year (same as Sales Target report)."
+  },
+  {
+   "fieldname": "to_date",
+   "fieldtype": "Date",
+   "label": "To Date",
+   "read_only": 1,
+   "description": "Filled automatically: 31 Dec of the previous calendar year."
+  },
+  {
+   "fieldname": "column_break_hist",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "calculation_basis",
+   "fieldtype": "Select",
+   "label": "Calculation Basis",
+   "default": "Qty and Amount",
+   "options": "Qty\nAmount\nQty and Amount",
+   "hidden": 1
+  },
+  {
+   "fieldname": "growth_method",
+   "fieldtype": "Select",
+   "label": "Growth Method",
+   "default": "Uniform Percent",
+   "options": "Item Group Rules\nUniform Percent"
+  },
+  {
+   "fieldname": "uniform_growth_percent",
+   "fieldtype": "Percent",
+   "label": "Growth %",
+   "default": "0",
+   "description": "Same as Target % on Sales Target. Monthly target = (previous year qty ÷ 12) × (1 + this %). Quarter = monthly × 3. Year = monthly × 12.",
+   "depends_on": "eval:doc.growth_method=='Uniform Percent'"
+  },
+  {
+   "fieldname": "growth_section",
+   "fieldtype": "Section Break",
+   "label": "3. Growth Rules (optional)",
+   "collapsible": 1,
+   "hidden": 0,
+   "depends_on": "eval:doc.growth_method=='Item Group Rules'"
+  },
+  {
+   "fieldname": "growth_rules",
+   "fieldtype": "Table",
+   "options": "Item Group Growth Rule",
+   "label": "Item Group Growth Rules"
+  },
+  {
+   "fieldname": "pricing_section",
+   "fieldtype": "Section Break",
+   "label": "4. Pricing Method",
+   "collapsible": 1,
+   "collapsible_depends_on": "eval:doc.pricing_method!='Previous Year Average Selling Price'"
+  },
+  {
+   "fieldname": "pricing_method",
+   "fieldtype": "Select",
+   "label": "Pricing Method",
+   "default": "Previous Year Average Selling Price",
+   "reqd": 1,
+   "options": "Specific Price List\nLast Selling Price\nPrevious Year Average Selling Price\nManual Price"
+  },
+  {
+   "fieldname": "price_list",
+   "fieldtype": "Link",
+   "options": "Price List",
+   "label": "Price List",
+   "depends_on": "eval:doc.pricing_method=='Specific Price List'"
+  },
+  {
+   "fieldname": "distribution_section",
+   "fieldtype": "Section Break",
+   "label": "5. Target Distribution",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "distribution_method",
+   "fieldtype": "Select",
+   "label": "Distribution Method",
+   "default": "Equal Monthly",
+   "reqd": 1,
+   "options": "Same Month Previous Year + Growth\nEqual Monthly\nEqual Quarterly\nEqual Half-Yearly\nManual Monthly\nCustom Percentage Distribution",
+   "description": "Equal Monthly uses previous-year average (PY ÷ 12) for every month. Quarter = monthly × 3. Year = monthly × 12."
+  },
+  {
+   "fieldname": "custom_percents",
+   "fieldtype": "Table",
+   "options": "Sales Target Distribution Percent",
+   "label": "Custom Monthly Percentages",
+   "depends_on": "eval:doc.distribution_method=='Custom Percentage Distribution'"
+  },
+  {
+   "fieldname": "proposal_section",
+   "fieldtype": "Section Break",
+   "label": "6. Previous Year Sales & Targets"
+  },
+  {
+   "fieldname": "get_previous_year_sales",
+   "fieldtype": "Button",
+   "label": "Get Previous Year Sales"
+  },
+  {
+   "fieldname": "previous_sales_html",
+   "fieldtype": "HTML",
+   "label": "Previous Year Sales Table"
+  },
+  {
+   "fieldname": "proposal_edit_section",
+   "fieldtype": "Section Break",
+   "label": "Edit Target Rows",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "proposal_details",
+   "fieldtype": "Table",
+   "options": "Target Proposal Detail",
+   "label": "Target Proposal Details",
+   "cannot_add_rows": 1
+  },
+  {
+   "fieldname": "monthly_section",
+   "fieldtype": "Section Break",
+   "label": "Monthly Target Detail",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "monthly_details",
+   "fieldtype": "Table",
+   "options": "Sales Target Monthly Detail",
+   "label": "Monthly Details"
+  },
+  {
+   "fieldname": "summary_section",
+   "fieldtype": "Section Break",
+   "label": "7. Summary"
+  },
+  {
+   "fieldname": "rows_count",
+   "fieldtype": "Int",
+   "label": "Total Items",
+   "read_only": 1
+  },
+  {
+   "fieldname": "item_groups_count",
+   "fieldtype": "Int",
+   "label": "Total Item Groups",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_persons_count",
+   "fieldtype": "Int",
+   "label": "Total Sales Persons",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sum",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_previous_qty",
+   "fieldtype": "Float",
+   "label": "Previous Year Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_previous_amount",
+   "fieldtype": "Currency",
+   "label": "Previous Year Amount",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "total_calculated_qty",
+   "fieldtype": "Float",
+   "label": "Calculated Target Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_calculated_amount",
+   "fieldtype": "Currency",
+   "label": "Calculated Target Amount",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "total_approved_qty",
+   "fieldtype": "Float",
+   "label": "Approved Target Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_approved_amount",
+   "fieldtype": "Currency",
+   "label": "Approved Target Amount",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "column_break_sum2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rows_requiring_review",
+   "fieldtype": "Int",
+   "label": "Rows Requiring Review",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rows_overridden",
+   "fieldtype": "Int",
+   "label": "Rows Overridden",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rows_without_price",
+   "fieldtype": "Int",
+   "label": "Rows Without Price",
+   "read_only": 1
+  },
+  {
+   "fieldname": "summary_warnings",
+   "fieldtype": "Small Text",
+   "label": "Warnings",
+   "read_only": 1
+  },
+  {
+   "fieldname": "review_section",
+   "fieldtype": "Section Break",
+   "label": "8. Review / Approval"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "options": "User",
+   "label": "Approved By",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approved_on",
+   "fieldtype": "Datetime",
+   "label": "Approved On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "erpnext_targets_synced_on",
+   "fieldtype": "Datetime",
+   "label": "ERPNext Targets Synced On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "options": "Sales Target Planning",
+   "label": "Amended From",
+   "hidden": 1,
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 0,
+ "links": [],
+ "modified": "2026-09-14 00:00:00",
+ "modified_by": "Administrator",
+ "module": "Sales Performance",
+ "name": "Sales Target Planning",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "Sales Target User",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 0,
+   "create": 1,
+   "write": 1,
+   "delete": 0,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  },
+  {
+   "role": "Sales Target Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  },
+  {
+   "role": "Sales Target Approver",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 0,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  },
+  {
+   "role": "Sales Performance Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 0,
+   "create": 0,
+   "write": 0,
+   "delete": 0,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  },
+  {
+   "role": "Sales Performance Admin",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  },
+  {
+   "role": "Sales Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 0,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  }
+ ],
+ "search_fields": "naming_series,title,company,fiscal_year,status",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [
+  {
+   "title": "Draft",
+   "color": "Gray"
+  },
+  {
+   "title": "Calculated",
+   "color": "Blue"
+  },
+  {
+   "title": "Under Review",
+   "color": "Orange"
+  },
+  {
+   "title": "Approved",
+   "color": "Green"
+  },
+  {
+   "title": "Rejected",
+   "color": "Red"
+  },
+  {
+   "title": "Cancelled",
+   "color": "Red"
+  },
+  {
+   "title": "Superseded",
+   "color": "Yellow"
+  }
+ ],
+ "track_changes": 1,
+ "show_name_in_global_search": 1,
+ "search_fields": "title,company,fiscal_year,sales_person,status"
+}

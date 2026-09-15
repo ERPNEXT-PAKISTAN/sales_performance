@@ -1,0 +1,153 @@
+{
+ "actions": [],
+ "creation": "2026-09-14 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "row_key",
+  "sales_person",
+  "item_code",
+  "item_group",
+  "month",
+  "month_number",
+  "target_qty",
+  "target_amount",
+  "target_rate",
+  "distribution_percent",
+  "previous_year_qty",
+  "previous_year_amount",
+  "actual_qty",
+  "actual_amount",
+  "qty_variance",
+  "amount_variance",
+  "qty_achievement_percent",
+  "amount_achievement_percent"
+ ],
+ "fields": [
+  {
+   "fieldname": "row_key",
+   "fieldtype": "Data",
+   "label": "Row Key",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_person",
+   "fieldtype": "Link",
+   "options": "Sales Person",
+   "label": "Sales Person",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "options": "Item",
+   "label": "Item",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "options": "Item Group",
+   "label": "Item Group",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "month",
+   "fieldtype": "Data",
+   "label": "Month",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "month_number",
+   "fieldtype": "Int",
+   "label": "Month Number",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "target_qty",
+   "fieldtype": "Float",
+   "label": "Target Qty",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "target_amount",
+   "fieldtype": "Currency",
+   "label": "Target Amount",
+   "in_list_view": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "target_rate",
+   "fieldtype": "Currency",
+   "label": "Target Rate",
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "distribution_percent",
+   "fieldtype": "Percent",
+   "label": "Distribution %"
+  },
+  {
+   "fieldname": "previous_year_qty",
+   "fieldtype": "Float",
+   "label": "Previous Year Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "previous_year_amount",
+   "fieldtype": "Currency",
+   "label": "Previous Year Amount",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "actual_qty",
+   "fieldtype": "Float",
+   "label": "Actual Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actual_amount",
+   "fieldtype": "Currency",
+   "label": "Actual Amount",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "qty_variance",
+   "fieldtype": "Float",
+   "label": "Qty Variance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount_variance",
+   "fieldtype": "Currency",
+   "label": "Amount Variance",
+   "read_only": 1,
+   "options": "Company:company:default_currency"
+  },
+  {
+   "fieldname": "qty_achievement_percent",
+   "fieldtype": "Percent",
+   "label": "Qty Achievement %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amount_achievement_percent",
+   "fieldtype": "Percent",
+   "label": "Amount Achievement %",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "module": "Sales Performance",
+ "name": "Sales Target Monthly Detail",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

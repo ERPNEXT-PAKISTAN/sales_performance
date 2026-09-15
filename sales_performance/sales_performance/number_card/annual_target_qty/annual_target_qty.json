@@ -1,0 +1,22 @@
+{
+ "aggregate_function_based_on": "total_approved_qty",
+ "color": "Purple",
+ "creation": "2026-09-14 00:00:00",
+ "docstatus": 0,
+ "doctype": "Number Card",
+ "document_type": "Sales Target Planning",
+ "filters_json": "[[\"Sales Target Planning\",\"status\",\"=\",\"Approved\"]]",
+ "function": "Sum",
+ "idx": 0,
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "Annual Target Qty",
+ "modified": "2026-09-14 00:00:00",
+ "modified_by": "Administrator",
+ "module": "Sales Performance",
+ "name": "Annual Target Qty",
+ "owner": "Administrator",
+ "show_full_number": 1,
+ "show_percentage_stats": 0,
+ "type": "Document Type"
+}

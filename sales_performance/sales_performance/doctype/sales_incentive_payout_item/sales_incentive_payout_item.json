@@ -1,0 +1,95 @@
+{
+ "actions": [],
+ "creation": "2026-09-14 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sales_person",
+  "period",
+  "incentive_on_amount",
+  "incentive_on_qty",
+  "incentive_amount",
+  "incentive_rate_percent",
+  "incentive_band",
+  "employee",
+  "incentive_qty"
+ ],
+ "fields": [
+  {
+   "fieldname": "sales_person",
+   "fieldtype": "Link",
+   "options": "Sales Person",
+   "label": "Sales Person",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "period",
+   "fieldtype": "Data",
+   "label": "Period",
+   "in_list_view": 1,
+   "read_only": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "incentive_on_amount",
+   "fieldtype": "Currency",
+   "label": "Incentive on Amount",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "incentive_on_qty",
+   "fieldtype": "Float",
+   "label": "Incentive on Qty",
+   "read_only": 1,
+   "in_list_view": 1,
+   "precision": "3",
+   "columns": 2
+  },
+  {
+   "fieldname": "incentive_amount",
+   "fieldtype": "Currency",
+   "label": "Payable Incentive",
+   "in_list_view": 1,
+   "default": "0",
+   "read_only": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "incentive_rate_percent",
+   "fieldtype": "Percent",
+   "label": "Rate %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "incentive_band",
+   "fieldtype": "Data",
+   "label": "Band",
+   "read_only": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "options": "Employee",
+   "label": "Employee",
+   "fetch_from": "sales_person.employee"
+  },
+  {
+   "fieldname": "incentive_qty",
+   "fieldtype": "Float",
+   "label": "Incentive Qty",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "module": "Sales Performance",
+ "name": "Sales Incentive Payout Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -1,0 +1,45 @@
+<div class="pa-report">
+  <div class="pa-filter-card">
+    <div class="pa-filter-title">Performance Analytics</div>
+    <div class="pa-filters" id="pa-filters"></div>
+    <div class="pa-actions">
+      <button type="button" class="btn btn-primary btn-sm" id="pa-refresh">Refresh</button>
+      <button type="button" class="btn btn-default btn-sm" id="pa-planning">New Target Plan</button>
+      <button type="button" class="btn btn-default btn-sm" id="pa-payout">New Incentive Payout</button>
+      <span class="pa-hint">Compares this fiscal year to previous calendar year (same basis as Sales Target). Increase / decrease is current − previous.</span>
+    </div>
+  </div>
+  <div class="pa-tabs" id="pa-tabs">
+    <button type="button" class="pa-tab active" data-tab="overview">Overview</button>
+    <button type="button" class="pa-tab" data-tab="sales">Sales Analysis</button>
+    <button type="button" class="pa-tab" data-tab="incentive">Incentive Analysis</button>
+    <button type="button" class="pa-tab" data-tab="payout">Payout Analysis</button>
+    <button type="button" class="pa-tab" data-tab="salesperson">Sales Person</button>
+    <button type="button" class="pa-tab" data-tab="territory">Territory</button>
+    <button type="button" class="pa-tab" data-tab="itemgroup">Item Group</button>
+    <button type="button" class="pa-tab" data-tab="item">Item</button>
+    <button type="button" class="pa-tab" data-tab="customer">Customer</button>
+  </div>
+  <div class="pa-summary" id="pa-summary"></div>
+  <div class="pa-charts">
+    <div class="pa-chart-card">
+      <h4 id="pa-chart-a-title">This Year vs Previous Year</h4>
+      <div id="pa-chart-a"></div>
+    </div>
+    <div class="pa-chart-card">
+      <h4 id="pa-chart-b-title">Top movers</h4>
+      <div id="pa-chart-b"></div>
+    </div>
+  </div>
+  <div class="pa-table-card">
+    <div class="pa-table-head">
+      <div>
+        <h4 id="pa-table-title">Detail</h4>
+        <span id="pa-row-count">0</span>
+      </div>
+      <input id="pa-search" type="search" placeholder="Search">
+    </div>
+    <div id="pa-table"></div>
+    <div id="pa-empty" class="pa-empty">No rows for these filters.</div>
+  </div>
+</div>

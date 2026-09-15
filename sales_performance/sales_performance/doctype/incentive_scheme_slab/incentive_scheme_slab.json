@@ -1,0 +1,66 @@
+{
+ "actions": [],
+ "creation": "2026-09-14 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "min_achievement_percent",
+  "min_incentive_percent",
+  "max_achievement_percent",
+  "max_incentive_percent",
+  "incentive_percent",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "min_achievement_percent",
+   "fieldtype": "Percent",
+   "label": "Min Achievement %",
+   "in_list_view": 1,
+   "reqd": 1,
+   "description": "Pay Min Incentive % when achievement is at least this value."
+  },
+  {
+   "fieldname": "min_incentive_percent",
+   "fieldtype": "Percent",
+   "label": "Min Incentive %",
+   "in_list_view": 1,
+   "description": "Rate used from Min Achievement % up to (but not including) Max Achievement %."
+  },
+  {
+   "fieldname": "max_achievement_percent",
+   "fieldtype": "Percent",
+   "label": "Max Achievement %",
+   "in_list_view": 1,
+   "description": "At or above this achievement, Max Incentive % is used."
+  },
+  {
+   "fieldname": "max_incentive_percent",
+   "fieldtype": "Percent",
+   "label": "Max Incentive %",
+   "in_list_view": 1,
+   "description": "Rate used when achievement reaches Max Achievement %."
+  },
+  {
+   "fieldname": "incentive_percent",
+   "fieldtype": "Percent",
+   "label": "Incentive % (legacy)",
+   "hidden": 1,
+   "description": "Fallback if Min Incentive % is empty."
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "istable": 1,
+ "module": "Sales Performance",
+ "name": "Incentive Scheme Slab",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

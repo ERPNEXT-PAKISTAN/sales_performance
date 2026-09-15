@@ -1,0 +1,42 @@
+{
+ "actions": [],
+ "creation": "2026-09-14 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "month",
+  "month_number",
+  "distribution_percent"
+ ],
+ "fields": [
+  {
+   "fieldname": "month",
+   "fieldtype": "Data",
+   "label": "Month",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "month_number",
+   "fieldtype": "Int",
+   "label": "Month Number",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "distribution_percent",
+   "fieldtype": "Percent",
+   "label": "Distribution %",
+   "in_list_view": 1,
+   "reqd": 1
+  }
+ ],
+ "istable": 1,
+ "module": "Sales Performance",
+ "name": "Sales Target Distribution Percent",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

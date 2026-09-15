@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "creation": "2026-09-14 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_group",
+  "growth_percent",
+  "apply_to_children",
+  "priority",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "options": "Item Group",
+   "label": "Item Group",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "growth_percent",
+   "fieldtype": "Percent",
+   "label": "Growth %",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "apply_to_children",
+   "fieldtype": "Check",
+   "label": "Apply to Children",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Int",
+   "label": "Priority",
+   "default": "0",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "istable": 1,
+ "module": "Sales Performance",
+ "name": "Item Group Growth Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,158 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "field:scheme_name",
+ "creation": "2026-09-14 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "scheme_name",
+  "company",
+  "fiscal_year",
+  "disabled",
+  "column_break_1",
+  "based_on",
+  "pay_on",
+  "dimension",
+  "notes",
+  "slabs_section",
+  "slabs"
+ ],
+ "fields": [
+  {
+   "fieldname": "scheme_name",
+   "fieldtype": "Data",
+   "label": "Scheme Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "label": "Company"
+  },
+  {
+   "fieldname": "fiscal_year",
+   "fieldtype": "Link",
+   "options": "Fiscal Year",
+   "label": "Fiscal Year"
+  },
+  {
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled",
+   "default": "0"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "based_on",
+   "fieldtype": "Select",
+   "label": "Achievement Based On",
+   "default": "Qty Achievement",
+   "options": "Qty Achievement\nAmount Achievement",
+   "description": "Which % is used to pick Min / Max incentive rate from the slabs."
+  },
+  {
+   "fieldname": "pay_on",
+   "fieldtype": "Select",
+   "label": "Pay Incentive On",
+   "default": "Amount",
+   "options": "Amount\nQty",
+   "description": "Amount: surplus sales value × incentive %. Qty: surplus qty × incentive % (not multiplied by selling price)."
+  },
+  {
+   "fieldname": "dimension",
+   "fieldtype": "Select",
+   "label": "Dimension",
+   "default": "Sales Person",
+   "options": "Sales Person\nItem Group\nTerritory\nCustomer Group"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "slabs_section",
+   "fieldtype": "Section Break",
+   "label": "Achievement Slabs"
+  },
+  {
+   "fieldname": "slabs",
+   "fieldtype": "Table",
+   "options": "Incentive Scheme Slab",
+   "label": "Slabs"
+  }
+ ],
+ "module": "Sales Performance",
+ "name": "Incentive Scheme",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "Sales Performance Admin",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  },
+  {
+   "role": "System Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  },
+  {
+   "role": "Sales Target Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1,
+   "create": 1,
+   "write": 1,
+   "delete": 1,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  },
+  {
+   "role": "Sales Performance Manager",
+   "read": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 0,
+   "create": 0,
+   "write": 0,
+   "delete": 0,
+   "submit": 0,
+   "cancel": 0,
+   "amend": 0
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+   "description": "Choose Achievement Based On (qty or amount % for slabs) and Pay Incentive On. Amount payout = surplus amount × %. Qty payout = surplus qty × %."
+}

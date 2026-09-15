@@ -1,0 +1,23 @@
+{
+ "content": null,
+ "doctype": "Page",
+ "module": "Sales Performance",
+ "name": "performance-analytics",
+ "page_name": "performance-analytics",
+ "roles": [
+  { "role": "Sales Target User" },
+  { "role": "Sales Target Manager" },
+  { "role": "Sales Target Approver" },
+  { "role": "Sales Performance Manager" },
+  { "role": "Sales Performance Admin" },
+  { "role": "Sales Manager" },
+  { "role": "Sales User" },
+  { "role": "Accounts Manager" },
+  { "role": "System Manager" }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Performance Analytics"
+}

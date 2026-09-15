@@ -1,0 +1,21 @@
+{
+ "aggregate_function_based_on": "rows_requiring_review",
+ "color": "Orange",
+ "creation": "2026-09-14 00:00:00",
+ "docstatus": 0,
+ "doctype": "Number Card",
+ "document_type": "Sales Target Planning",
+ "filters_json": "[[\"Sales Target Planning\",\"status\",\"in\",[\"Draft\",\"Calculated\",\"Under Review\"]]]",
+ "function": "Sum",
+ "idx": 0,
+ "is_public": 1,
+ "is_standard": 1,
+ "label": "Rows Requiring Review",
+ "modified": "2026-09-14 00:00:00",
+ "modified_by": "Administrator",
+ "module": "Sales Performance",
+ "name": "Rows Requiring Review",
+ "owner": "Administrator",
+ "show_percentage_stats": 0,
+ "type": "Document Type"
+}
