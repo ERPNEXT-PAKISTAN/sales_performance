@@ -32,7 +32,7 @@
    "fieldname": "apply_to_children",
    "fieldtype": "Check",
    "label": "Apply to Children",
-   "default": "1",
+   "default": "0",
    "in_list_view": 1
   },
   {

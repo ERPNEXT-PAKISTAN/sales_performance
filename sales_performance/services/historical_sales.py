@@ -52,7 +52,12 @@ def fetch_historical_sales(
 	item_codes=None,
 	include_monthly=False,
 ):
-	"""Return dict keyed by (sales_person, '', item_code) with qty/amount totals."""
+	"""Return dict keyed by sales person, territory, item and customer group.
+
+	The planning grain must retain every dimension exposed by the app. Collapsing
+	territory or customer group here makes filtered reports compare a partial
+	actual with an unfiltered target.
+	"""
 	import frappe
 
 	conditions = [
@@ -105,11 +110,11 @@ def fetch_historical_sales(
 	sql = f"""
 		select
 			ifnull(st.sales_person, '') as sales_person,
-			'' as territory,
+			ifnull(si.territory, '') as territory,
 			sii.item_code,
 			max(sii.item_name) as item_name,
 			max(sii.item_group) as item_group,
-			max(si.customer_group) as customer_group,
+			ifnull(si.customer_group, '') as customer_group,
 			max(sii.stock_uom) as uom,
 			{month_select}
 			sum(sii.stock_qty * {share}) as qty,
@@ -118,7 +123,8 @@ def fetch_historical_sales(
 		inner join `tabSales Invoice` si on si.name = sii.parent
 		{sales_join}
 		where {where}
-		group by ifnull(st.sales_person, ''), sii.item_code{month_group}
+		group by ifnull(st.sales_person, ''), ifnull(si.territory, ''),
+			sii.item_code, ifnull(si.customer_group, ''){month_group}
 		having sum(sii.stock_qty * {share}) != 0
 	"""
 
@@ -130,7 +136,12 @@ def rollup_monthly(rows):
 	"""Combine monthly SQL rows into grain totals plus month maps."""
 	out = {}
 	for row in rows:
-		key = (row.get("sales_person") or "", row.get("territory") or "", row.get("item_code"))
+		key = (
+			row.get("sales_person") or "",
+			row.get("territory") or "",
+			row.get("item_code"),
+			row.get("customer_group") or "",
+		)
 		bucket = out.setdefault(
 			key,
 			{

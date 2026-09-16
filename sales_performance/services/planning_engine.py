@@ -28,8 +28,8 @@ NO_HISTORY_REASON = "No previous-year sales history"
 NO_PRICE_REASON = "No applicable price"
 
 
-def make_row_key(sales_person, territory, item_code):
-	raw = f"{sales_person or ''}|{territory or ''}|{item_code or ''}"
+def make_row_key(sales_person, territory, item_code, customer_group=None):
+	raw = f"{sales_person or ''}|{territory or ''}|{item_code or ''}|{customer_group or ''}"
 	return hashlib.sha1(raw.encode()).hexdigest()[:12]
 
 
@@ -189,7 +189,9 @@ def _build_proposal_row(doc, grain, rules, prev_targets, cache, existing_overrid
 	avg_month_qty = nflt(prev_qty / 12.0, qty_precision)
 	monthly_target_qty = nflt(calc_qty / 12.0, qty_precision)
 
-	row_key = make_row_key(grain.get("sales_person"), grain.get("territory"), grain.get("item_code"))
+	row_key = make_row_key(
+		grain.get("sales_person"), grain.get("territory"), grain.get("item_code"), grain.get("customer_group")
+	)
 	override = existing_overrides.get(row_key)
 
 	pricing_method = (override.pricing_method if override and override.pricing_method else None) or doc.pricing_method
@@ -419,8 +421,13 @@ def _distribute_row(doc, row, grain, custom_percents, current_actuals=None):
 
 	actual_grain = None
 	if current_actuals:
-		key = (row.get("sales_person") or "", row.get("territory") or "", row.get("item_code"))
-		actual_grain = current_actuals.get(key) or current_actuals.get(("", "", row.get("item_code")))
+		key = (
+			row.get("sales_person") or "",
+			row.get("territory") or "",
+			row.get("item_code"),
+			row.get("customer_group") or "",
+		)
+		actual_grain = current_actuals.get(key)
 
 	return [complete_monthly_row(row, month, grain, actual_grain) for month in months]
 

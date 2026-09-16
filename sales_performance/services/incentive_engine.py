@@ -339,6 +339,7 @@ def collect_period_incentive_rows(filters):
 
 	detail_fields = [
 		"parent",
+		"row_key",
 		"sales_person",
 		"territory",
 		"item_group",
@@ -355,6 +356,15 @@ def collect_period_incentive_rows(filters):
 		fields=detail_fields,
 		ignore_permissions=True,
 	)
+	monthly_targets = {}
+	for part in frappe.get_all(
+		"Sales Target Monthly Detail",
+		filters={"parent": ("in", list(latest.values()))},
+		fields=["parent", "row_key", "month_number", "target_qty", "target_amount"],
+		ignore_permissions=True,
+	):
+		monthly_targets.setdefault((part.parent, part.row_key), {})[part.month_number] = part
+
 	start, end = fiscal_year_dates(filters.fiscal_year, filters.company)
 	from_date = getdate(filters.get("from_date") or start)
 	to_date = getdate(filters.get("to_date") or end)
@@ -390,12 +400,17 @@ def collect_period_incentive_rows(filters):
 			continue
 		if filters.get("item") and row.item_code != filters.item:
 			continue
-		grain = (row.sales_person or "", row.territory or "", row.item_code or "")
+		grain = (
+			row.sales_person or "",
+			row.territory or "",
+			row.item_code or "",
+			row.get("customer_group") or "",
+		)
 		if grain in seen:
 			continue
 		seen.add(grain)
-		actual = actuals.get(grain) or actuals.get(("", "", row.item_code or "")) or {}
-		month_target = {
+		actual = actuals.get(grain) or {}
+		month_target = monthly_targets.get((row.parent, row.row_key)) or {
 			part["month_number"]: part
 			for part in equal_monthly(row.approved_target_qty, row.approved_target_amount)
 		}

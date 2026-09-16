@@ -6,6 +6,10 @@ from sales_performance.services.historical_sales import (
 	item_group_subtree_sql,
 )
 from sales_performance.services.numbers import nflt
+from sales_performance.services.growth_engine import (
+	get_customer_group_subtree_names,
+	get_item_group_subtree_names,
+)
 from sales_performance.services.precision import round_percent
 
 
@@ -226,7 +230,8 @@ def merge_period_rows(current_rows, previous_rows, target_map=None):
 	return out
 
 
-def target_totals_by_dimension(company, fiscal_year, dimension="sales_person"):
+def target_totals_by_dimension(company, fiscal_year, dimension="sales_person", **filters):
+	"""Use filtered targets from only the latest plan in each planning scope."""
 	import frappe
 
 	field = {
@@ -238,16 +243,26 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person"):
 	}.get(dimension)
 	if not field:
 		return {}
+	# Proposal rows have no Customer field. Do not repeat a target for every
+	# customer and present a false achievement percentage.
+	if filters.get("customer"):
+		return {}
 	if not frappe.db.has_column("Target Proposal Detail", field):
 		return {}
 	plans = frappe.get_all(
 		"Sales Target Planning",
 		filters={"company": company, "fiscal_year": fiscal_year, "status": ("in", ("Approved", "Calculated", "Under Review"))},
-		fields=["name", "status", "planning_version"],
+		fields=["name", "status", "planning_version", "sales_person", "territory"],
 		order_by="planning_version desc",
 	)
 	approved = [p for p in plans if p.status == "Approved"]
 	use = approved or plans
+	latest = {}
+	for plan in use:
+		key = (plan.get("sales_person") or "", plan.get("territory") or "")
+		if key not in latest:
+			latest[key] = plan
+	use = list(latest.values())
 	if not use:
 		return {}
 	rows = frappe.get_all(
@@ -255,6 +270,11 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person"):
 		filters={"parent": ("in", [p.name for p in use])},
 		fields=[
 			field,
+			"sales_person",
+			"territory",
+			"item_group",
+			"customer_group",
+			"item_code",
 			"approved_target_qty",
 			"approved_target_amount",
 			"growth_percent",
@@ -262,8 +282,20 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person"):
 		],
 		ignore_permissions=True,
 	)
+	allowed_item_groups = set(get_item_group_subtree_names(filters.get("item_group"))) if filters.get("item_group") else None
+	allowed_customer_groups = set(get_customer_group_subtree_names(filters.get("customer_group"))) if filters.get("customer_group") else None
 	out = {}
 	for row in rows:
+		if filters.get("sales_person") and row.get("sales_person") != filters.get("sales_person"):
+			continue
+		if filters.get("territory") and row.get("territory") != filters.get("territory"):
+			continue
+		if allowed_item_groups is not None and row.get("item_group") not in allowed_item_groups:
+			continue
+		if allowed_customer_groups is not None and row.get("customer_group") not in allowed_customer_groups:
+			continue
+		if filters.get("item") and row.get("item_code") != filters.get("item"):
+			continue
 		key = row.get(field) or "(Not Set)"
 		bucket = out.setdefault(key, {"qty": 0.0, "amount": 0.0, "growth_weight": 0.0, "growth_weighted": 0.0})
 		bucket["qty"] += nflt(row.approved_target_qty)

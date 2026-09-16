@@ -1,0 +1,221 @@
+{
+ "app": "sales_performance",
+ "charts": [],
+ "content": "[{\"id\": \"sp_header\", \"type\": \"header\", \"data\": {\"text\": \"Sales Performance\", \"col\": 12}}, {\"id\": \"sp_intro\", \"type\": \"paragraph\", \"data\": {\"text\": \"Plan targets, review achievement, and manage incentives from one workspace.\", \"col\": 12}}, {\"id\": \"sp_card_1\", \"type\": \"card\", \"data\": {\"card_name\": \"Plan & Approve\", \"col\": 3}}, {\"id\": \"sp_card_2\", \"type\": \"card\", \"data\": {\"card_name\": \"Performance\", \"col\": 3}}, {\"id\": \"sp_card_3\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 3}}, {\"id\": \"sp_card_4\", \"type\": \"card\", \"data\": {\"card_name\": \"Incentives & Setup\", \"col\": 3}}]",
+ "creation": "2026-09-16 09:20:15.194028",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "chart-bar",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "Sales Performance",
+ "link_type": "DocType",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Plan & Approve",
+   "link_count": 2,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Target Planning",
+   "link_count": 0,
+   "link_to": "Sales Target Planning",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Target Planning Audit",
+   "link_count": 0,
+   "link_to": "Target Planning Audit",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Performance",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Performance Analytics",
+   "link_count": 0,
+   "link_to": "performance-analytics",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Target Achievement",
+   "link_count": 0,
+   "link_to": "target-achievement",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Achievement Graphics",
+   "link_count": 0,
+   "link_to": "achievement-graphics",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 3,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Sales Target Achievement",
+   "link_count": 0,
+   "link_to": "Sales Target Achievement",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Sales Target Monthly Performance",
+   "link_count": 0,
+   "link_to": "Sales Target Monthly Performance",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Target Achievement Status",
+   "link_count": 0,
+   "link_to": "Target Achievement Status",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Incentives & Setup",
+   "link_count": 4,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Incentive Dashboard",
+   "link_count": 0,
+   "link_to": "incentive-dashboard",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Incentive Payout",
+   "link_count": 0,
+   "link_to": "Sales Incentive Payout",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Incentive Scheme",
+   "link_count": 0,
+   "link_to": "Incentive Scheme",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Performance Settings",
+   "link_count": 0,
+   "link_to": "Sales Performance Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-09-16 09:20:59.753690",
+ "modified_by": "Administrator",
+ "module": "Sales Performance",
+ "name": "Sales Performance",
+ "number_cards": [],
+ "owner": "Administrator",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [
+  {
+   "role": "All"
+  },
+  {
+   "role": "Desk User"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Sales Target User"
+  },
+  {
+   "role": "Sales Target Manager"
+  },
+  {
+   "role": "Sales Target Approver"
+  },
+  {
+   "role": "Sales Performance Manager"
+  },
+  {
+   "role": "Sales Performance Admin"
+  }
+ ],
+ "sequence_id": 0.0,
+ "shortcuts": [],
+ "title": "Sales Performance",
+ "type": "Workspace"
+}

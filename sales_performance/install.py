@@ -276,6 +276,30 @@ def boot_session(bootinfo):
 
 def _ensure_workspace_exists():
 	if frappe.db.exists("Workspace", "Sales Performance"):
+		import json
+
+		doc = frappe.get_doc("Workspace", "Sales Performance")
+		if doc.content in (None, "", "[]"):
+			cards = {
+				"Plan & Approve": [("Sales Target Planning", "Sales Target Planning", "DocType"), ("Target Planning Audit", "Target Planning Audit", "Report")],
+				"Performance": [("Performance Analytics", "performance-analytics", "Page"), ("Target Achievement", "target-achievement", "Page"), ("Achievement Graphics", "achievement-graphics", "Page")],
+				"Reports": [("Sales Target Achievement", "Sales Target Achievement", "Report"), ("Sales Target Monthly Performance", "Sales Target Monthly Performance", "Report"), ("Target Achievement Status", "Target Achievement Status", "Report")],
+				"Incentives & Setup": [("Incentive Dashboard", "incentive-dashboard", "Page"), ("Sales Incentive Payout", "Sales Incentive Payout", "DocType"), ("Incentive Scheme", "Incentive Scheme", "DocType"), ("Sales Performance Settings", "Sales Performance Settings", "DocType")],
+			}
+			doc.content = json.dumps(
+				[{"id": "sp_header", "type": "header", "data": {"text": "Sales Performance", "col": 12}},
+				 {"id": "sp_intro", "type": "paragraph", "data": {"text": "Plan targets, review achievement, and manage incentives from one workspace.", "col": 12}}]
+				+ [{"id": "sp_card_" + str(index), "type": "card", "data": {"card_name": label, "col": 3}} for index, label in enumerate(cards, 1)]
+			)
+			existing = {(link.label, link.link_to, link.link_type) for link in doc.links or []}
+			for label, entries in cards.items():
+				if (label, None, "DocType") not in existing:
+					doc.append("links", {"type": "Card Break", "label": label, "link_type": "DocType", "link_count": len(entries)})
+				for link_label, link_to, link_type in entries:
+					if (link_label, link_to, link_type) not in existing:
+						doc.append("links", {"type": "Link", "label": link_label, "link_to": link_to, "link_type": link_type, "is_query_report": 1 if link_type == "Report" else 0})
+			doc.flags.ignore_permissions = True
+			doc.save()
 		return
 	if not frappe.db.exists("Module Def", "Sales Performance"):
 		frappe.get_doc(

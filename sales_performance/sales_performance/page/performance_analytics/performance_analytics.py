@@ -50,7 +50,7 @@ def get_analytics(
 	for dimension in ("sales_person", "territory", "item_group", "customer_group", "customer", "item"):
 		cy = fetch_sales_by_dimension(company, start, end, dimension, **filters)
 		py = fetch_sales_by_dimension(company, py_start, py_end, dimension, **filters)
-		targets = target_totals_by_dimension(company, fiscal_year, dimension)
+		targets = target_totals_by_dimension(company, fiscal_year, dimension, **filters)
 		sales[dimension] = merge_period_rows(cy, py, targets)
 
 	cy_months = {int(r.month_number): r for r in fetch_monthly_sales(company, start, end, **filters)}

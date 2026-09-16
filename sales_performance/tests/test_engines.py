@@ -85,7 +85,7 @@ class TestHistoricalNetting(unittest.TestCase):
 			},
 		]
 		out = rollup_monthly(rows)
-		grain = out[("SP", "T", "GI")]
+		grain = out[("SP", "T", "GI", "Commercial")]
 		self.assertEqual(grain["qty"], 80)
 		self.assertEqual(grain["amount"], 19200)
 		self.assertEqual(grain["customer_group"], "Commercial")
@@ -119,7 +119,7 @@ class TestHistoricalNetting(unittest.TestCase):
 		]
 		out = rollup_monthly(rows)
 		self.assertEqual(len(out), 1)
-		grain = out[("", "", "GI")]
+		grain = out[("", "", "GI", "Commercial")]
 		self.assertEqual(grain["qty"], 80)
 		self.assertEqual(grain["amount"], 16000)
 
@@ -152,8 +152,8 @@ class TestHistoricalNetting(unittest.TestCase):
 		]
 		out = rollup_monthly(rows)
 		self.assertEqual(len(out), 2)
-		self.assertEqual(out[("Ali", "", "GI")]["qty"], 50)
-		self.assertEqual(out[("Sara", "", "GI")]["qty"], 30)
+		self.assertEqual(out[("Ali", "", "GI", "Commercial")]["qty"], 50)
+		self.assertEqual(out[("Sara", "", "GI", "Commercial")]["qty"], 30)
 
 
 class TestPricing(unittest.TestCase):
