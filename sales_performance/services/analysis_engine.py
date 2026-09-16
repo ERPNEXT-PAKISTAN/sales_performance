@@ -35,17 +35,20 @@ def variance_row(
 	cq, pq = nflt(current_qty), nflt(previous_qty)
 	ca, pa = nflt(current_amount), nflt(previous_amount)
 	tq, ta = nflt(target_qty), nflt(target_amount)
-	qty_var = nflt(cq - pq)
-	amt_var = nflt(ca - pa)
+	# Target-achievement variance is always actual minus target.
+	qty_var = nflt(cq - tq)
+	amt_var = nflt(ca - ta)
 	return {
 		"previous_qty": pq,
 		"current_qty": cq,
 		"qty_variance": qty_var,
-		"qty_variance_percent": round_percent(qty_var / pq * 100.0) if pq else None,
+		"qty_variance_percent": round_percent(qty_var / tq * 100.0) if tq else None,
+		"previous_year_qty_variance": nflt(cq - pq),
 		"previous_amount": pa,
 		"current_amount": ca,
 		"amount_variance": amt_var,
-		"amount_variance_percent": round_percent(amt_var / pa * 100.0) if pa else None,
+		"amount_variance_percent": round_percent(amt_var / ta * 100.0) if ta else None,
+		"previous_year_amount_variance": nflt(ca - pa),
 		"target_qty": tq,
 		"target_amount": ta,
 		"growth_percent": round_percent(growth_percent),

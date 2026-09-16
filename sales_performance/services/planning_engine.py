@@ -11,7 +11,6 @@ from sales_performance.services.distribution_engine import (
 	equal_half_yearly,
 	equal_monthly,
 	equal_quarterly,
-	same_month_previous_year,
 )
 from sales_performance.services.growth_engine import (
 	apply_growth,
@@ -183,8 +182,8 @@ def _build_proposal_row(doc, grain, rules, prev_targets, cache, existing_overrid
 	qty_precision = get_qty_precision(uom)
 	prev_qty = nflt(grain.get("qty"))
 	prev_amount = nflt(grain.get("amount"))
-	# Same as /desk/sales-target: monthly avg = previous calendar year / 12,
-	# yearly target = avg × 12 × (1 + growth %), quarterly = monthly × 3.
+	# Annual target uses the complete previous calendar year at this planning grain.
+	# Stable-sales distributions split that annual target evenly by default.
 	calc_qty = apply_growth(prev_qty, growth, precision=qty_precision, whole_number=qty_precision == 0)
 	avg_month_qty = nflt(prev_qty / 12.0, qty_precision)
 	monthly_target_qty = nflt(calc_qty / 12.0, qty_precision)
@@ -387,7 +386,7 @@ def complete_monthly_row(row, month, grain=None, actual_grain=None):
 
 
 def _distribute_row(doc, row, grain, custom_percents, current_actuals=None):
-	method = doc.distribution_method or "Same Month Previous Year + Growth"
+	method = doc.distribution_method or "Equal Monthly"
 	precision = get_qty_precision(row.get("uom"))
 	amount_precision = get_currency_precision()
 	annual_qty = nflt(row.get("approved_target_qty"))
@@ -408,16 +407,9 @@ def _distribute_row(doc, row, grain, custom_percents, current_actuals=None):
 	elif method == "Manual Monthly":
 		months = equal_monthly(annual_qty, annual_amount, precision, amount_precision)
 	else:
-		months = same_month_previous_year(
-			annual_qty,
-			prev_month_qty,
-			growth,
-			annual_amount,
-			prev_month_amount,
-			rate,
-			precision,
-			amount_precision,
-		)
+		# Legacy method values stay readable, but never generate a new seasonal
+		# target distribution. Approved documents are not modified here.
+		months = equal_monthly(annual_qty, annual_amount, precision, amount_precision)
 
 	actual_grain = None
 	if current_actuals:

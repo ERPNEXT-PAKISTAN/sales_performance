@@ -190,6 +190,19 @@ class TestDistribution(unittest.TestCase):
 		rows = equal_quarterly(12000, 120000, precision=3, amount_precision=2)
 		self.assertAlmostEqual(sum(r["target_qty"] for r in rows), 12000, places=3)
 
+	def test_equal_monthly_rounding_reconciles_in_final_month(self):
+		rows = equal_monthly(100, 1000, precision=0, amount_precision=0)
+		self.assertEqual([row["target_qty"] for row in rows[:-1]], [8] * 11)
+		self.assertEqual(rows[-1]["target_qty"], 12)
+		self.assertEqual(sum(row["target_qty"] for row in rows), 100)
+		self.assertEqual(sum(row["target_amount"] for row in rows), 1000)
+
+	def test_equal_quarterly_rounding_reconciles_in_final_quarter(self):
+		rows = equal_quarterly(101, 1001, precision=0, amount_precision=0)
+		self.assertEqual([sum(row["target_qty"] for row in rows[i:i + 3]) for i in range(0, 12, 3)], [25, 25, 25, 26])
+		self.assertEqual(sum(row["target_qty"] for row in rows), 101)
+		self.assertEqual(sum(row["target_amount"] for row in rows), 1001)
+
 	def test_equal_half_yearly_sums(self):
 		rows = equal_half_yearly(12000, 120000, precision=3, amount_precision=2)
 		self.assertAlmostEqual(sum(r["target_qty"] for r in rows), 12000, places=3)
@@ -422,6 +435,13 @@ class TestPeriodBuckets(unittest.TestCase):
 		self.assertEqual(grouped[0]["incentive_amount"], 0)
 		self.assertEqual(grouped[0]["incentive_on_qty"], 0)
 
+	def test_blank_dimension_is_identified_as_unallocated(self):
+		from sales_performance.services.incentive_engine import group_dashboard_rows
+
+		grouped = group_dashboard_rows([{"territory": "", "target_qty": 10, "actual_qty": 8, "target_amount": 100, "actual_amount": 80}], "territory")
+		self.assertEqual(grouped[0]["dimension"], "(Unallocated)")
+		self.assertEqual(grouped[0]["target_qty"], 10)
+
 
 class TestAchievementBoardSplit(unittest.TestCase):
 	def test_qty_amount_and_both(self):
@@ -465,11 +485,11 @@ class TestAnalysisVariance(unittest.TestCase):
 	def test_increase_and_decrease(self):
 		from sales_performance.services.analysis_engine import merge_period_rows, variance_row
 
-		up = variance_row(120, 100, 2400, 2000)
-		self.assertEqual(up["qty_variance"], 20)
-		self.assertEqual(up["qty_variance_percent"], 20)
-		self.assertEqual(up["amount_variance"], 400)
-		down = variance_row(80, 100, 1600, 2000)
+		up = variance_row(120, 100, 2400, 2000, 110, 2200)
+		self.assertEqual(up["qty_variance"], 10)
+		self.assertEqual(up["qty_variance_percent"], 9.1)
+		self.assertEqual(up["amount_variance"], 200)
+		down = variance_row(80, 100, 1600, 2000, 100, 2000)
 		self.assertEqual(down["amount_variance_percent"], -20)
 		merged = merge_period_rows(
 			[{"dimension": "Ali", "qty": 120, "amount": 2400}],

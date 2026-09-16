@@ -293,16 +293,16 @@ class PerformanceAnalytics {
 			.map((r) => [Number(r.growth_percent), Number(r.previous_qty || r.target_qty || 0) || 1]);
 		const growthWeight = growthParts.reduce((s, part) => s + part[1], 0);
 		const gw = growthParts.reduce((s, part) => s + part[0] * part[1], 0);
-		const amtVar = amt - pa;
+		const amtVar = amt - ta;
 		return {
 			previous_qty: pq,
 			current_qty: qty,
-			qty_variance: qty - pq,
-			qty_variance_percent: pq ? ((qty - pq) / pq) * 100 : null,
+			qty_variance: qty - tq,
+			qty_variance_percent: tq ? ((qty - tq) / tq) * 100 : null,
 			previous_amount: pa,
 			current_amount: amt,
 			amount_variance: amtVar,
-			amount_variance_percent: pa ? (amtVar / pa) * 100 : null,
+			amount_variance_percent: ta ? (amtVar / ta) * 100 : null,
 			target_qty: tq,
 			target_amount: ta,
 			growth_percent: growthWeight ? gw / growthWeight : null,
@@ -402,7 +402,7 @@ class PerformanceAnalytics {
 		const movers = this.tab_rows().slice(0, 12);
 		const changeKey = this.tab === "incentive" || this.tab === "payout" ? "incentive_amount" : "amount_variance";
 		this.wrapper.querySelector("#pa-chart-b-title").textContent =
-			this.tab === "incentive" || this.tab === "payout" ? __("Incentive by sales person") : __("Largest amount change");
+			this.tab === "incentive" || this.tab === "payout" ? __("Incentive by sales person") : __("Largest amount variance vs target");
 		this.chart("#pa-chart-b", movers.map((r) => r.dimension), [
 			{ name: __("Change"), values: movers.map((r) => Number(r[changeKey] || r.amount_variance || 0)) },
 		], "bar");
@@ -489,8 +489,8 @@ class PerformanceAnalytics {
 			<thead><tr>
 				<th>${__("Name")}</th>
 				<th>${__("Growth %")}</th>
-				<th>${__("PY Qty")}</th><th>${__("TY Qty")}</th><th>${__("Target Qty")}</th><th>${__("Qty Δ")}</th><th>${__("Qty Ach %")}</th>
-				<th>${__("PY Amt")}</th><th>${__("TY Amt")}</th><th>${__("Target Amt")}</th><th>${__("Amt Δ")}</th><th>${__("Amt Ach %")}</th>
+				<th>${__("PY Qty")}</th><th>${__("TY Qty")}</th><th>${__("Target Qty")}</th><th>${__("Qty Variance")}</th><th>${__("Qty Ach %")}</th>
+				<th>${__("PY Amt")}</th><th>${__("TY Amt")}</th><th>${__("Target Amt")}</th><th>${__("Amt Variance")}</th><th>${__("Amt Ach %")}</th>
 			</tr></thead>
 			<tbody>${body}</tbody>
 			<tfoot><tr>

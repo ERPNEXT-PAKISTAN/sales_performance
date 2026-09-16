@@ -141,7 +141,7 @@
    "options": "Sales Person"
   },
   {
-   "description": "Optional filter only. Does not split sales by territory.",
+   "description": "Optional filter. Planning and actuals retain Territory in the lowest-level grain.",
    "fieldname": "territory",
    "fieldtype": "Link",
    "in_standard_filter": 1,
@@ -280,7 +280,7 @@
    "fieldname": "distribution_method",
    "fieldtype": "Select",
    "label": "Distribution Method",
-   "options": "Same Month Previous Year + Growth\nEqual Monthly\nEqual Quarterly\nEqual Half-Yearly\nManual Monthly\nCustom Percentage Distribution",
+   "options": "Equal Monthly\nEqual Quarterly\nEqual Half-Yearly\nManual Monthly\nCustom Percentage Distribution",
    "reqd": 1
   },
   {

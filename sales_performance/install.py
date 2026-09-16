@@ -26,6 +26,7 @@ def after_migrate():
 def setup_sales_performance():
 	ensure_roles()
 	ensure_target_detail_trace_fields()
+	ensure_nonseasonal_distribution_default()
 	ensure_desktop()
 	from sales_performance.permissions import apply_sales_performance_roles
 
@@ -33,6 +34,14 @@ def setup_sales_performance():
 	frappe.clear_cache(doctype="Target Detail")
 	frappe.clear_cache(doctype="Sales Target Planning")
 	frappe.clear_cache()
+
+
+def ensure_nonseasonal_distribution_default():
+	"""Migrate only the retired default; never alter a plan or approved detail."""
+	if not frappe.db.exists("DocType", "Sales Performance Settings"):
+		return
+	if frappe.db.get_single_value("Sales Performance Settings", "default_distribution_method") == "Same Month Previous Year + Growth":
+		frappe.db.set_single_value("Sales Performance Settings", "default_distribution_method", "Equal Monthly")
 
 
 def ensure_customer_group_columns():

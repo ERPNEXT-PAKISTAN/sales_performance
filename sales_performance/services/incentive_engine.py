@@ -298,7 +298,7 @@ def period_buckets(view, month=None, quarter=None):
 
 
 def collect_period_incentive_rows(filters):
-	"""Incentive by month or quarter. Targets split equally across 12 months."""
+	"""Collect target/actual rows at the planning grain for a selected period."""
 	import frappe
 	from frappe.utils import getdate
 
@@ -399,6 +399,19 @@ def collect_period_incentive_rows(filters):
 	if filters.get("customer_group"):
 		allowed_customer_groups = set(get_customer_group_subtree_names(filters.customer_group))
 	seen = set()
+	# A blank legacy customer-group row is a wildcard only when no specific
+	# allocation exists for the same Sales Person/Territory/Item.
+	specific_customer_groups = {
+		(row.sales_person or "", row.territory or "", row.item_code or "")
+		for row in rows
+		if row.get("customer_group")
+	}
+	# The equivalent guard protects legacy blank-territory rows as well.
+	specific_territories = {
+		(row.sales_person or "", row.item_code or "", row.get("customer_group") or "")
+		for row in rows
+		if row.territory
+	}
 	out = []
 	for row in rows:
 		if filters.get("sales_person") and row.sales_person != filters.sales_person:
@@ -407,13 +420,9 @@ def collect_period_incentive_rows(filters):
 			continue
 		if allowed_groups is not None and (row.item_group or "") not in allowed_groups:
 			continue
-		# Older/general plans can have no customer-group allocation. Keep that
-		# target row so a Customer Group filter can still calculate its selected
-		# invoice actuals, instead of returning an empty Incentive Analysis tab.
-		if (
-			allowed_customer_groups is not None
-			and row.get("customer_group")
-			and row.get("customer_group") not in allowed_customer_groups
+		# An unallocated row cannot represent a selected customer group.
+		if allowed_customer_groups is not None and (
+			not row.get("customer_group") or row.get("customer_group") not in allowed_customer_groups
 		):
 			continue
 		if filters.get("item") and row.item_code != filters.item:
@@ -432,17 +441,25 @@ def collect_period_incentive_rows(filters):
 			# Legacy plans may have been calculated before territory/customer-group
 			# were retained in the grain. Aggregate only matching dimensions so
 			# their actual quantity remains visible without pulling unrelated items.
+			base = (row.sales_person or "", row.territory or "", row.item_code or "")
+			can_use_blank_customer_group = bool(row.get("customer_group")) or base not in specific_customer_groups
+			territory_base = (row.sales_person or "", row.item_code or "", row.get("customer_group") or "")
+			can_use_blank_territory = bool(row.territory) or territory_base not in specific_territories
 			matches = [
 				value for key, value in actuals.items()
 				if key[2] == row.item_code
 				and (not row.sales_person or key[0] == row.sales_person)
 				and (not row.territory or key[1] == row.territory)
 				and (not row.get("customer_group") or key[3] == row.get("customer_group"))
+				and can_use_blank_customer_group
+				and can_use_blank_territory
 			]
 			actual = {
 				"month_qty": {month: sum(nflt(value.get("month_qty", {}).get(month)) for value in matches) for month in range(1, 13)},
 				"month_amount": {month: sum(nflt(value.get("month_amount", {}).get(month)) for value in matches) for month in range(1, 13)},
 			}
+		# Monthly detail is authoritative. A legacy plan without it is displayed
+		# with a read-only stable equal split; approved annual targets stay intact.
 		month_target = monthly_targets.get((row.parent, row.row_key)) or {
 			part["month_number"]: part
 			for part in equal_monthly(row.approved_target_qty, row.approved_target_amount)
@@ -481,7 +498,7 @@ def group_dashboard_rows(rows, group_by="sales_person", slabs=None, based_on="Qt
 	}.get(group_by or "sales_person", "sales_person")
 	grouped = {}
 	for row in rows:
-		key = row.get(field) or "(Not Set)"
+		key = row.get(field) or "(Unallocated)"
 		bucket = grouped.setdefault(
 			key,
 			{

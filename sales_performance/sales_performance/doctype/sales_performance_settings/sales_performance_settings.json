@@ -26,11 +26,11 @@
    "options": "Specific Price List\nLast Selling Price\nPrevious Year Average Selling Price\nManual Price"
   },
   {
-   "default": "Same Month Previous Year + Growth",
+   "default": "Equal Monthly",
    "fieldname": "default_distribution_method",
    "fieldtype": "Select",
    "label": "Default Distribution Method",
-   "options": "Same Month Previous Year + Growth\nEqual Monthly\nEqual Quarterly\nEqual Half-Yearly\nManual Monthly\nCustom Percentage Distribution"
+   "options": "Equal Monthly\nEqual Quarterly\nEqual Half-Yearly\nManual Monthly\nCustom Percentage Distribution"
   },
   {
    "default": "0",
