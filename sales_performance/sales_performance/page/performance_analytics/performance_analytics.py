@@ -2,6 +2,7 @@ import frappe
 from frappe import _
 
 from sales_performance.services.analysis_engine import (
+	selected_target_item_codes,
 	fetch_monthly_sales,
 	fetch_sales_by_dimension,
 	merge_period_rows,
@@ -16,6 +17,29 @@ from sales_performance.services.incentive_engine import (
 	scheme_settings,
 )
 from sales_performance.services.planning_engine import calendar_previous_year_dates, fiscal_year_dates
+
+
+@frappe.whitelist()
+def get_filter_options(company=None, fiscal_year=None):
+	"""Selectable filter values shared by the sales-analysis pages."""
+	item_codes = selected_target_item_codes(company, fiscal_year) if company and fiscal_year else None
+	item_filters = {"disabled": 0}
+	if item_codes is not None:
+		item_filters["name"] = ("in", item_codes or ("",))
+	return {
+		"companies": frappe.get_all("Company", order_by="name", pluck="name"),
+		"fiscal_years": frappe.get_all("Fiscal Year", order_by="year_start_date desc", pluck="name"),
+		"sales_persons": frappe.get_all(
+			"Sales Person", filters={"is_group": 0, "enabled": 1}, order_by="name", pluck="name"
+		),
+		"territories": frappe.get_all("Territory", filters={"is_group": 0}, order_by="name", pluck="name"),
+		"item_groups": frappe.get_all("Item Group", filters={"is_group": 0}, order_by="name", pluck="name"),
+		"customer_groups": frappe.get_all(
+			"Customer Group", filters={"is_group": 0}, order_by="name", pluck="name"
+		),
+		"customers": frappe.get_all("Customer", filters={"disabled": 0}, order_by="name", pluck="name"),
+		"items": frappe.get_all("Item", filters=item_filters, order_by="name", pluck="name"),
+	}
 
 
 @frappe.whitelist()
@@ -45,6 +69,7 @@ def get_analytics(
 		"customer": customer,
 		"item": item,
 	}
+	filters["item_codes"] = selected_target_item_codes(company, fiscal_year)
 
 	sales = {}
 	for dimension in ("sales_person", "territory", "item_group", "customer_group", "customer", "item"):

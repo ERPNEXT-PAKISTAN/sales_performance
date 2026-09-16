@@ -306,6 +306,7 @@ def collect_period_incentive_rows(filters):
 	from sales_performance.services.growth_engine import get_customer_group_subtree_names, get_item_group_subtree_names
 	from sales_performance.services.historical_sales import fetch_historical_sales
 	from sales_performance.services.planning_engine import fiscal_year_dates
+	from sales_performance.services.analysis_engine import selected_target_item_codes
 
 	filters = frappe._dict(filters or {})
 	if not filters.get("company") or not filters.get("fiscal_year"):
@@ -356,6 +357,16 @@ def collect_period_incentive_rows(filters):
 		fields=detail_fields,
 		ignore_permissions=True,
 	)
+	# Keep all achievement and incentive outputs on the same item-group rule
+	# scope as Performance Analytics, including plans revised after their rows
+	# were originally calculated.
+	allowed_item_codes = set(selected_target_item_codes(filters.company, filters.fiscal_year))
+	rows = [row for row in rows if row.item_code in allowed_item_codes]
+	# Proposal rows define the scope of achievement and incentive actuals,
+	# including when only selected items in an item group were planned.
+	planned_item_codes = sorted({row.item_code for row in rows if row.item_code})
+	if not planned_item_codes:
+		return []
 	monthly_targets = {}
 	for part in frappe.get_all(
 		"Sales Target Monthly Detail",
@@ -376,7 +387,7 @@ def collect_period_incentive_rows(filters):
 		territory=filters.get("territory"),
 		item_group=filters.get("item_group"),
 		customer_group=filters.get("customer_group"),
-		item_codes=[filters.item] if filters.get("item") else None,
+		item_codes=[filters.item] if filters.get("item") else planned_item_codes,
 		include_monthly=True,
 	)
 	slabs, based_on, pay_on = scheme_settings(filters)
@@ -396,7 +407,14 @@ def collect_period_incentive_rows(filters):
 			continue
 		if allowed_groups is not None and (row.item_group or "") not in allowed_groups:
 			continue
-		if allowed_customer_groups is not None and (row.get("customer_group") or "") not in allowed_customer_groups:
+		# Older/general plans can have no customer-group allocation. Keep that
+		# target row so a Customer Group filter can still calculate its selected
+		# invoice actuals, instead of returning an empty Incentive Analysis tab.
+		if (
+			allowed_customer_groups is not None
+			and row.get("customer_group")
+			and row.get("customer_group") not in allowed_customer_groups
+		):
 			continue
 		if filters.get("item") and row.item_code != filters.item:
 			continue
@@ -409,7 +427,22 @@ def collect_period_incentive_rows(filters):
 		if grain in seen:
 			continue
 		seen.add(grain)
-		actual = actuals.get(grain) or {}
+		actual = actuals.get(grain)
+		if actual is None:
+			# Legacy plans may have been calculated before territory/customer-group
+			# were retained in the grain. Aggregate only matching dimensions so
+			# their actual quantity remains visible without pulling unrelated items.
+			matches = [
+				value for key, value in actuals.items()
+				if key[2] == row.item_code
+				and (not row.sales_person or key[0] == row.sales_person)
+				and (not row.territory or key[1] == row.territory)
+				and (not row.get("customer_group") or key[3] == row.get("customer_group"))
+			]
+			actual = {
+				"month_qty": {month: sum(nflt(value.get("month_qty", {}).get(month)) for value in matches) for month in range(1, 13)},
+				"month_amount": {month: sum(nflt(value.get("month_amount", {}).get(month)) for value in matches) for month in range(1, 13)},
+			}
 		month_target = monthly_targets.get((row.parent, row.row_key)) or {
 			part["month_number"]: part
 			for part in equal_monthly(row.approved_target_qty, row.approved_target_amount)
@@ -494,4 +527,3 @@ def dashboard_totals(rows, slabs=None, based_on="Qty Achievement", pay_on="Amoun
 	paid["max_incentive_amount"] = paid["incentive_amount"] if paid.get("incentive_band") == "Max" else 0.0
 	paid["rows_with_incentive"] = sum(1 for r in rows if nflt(r.get("incentive_amount")) > 0)
 	return paid
-

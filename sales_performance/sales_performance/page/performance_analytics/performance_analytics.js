@@ -41,7 +41,7 @@ class PerformanceAnalytics {
 	}
 
 	set_control_value(control, value) {
-		if (value === undefined || value === null || value === "") {
+		if (value === undefined || value === null) {
 			return Promise.resolve();
 		}
 		return Promise.resolve(control.set_value(value));
@@ -85,12 +85,13 @@ class PerformanceAnalytics {
 	}
 
 	ready_filters() {
-		return Promise.all([
+		return this.load_filter_options().then(() => Promise.all([
 			this.set_control_value(this.filters.company, this.default_company()),
 			this.set_control_value(this.filters.period, "Annual"),
 			this.set_control_value(this.filters.group_by, "sales_person"),
-		])
+		]))
 			.then(() => this.set_fiscal_year_default())
+			.then(() => this.load_filter_options())
 			.then(() => this.wait_for_required())
 			.then(() => this.period_visibility());
 	}
@@ -98,18 +99,18 @@ class PerformanceAnalytics {
 	make_filters() {
 		const fy = this.default_fiscal_year();
 		const fields = [
-			["company", "Link", __("Company"), "Company", this.default_company()],
-			["fiscal_year", "Link", __("Fiscal Year"), "Fiscal Year", fy],
+			["company", "Select", __("Company"), "", this.default_company()],
+			["fiscal_year", "Select", __("Fiscal Year"), "", fy],
 			["period", "Select", __("Incentive Period"), "Monthly\nQuarterly\nAnnual", "Annual"],
 			["month", "Select", __("Month"), "\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12"],
 			["quarter", "Select", __("Quarter"), "\n1\n2\n3\n4"],
 			["group_by", "Select", __("Incentive Group"), "sales_person\nterritory\nitem_group\ncustomer_group\nitem\nperiod", "sales_person"],
-			["sales_person", "Link", __("Sales Person"), "Sales Person"],
-			["territory", "Link", __("Territory"), "Territory"],
-			["item_group", "Link", __("Item Group"), "Item Group"],
-			["customer_group", "Link", __("Customer Group"), "Customer Group"],
-			["customer", "Link", __("Customer"), "Customer"],
-			["item", "Link", __("Item"), "Item"],
+			["sales_person", "Select", __("Sales Person"), ""],
+			["territory", "Select", __("Territory"), ""],
+			["item_group", "Select", __("Item Group"), ""],
+			["customer_group", "Select", __("Customer Group"), ""],
+			["customer", "Select", __("Customer"), ""],
+			["item", "Select", __("Item"), ""],
 		];
 		this.filters = {};
 		const host = this.wrapper.querySelector("#pa-filters");
@@ -120,22 +121,45 @@ class PerformanceAnalytics {
 			const control = frappe.ui.form.make_control({
 				parent: $(parent),
 				render_input: true,
-				df: { fieldname: name, fieldtype, label, options, default: value, change: () => this.period_visibility() },
+				df: { fieldname: name, fieldtype, label, options, default: value, change: () => this.on_filter_change(name) },
 			});
 			this.filters[name] = control;
 		});
-		if (this.filters.item_group) {
-			this.filters.item_group.df.get_query = () => ({
-				query: "sales_performance.api.planning.item_group_query",
-			});
-		}
 		this.period_visibility();
+	}
+
+	load_filter_options() {
+		return Promise.resolve(frappe.call({
+			method: "sales_performance.sales_performance.page.performance_analytics.performance_analytics.get_filter_options",
+			args: { company: this.filters.company.get_value(), fiscal_year: this.filters.fiscal_year.get_value() },
+		})).then((r) => {
+			const lists = r.message || {};
+			const fields = { company: "companies", fiscal_year: "fiscal_years", sales_person: "sales_persons", territory: "territories", item_group: "item_groups", customer_group: "customer_groups", customer: "customers", item: "items" };
+			Object.entries(fields).forEach(([field, key]) => {
+				const control = this.filters[field];
+				if (!control) return;
+				const value = control.get_value();
+				control.df.options = ["", ...(lists[key] || [])].join("\n");
+				control.refresh();
+				if (value) control.set_value(value);
+			});
+		});
 	}
 
 	period_visibility() {
 		const period = this.filters.period.get_value();
 		sales_performance.set_filter_visible(this.filters.month, period === "Monthly");
 		sales_performance.set_filter_visible(this.filters.quarter, period === "Quarterly");
+	}
+
+	on_filter_change(field) {
+		this.period_visibility();
+		if (this.loading_defaults) return;
+		clearTimeout(this.filter_timer);
+		this.filter_timer = setTimeout(() => {
+			const load = field === "company" || field === "fiscal_year" ? this.load_filter_options() : Promise.resolve();
+			load.finally(() => this.refresh());
+		}, 150);
 	}
 
 	bind() {
@@ -189,6 +213,8 @@ class PerformanceAnalytics {
 			}
 			return frappe.msgprint(__("Company and Fiscal Year are required"));
 		}
+		const request_id = (this.request_id || 0) + 1;
+		this.request_id = request_id;
 		this.page.set_indicator(__("Loading"), "orange");
 		frappe.call({
 			method: "sales_performance.sales_performance.page.performance_analytics.performance_analytics.get_analytics",
@@ -196,6 +222,7 @@ class PerformanceAnalytics {
 			freeze: true,
 			freeze_message: __("Loading analytics..."),
 			callback: (r) => {
+				if (request_id !== this.request_id) return;
 				this.data = r.message || {};
 				this.render();
 				this.page.set_indicator(__("Updated"), "green");

@@ -98,7 +98,11 @@ def fetch_historical_sales(
 	if customer_group:
 		conditions.append(customer_group_subtree_sql())
 		values["customer_group"] = customer_group
-	if item_codes:
+	# An explicit empty target scope must return no actuals. Treating it as an
+	# unfiltered query would show invoice items outside Sales Target Planning.
+	if item_codes is not None:
+		if not item_codes:
+			return {}
 		conditions.append("sii.item_code in %(item_codes)s")
 		values["item_codes"] = tuple(item_codes)
 
