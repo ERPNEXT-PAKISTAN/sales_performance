@@ -361,11 +361,9 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person", *
 	for row in rows:
 		if filters.get("item_codes") is not None and row.get("item_code") not in filters.get("item_codes"):
 			continue
-		# A plan with no territory/customer-group allocation cannot provide a
-		# meaningful target for that tab. Do not present the whole unallocated
-		# plan as a misleading "(Not Set)" dimension row.
-		if dimension in ("territory", "customer_group") and not row.get(field):
-			continue
+		# Preserve unallocated rows in an unfiltered dimension tab. They are
+		# labelled explicitly below, rather than being silently dropped. A selected
+		# Territory/Customer Group still filters them out in the matching checks.
 		if filters.get("sales_person") and row.get("sales_person") != filters.get("sales_person"):
 			continue
 		if filters.get("territory") and row.get("territory") != filters.get("territory"):
@@ -376,7 +374,7 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person", *
 			continue
 		if filters.get("item") and row.get("item_code") != filters.get("item"):
 			continue
-		key = row.get(field) or "(Not Set)"
+		key = row.get(field) or "(Unallocated)"
 		bucket = out.setdefault(key, {"qty": 0.0, "amount": 0.0, "growth_weight": 0.0, "growth_weighted": 0.0})
 		bucket["qty"] += nflt(row.approved_target_qty)
 		bucket["amount"] += nflt(row.approved_target_amount)
