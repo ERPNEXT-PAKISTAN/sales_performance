@@ -169,6 +169,16 @@ def recalculate_proposal(doc, preserve_overrides=True):
 	return doc
 
 
+def rebuild_plan(name, preserve_overrides=True):
+	"""Rebuild a draft plan from its invoice-history grain and save it."""
+	import frappe
+
+	doc = frappe.get_doc("Sales Target Planning", name)
+	recalculate_proposal(doc, preserve_overrides=preserve_overrides)
+	doc.save(ignore_version=True)
+	return doc.name
+
+
 def _build_proposal_row(doc, grain, rules, prev_targets, cache, existing_overrides):
 	item_group = grain.get("item_group")
 	if doc.growth_method == "Uniform Percent":
@@ -363,6 +373,7 @@ def complete_monthly_row(row, month, grain=None, actual_grain=None):
 	return {
 		"row_key": row.get("row_key"),
 		"sales_person": row.get("sales_person"),
+		"territory": row.get("territory"),
 		"item_code": row.get("item_code"),
 		"item_group": row.get("item_group"),
 		"customer_group": row.get("customer_group"),

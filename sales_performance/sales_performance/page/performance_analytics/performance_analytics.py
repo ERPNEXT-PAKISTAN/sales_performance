@@ -9,6 +9,7 @@ from sales_performance.services.analysis_engine import (
 	payout_analysis,
 	summarize_rows,
 	target_totals_by_dimension,
+	customer_target_totals,
 )
 from sales_performance.services.incentive_engine import (
 	collect_period_incentive_rows,
@@ -76,6 +77,8 @@ def get_analytics(
 		cy = fetch_sales_by_dimension(company, start, end, dimension, **filters)
 		py = fetch_sales_by_dimension(company, py_start, py_end, dimension, **filters)
 		targets = target_totals_by_dimension(company, fiscal_year, dimension, **filters)
+		if dimension == "customer":
+			targets = customer_target_totals(company, fiscal_year, py_start, py_end, **filters)
 		sales[dimension] = merge_period_rows(cy, py, targets)
 
 	cy_months = {int(r.month_number): r for r in fetch_monthly_sales(company, start, end, **filters)}

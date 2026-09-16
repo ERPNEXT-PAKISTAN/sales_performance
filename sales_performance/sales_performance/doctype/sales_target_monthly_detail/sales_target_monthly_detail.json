@@ -7,6 +7,7 @@
  "field_order": [
   "row_key",
   "sales_person",
+  "territory",
   "item_code",
   "column_break_id",
   "item_group",
@@ -52,6 +53,14 @@
    "in_standard_filter": 1,
    "label": "Sales Person",
    "options": "Sales Person"
+  },
+  {
+   "fieldname": "territory",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Territory",
+   "options": "Territory"
   },
   {
    "columns": 2,

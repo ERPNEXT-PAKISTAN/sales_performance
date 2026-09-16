@@ -342,13 +342,14 @@ class PerformanceAnalytics {
 			];
 		}
 		const o = this.summarize(this.tab_rows());
+		const customerTargetsUnavailable = false;
 		return [
 			[__("Previous Year Amt"), this.money(o.previous_amount)],
 			[__("This Year Amt"), this.money(o.current_amount)],
-			[__("Target Qty"), this.n(o.target_qty, 0)],
-			[__("Target Amt"), this.money(o.target_amount)],
-			[__("Qty Ach %"), this.ach(o.qty_achievement_percent)],
-			[__("Amt Ach %"), this.ach(o.amount_achievement_percent)],
+			[__("Target Qty"), customerTargetsUnavailable ? "—" : this.n(o.target_qty, 0)],
+			[__("Target Amt"), customerTargetsUnavailable ? "—" : this.money(o.target_amount)],
+			[__("Qty Ach %"), customerTargetsUnavailable ? "—" : this.ach(o.qty_achievement_percent)],
+			[__("Amt Ach %"), customerTargetsUnavailable ? "—" : this.ach(o.amount_achievement_percent)],
 		];
 	}
 
@@ -448,6 +449,12 @@ class PerformanceAnalytics {
 			customer: __("Customer"),
 		};
 		this.wrapper.querySelector("#pa-table-title").textContent = titles[this.tab] || __("Detail");
+		const targetNote = this.wrapper.querySelector("#pa-target-note");
+		const customerTargetsUnavailable = false;
+		targetNote.style.display = customerTargetsUnavailable ? "block" : "none";
+		targetNote.textContent = customerTargetsUnavailable
+			? __("Customer-level targets are not configured. Target, growth, and achievement values are unavailable; sales values remain accurate.")
+			: "";
 		this.wrapper.querySelector("#pa-row-count").textContent = `${rows.length} ${__("rows")}`;
 		const host = this.wrapper.querySelector("#pa-table");
 		const empty = this.wrapper.querySelector("#pa-empty");
@@ -467,21 +474,22 @@ class PerformanceAnalytics {
 		}
 		const esc = (v) => frappe.utils.escape_html(String(v == null ? "" : v));
 		const tot = this.summarize(rows);
+		const targetValue = (value, formatter) => customerTargetsUnavailable ? "—" : formatter(value);
 		const body = rows
 			.map(
 				(r) => `<tr>
 				<td>${esc(r.dimension)}</td>
-				<td>${this.plan_pct(r.growth_percent)}</td>
+				<td>${targetValue(r.growth_percent, (v) => this.plan_pct(v))}</td>
 				<td>${this.n(r.previous_qty, 0)}</td>
 				<td>${this.n(r.current_qty, 0)}</td>
-				<td>${this.n(r.target_qty, 0)}</td>
-				<td>${this.delta(r.qty_variance)}</td>
-				<td>${this.ach(r.qty_achievement_percent)}</td>
+				<td>${targetValue(r.target_qty, (v) => this.n(v, 0))}</td>
+				<td>${targetValue(r.qty_variance, (v) => this.delta(v))}</td>
+				<td>${targetValue(r.qty_achievement_percent, (v) => this.ach(v))}</td>
 				<td>${this.money(r.previous_amount)}</td>
 				<td>${this.money(r.current_amount)}</td>
-				<td>${this.money(r.target_amount)}</td>
-				<td>${this.delta(r.amount_variance, true)}</td>
-				<td>${this.ach(r.amount_achievement_percent)}</td>
+				<td>${targetValue(r.target_amount, (v) => this.money(v))}</td>
+				<td>${targetValue(r.amount_variance, (v) => this.delta(v, true))}</td>
+				<td>${targetValue(r.amount_achievement_percent, (v) => this.ach(v))}</td>
 			</tr>`
 			)
 			.join("");
@@ -495,17 +503,17 @@ class PerformanceAnalytics {
 			<tbody>${body}</tbody>
 			<tfoot><tr>
 				<td>${__("Total")}</td>
-				<td>${this.plan_pct(tot.growth_percent)}</td>
+				<td>${targetValue(tot.growth_percent, (v) => this.plan_pct(v))}</td>
 				<td>${this.n(tot.previous_qty, 0)}</td>
 				<td>${this.n(tot.current_qty, 0)}</td>
-				<td>${this.n(tot.target_qty, 0)}</td>
-				<td>${this.delta(tot.qty_variance)}</td>
-				<td>${this.ach(tot.qty_achievement_percent)}</td>
+				<td>${targetValue(tot.target_qty, (v) => this.n(v, 0))}</td>
+				<td>${targetValue(tot.qty_variance, (v) => this.delta(v))}</td>
+				<td>${targetValue(tot.qty_achievement_percent, (v) => this.ach(v))}</td>
 				<td>${this.money(tot.previous_amount)}</td>
 				<td>${this.money(tot.current_amount)}</td>
-				<td>${this.money(tot.target_amount)}</td>
-				<td>${this.delta(tot.amount_variance, true)}</td>
-				<td>${this.ach(tot.amount_achievement_percent)}</td>
+				<td>${targetValue(tot.target_amount, (v) => this.money(v))}</td>
+				<td>${targetValue(tot.amount_variance, (v) => this.delta(v, true))}</td>
+				<td>${targetValue(tot.amount_achievement_percent, (v) => this.ach(v))}</td>
 			</tr></tfoot>
 		</table></div>`;
 	}

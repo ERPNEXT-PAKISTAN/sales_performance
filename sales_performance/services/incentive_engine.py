@@ -312,10 +312,13 @@ def collect_period_incentive_rows(filters):
 	if not filters.get("company") or not filters.get("fiscal_year"):
 		return []
 
+	plan_fields = ["name", "planning_version", "sales_person", "territory"]
+	if frappe.db.has_column("Sales Target Planning", "customer_group"):
+		plan_fields.append("customer_group")
 	plans = frappe.get_all(
 		"Sales Target Planning",
 		filters={"company": filters.company, "fiscal_year": filters.fiscal_year, "status": "Approved"},
-		fields=["name", "planning_version", "sales_person", "territory"],
+		fields=plan_fields,
 		order_by="planning_version desc",
 	)
 	if not plans:
@@ -326,7 +329,7 @@ def collect_period_incentive_rows(filters):
 				"fiscal_year": filters.fiscal_year,
 				"status": ("in", ("Calculated", "Under Review")),
 			},
-			fields=["name", "planning_version", "sales_person", "territory"],
+			fields=plan_fields,
 			order_by="planning_version desc",
 		)
 	if not plans:
@@ -337,6 +340,7 @@ def collect_period_incentive_rows(filters):
 		key = (p.sales_person or "", p.territory or "")
 		if key not in latest:
 			latest[key] = p.name
+	latest_plans = {p.name: p for p in plans if p.name in latest.values()}
 
 	detail_fields = [
 		"parent",
@@ -357,6 +361,16 @@ def collect_period_incentive_rows(filters):
 		fields=detail_fields,
 		ignore_permissions=True,
 	)
+	# Older detail rows can predate these dimensions. The parent plan remains
+	# authoritative for their scope, so retain it for report output and matching.
+	for row in rows:
+		plan = latest_plans.get(row.parent)
+		if not plan:
+			continue
+		if not row.get("territory") and plan.get("territory"):
+			row.territory = plan.territory
+		if not row.get("customer_group") and plan.get("customer_group"):
+			row.customer_group = plan.customer_group
 	# Keep all achievement and incentive outputs on the same item-group rule
 	# scope as Performance Analytics, including plans revised after their rows
 	# were originally calculated.

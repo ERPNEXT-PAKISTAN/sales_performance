@@ -303,6 +303,30 @@ def selected_target_item_codes(company, fiscal_year):
 	})
 
 
+def customer_target_totals(company, fiscal_year, previous_start, previous_end, **filters):
+	"""Allocate the stored plan total to customers by their prior-year sales share."""
+	scoped = dict(filters)
+	scoped.pop("customer", None)
+	history = fetch_sales_by_dimension(company, previous_start, previous_end, "customer", **scoped)
+	visible_history = history
+	if filters.get("customer"):
+		visible_history = fetch_sales_by_dimension(company, previous_start, previous_end, "customer", **filters)
+	base_targets = target_totals_by_dimension(company, fiscal_year, "sales_person", **scoped)
+	total_qty = sum(nflt(row.get("qty")) for row in base_targets.values())
+	total_amount = sum(nflt(row.get("amount")) for row in base_targets.values())
+	total_history_qty = sum(nflt(row.get("qty")) for row in history)
+	total_history_amount = sum(nflt(row.get("amount")) for row in history)
+	if not total_history_qty and not total_history_amount:
+		return {}
+	return {
+		row.get("dimension"): {
+			"qty": nflt(total_qty * nflt(row.get("qty")) / total_history_qty) if total_history_qty else 0,
+			"amount": nflt(total_amount * nflt(row.get("amount")) / total_history_amount) if total_history_amount else 0,
+			"growth_percent": round_percent((total_qty / total_history_qty - 1) * 100) if total_history_qty else None,
+		}
+		for row in visible_history
+	}
+
 def target_totals_by_dimension(company, fiscal_year, dimension="sales_person", **filters):
 	"""Use filtered targets from only the latest plan in each planning scope."""
 	import frappe
