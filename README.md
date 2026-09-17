@@ -35,6 +35,21 @@ On this computer the app lives at `apps/sales_performance`.
 
 Required: ERPNext. Optional: `item_sales_target` (adds Item on Target Detail so official targets can be item-wise).
 
+## Update an existing installation
+
+Run these commands on the server from the bench directory. Replace `site1.local` with your site name. Repeat the `migrate` and `clear-cache` commands for each site where `sales_performance` is installed.
+
+```bash
+cd /home/frappe/frappe-bench
+git -C apps/sales_performance pull --ff-only
+bench --site site1.local migrate
+bench build --app sales_performance
+bench --site site1.local clear-cache
+bench restart
+```
+
+The Git pull uses the configured tracking branch. Install the app only on a new site; an existing installation needs the migration above.
+
 ## Configuration
 
 Open **Sales Performance Settings**:
