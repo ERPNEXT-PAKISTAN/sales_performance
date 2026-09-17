@@ -13,6 +13,7 @@ from sales_performance.services.analysis_engine import (
 )
 from sales_performance.services.incentive_engine import (
 	collect_period_incentive_rows,
+	calculation_level,
 	dashboard_totals,
 	group_dashboard_rows,
 	scheme_settings,
@@ -80,6 +81,21 @@ def get_analytics(
 		if dimension == "customer":
 			targets = customer_target_totals(company, fiscal_year, py_start, py_end, **filters)
 		sales[dimension] = merge_period_rows(cy, py, targets)
+	for detail_dimension, parent_dimension in (("sales_person_item", "sales_person"), ("territory_item", "territory")):
+		cy = fetch_sales_by_dimension(company, start, end, detail_dimension, **filters)
+		py = fetch_sales_by_dimension(company, py_start, py_end, detail_dimension, **filters)
+		targets = target_totals_by_dimension(company, fiscal_year, detail_dimension, **filters)
+		sales[detail_dimension] = merge_period_rows(cy, py, targets)
+	# Item-dimension rows need their Item Group so the Item tab can render
+	# expandable Item Group parents with item children.
+	if sales.get("item"):
+		item_names = [row.get("dimension") for row in sales["item"] if row.get("dimension")]
+		item_groups = {
+			row.name: row.item_group
+			for row in frappe.get_all("Item", filters={"name": ["in", item_names]}, fields=["name", "item_group"], ignore_permissions=True)
+		}
+		for row in sales["item"]:
+			row["item_group"] = item_groups.get(row.get("dimension")) or "(Unallocated)"
 
 	cy_months = {int(r.month_number): r for r in fetch_monthly_sales(company, start, end, **filters)}
 	py_months = {int(r.month_number): r for r in fetch_monthly_sales(company, py_start, py_end, **filters)}
@@ -113,22 +129,23 @@ def get_analytics(
 	}
 	incentive_rows = collect_period_incentive_rows(incentive_filters)
 	slabs, based_on, pay_on = scheme_settings(incentive_filters)
+	level = calculation_level(incentive_filters)
 	payout = payout_analysis(company, fiscal_year, sales_person)
 	overview = summarize_rows(sales["sales_person"])
-	overview.update(dashboard_totals(incentive_rows, slabs, based_on, pay_on))
+	overview.update(dashboard_totals(incentive_rows, slabs, based_on, pay_on, level))
 	overview.update(payout["totals"])
 	return {
 		"overview": overview,
 		"sales": sales,
 		"trend": trend,
 		"incentive": {
-			"by_sales_person": group_dashboard_rows(incentive_rows, "sales_person", slabs, based_on, pay_on),
-			"by_territory": group_dashboard_rows(incentive_rows, "territory", slabs, based_on, pay_on),
-			"by_item_group": group_dashboard_rows(incentive_rows, "item_group", slabs, based_on, pay_on),
-			"by_customer_group": group_dashboard_rows(incentive_rows, "customer_group", slabs, based_on, pay_on),
-			"by_item": group_dashboard_rows(incentive_rows, "item", slabs, based_on, pay_on),
-			"by_period": group_dashboard_rows(incentive_rows, "period", slabs, based_on, pay_on),
-			"totals": dashboard_totals(incentive_rows, slabs, based_on, pay_on),
+			"by_sales_person": group_dashboard_rows(incentive_rows, "sales_person", slabs, based_on, pay_on, level),
+			"by_territory": group_dashboard_rows(incentive_rows, "territory", slabs, based_on, pay_on, level),
+			"by_item_group": group_dashboard_rows(incentive_rows, "item_group", slabs, based_on, pay_on, level),
+			"by_customer_group": group_dashboard_rows(incentive_rows, "customer_group", slabs, based_on, pay_on, level),
+			"by_item": group_dashboard_rows(incentive_rows, "item", slabs, based_on, pay_on, level),
+			"by_period": group_dashboard_rows(incentive_rows, "period", slabs, based_on, pay_on, level),
+			"totals": dashboard_totals(incentive_rows, slabs, based_on, pay_on, level),
 		},
 		"payout": payout,
 	}

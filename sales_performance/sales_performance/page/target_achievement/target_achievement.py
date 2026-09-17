@@ -3,6 +3,8 @@ from frappe import _
 
 from sales_performance.services.incentive_engine import (
 	collect_period_incentive_rows,
+	calculation_level,
+	dashboard_totals,
 	group_dashboard_rows,
 	scheme_settings,
 )
@@ -78,11 +80,12 @@ def get_achievement_board(
 	}
 	rows = collect_period_incentive_rows(filters)
 	slabs, based_on, pay_on = scheme_settings(filters)
+	level = calculation_level(filters)
 	if not judge:
 		judge = "Amount" if based_on == "Amount Achievement" else "Qty"
 
-	groups = group_dashboard_rows(rows, "item_group", slabs, based_on, pay_on)
-	items = group_dashboard_rows(rows, "item", slabs, based_on, pay_on)
+	groups = group_dashboard_rows(rows, "item_group", slabs, based_on, pay_on, level)
+	items = group_dashboard_rows(rows, "item", slabs, based_on, pay_on, level)
 	labels = _item_labels(rows)
 	for row in items:
 		row["item_name"] = labels.get(row.get("dimension")) or row.get("dimension")
@@ -97,6 +100,7 @@ def get_achievement_board(
 		"items_achieved": i_ok,
 		"items_missed": i_miss,
 		"totals": {
+			**dashboard_totals(rows, slabs, based_on, pay_on, level),
 			"item_groups_achieved": len(g_ok),
 			"item_groups_missed": len(g_miss),
 			"items_achieved": len(i_ok),
@@ -145,7 +149,8 @@ def _card_result(filters, total_key):
 			item=filters.get("item"),
 		)
 	except Exception:
-		return {"value": 0, "fieldtype": "Int"}
+		frappe.log_error(frappe.get_traceback(), "Target Achievement indicator failed")
+		raise
 	return {
 		"value": board["totals"].get(total_key) or 0,
 		"fieldtype": "Int",

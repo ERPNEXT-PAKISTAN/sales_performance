@@ -74,6 +74,14 @@
    "options": "Sales Person\nItem Group\nTerritory\nCustomer Group"
   },
   {
+   "default": "Item",
+   "description": "Item pays each planned item row independently. The grouped option applies the slab after combining Sales Person, Period and Customer Group.",
+   "fieldname": "calculation_level",
+   "fieldtype": "Select",
+   "label": "Incentive Calculation Level",
+   "options": "Item\nSales Person + Period + Customer Group"
+  },
+  {
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"

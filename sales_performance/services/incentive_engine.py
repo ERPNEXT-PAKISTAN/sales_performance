@@ -1,7 +1,7 @@
 """Resolve min/max incentive rates from achievement slabs. No payout storage."""
 
 from sales_performance.services.numbers import nflt
-from sales_performance.services.precision import get_currency_precision, round_percent
+from sales_performance.services.precision import get_currency_precision, round_percent, round_qty
 
 
 def resolve_incentive_rate(achievement_percent, slabs):
@@ -135,9 +135,14 @@ def load_scheme_slabs(company=None, fiscal_year=None):
 	if company:
 		filters["company"] = company
 	fields = ["name", "fiscal_year", "based_on"]
-	meta = frappe.get_meta("Incentive Scheme")
+	try:
+		meta = frappe.get_meta("Incentive Scheme")
+	except Exception:
+		return [], "Qty Achievement", "Amount"
 	if meta.has_field("pay_on"):
 		fields.append("pay_on")
+	if meta.has_field("calculation_level"):
+		fields.append("calculation_level")
 	schemes = frappe.get_all(
 		"Incentive Scheme",
 		filters=filters,
@@ -173,6 +178,33 @@ def scheme_settings(filters):
 	if filters.get("pay_on"):
 		pay_on = normalize_pay_on(filters.get("pay_on"))
 	return slabs, based_on, pay_on
+
+
+def calculation_level(filters):
+	"""Return the configured incentive grain; Item is the safe default."""
+	import frappe
+
+	company = (filters or {}).get("company")
+	fiscal_year = (filters or {}).get("fiscal_year")
+	try:
+		meta = frappe.get_meta("Incentive Scheme")
+	except Exception:
+		return "Item"
+	if not meta.has_field("calculation_level"):
+		return "Item"
+	try:
+		rows = frappe.get_all(
+			"Incentive Scheme",
+			filters={"disabled": 0, **({"company": company} if company else {})},
+			fields=["calculation_level", "fiscal_year"],
+			order_by="modified desc",
+			ignore_permissions=True,
+		)
+	except Exception:
+		return "Item"
+	matched = [row for row in rows if row.fiscal_year == fiscal_year] or [row for row in rows if not row.fiscal_year]
+	value = (matched[0].get("calculation_level") if matched else None) or "Item"
+	return "Grouped" if str(value).strip().lower().startswith("sales person") else "Item"
 
 
 def metrics_with_monthly_incentive(
@@ -212,71 +244,145 @@ def collect_achievement_rows(filters):
 	return collect_period_incentive_rows(filters)
 
 
-def summarize_payout_by_sales_person(rows, slabs=None, based_on="Qty Achievement", pay_on="Amount"):
-	"""One payable line per sales person.
-
-	When slabs are passed, incentive is recalculated on that person's totals so
-	a miss versus target does not keep child-row surplus.
-	"""
+def grouped_incentive_rows(rows, slabs, based_on="Qty Achievement", pay_on="Amount", calculation_level="Grouped"):
+	"""Calculate the canonical payable incentive at Sales Person + Period + Customer Group grain."""
+	if calculation_level == "Item":
+		out = []
+		for row in rows:
+			item = dict(row)
+			item.update(apply_scheme_payout(item.get("target_qty"), item.get("actual_qty"), item.get("target_amount"), item.get("actual_amount"), slabs, based_on, pay_on))
+			item["incentive_group"] = " | ".join(part for part in (item.get("sales_person"), item.get("period"), item.get("customer_group"), item.get("item_code")) if part) or "(Unallocated)"
+			out.append(item)
+		return out
 	grouped = {}
 	for row in rows:
-		key = (
-			row.get("sales_person") or "(Not Set)",
-			row.get("period") or "",
-			row.get("customer_group") or "",
-		)
-		bucket = grouped.setdefault(
-			key,
-			{
-				"sales_person": row.get("sales_person") or "",
-				"customer_group": row.get("customer_group") or "",
-				"period": row.get("period") or "",
-				"month_number": row.get("month_number") or 0,
-				"target_qty": 0.0,
-				"actual_qty": 0.0,
-				"target_amount": 0.0,
-				"actual_amount": 0.0,
-				"incentive_band": row.get("incentive_band") or "",
-				"incentive_rate_percent": nflt(row.get("incentive_rate_percent")),
-				"incentive_qty": 0.0,
-				"incentive_amount": 0.0,
-				"incentive_on_amount": 0.0,
-				"incentive_on_qty": 0.0,
-			},
-		)
-		bucket["target_qty"] += nflt(row.get("target_qty"))
-		bucket["actual_qty"] += nflt(row.get("actual_qty"))
-		bucket["target_amount"] += nflt(row.get("target_amount"))
-		bucket["actual_amount"] += nflt(row.get("actual_amount"))
-		amount = nflt(row.get("incentive_amount"))
-		if amount > 0:
-			bucket["incentive_qty"] += nflt(row.get("incentive_qty"))
-			bucket["incentive_amount"] += amount
-			bucket["incentive_on_amount"] += nflt(row.get("incentive_on_amount"))
-			bucket["incentive_on_qty"] += nflt(row.get("incentive_on_qty"))
-			if nflt(row.get("incentive_rate_percent")) >= nflt(bucket["incentive_rate_percent"]):
-				bucket["incentive_rate_percent"] = nflt(row.get("incentive_rate_percent"))
-				bucket["incentive_band"] = row.get("incentive_band") or bucket["incentive_band"]
+		key = (row.get("sales_person") or "(Not Set)", row.get("period") or "", row.get("customer_group") or "")
+		bucket = grouped.setdefault(key, {
+			"sales_person": row.get("sales_person") or "", "customer_group": row.get("customer_group") or "",
+			"period": row.get("period") or "", "month_number": row.get("month_number") or 0,
+			"target_qty": 0.0, "actual_qty": 0.0, "target_amount": 0.0, "actual_amount": 0.0,
+		})
+		for field in ("target_qty", "actual_qty", "target_amount", "actual_amount"):
+			bucket[field] += nflt(row.get(field))
 	out = []
 	for bucket in grouped.values():
-		if slabs is not None:
-			paid = apply_scheme_payout(
-				bucket["target_qty"],
-				bucket["actual_qty"],
-				bucket["target_amount"],
-				bucket["actual_amount"],
-				slabs,
-				based_on,
-				pay_on,
-			)
-			if nflt(paid.get("incentive_amount")) <= 0:
-				continue
-			bucket.update(paid)
-		elif nflt(bucket.get("incentive_amount")) <= 0:
-			continue
+		bucket.update(apply_scheme_payout(bucket["target_qty"], bucket["actual_qty"], bucket["target_amount"], bucket["actual_amount"], slabs, based_on, pay_on))
+		if normalize_pay_on(pay_on) == "Qty":
+			for field in ("incentive_qty", "incentive_on_qty", "incentive_amount"):
+				bucket[field] = round_qty(bucket.get(field))
+		bucket["incentive_group"] = " | ".join(part for part in (bucket["sales_person"], bucket["period"], bucket["customer_group"]) if part) or "(Unallocated)"
 		out.append(bucket)
 	return out
 
+
+def summarize_payout_by_sales_person(rows, slabs=None, based_on="Qty Achievement", pay_on="Amount", calculation_level="Grouped"):
+	"""Backward-compatible name for canonical grouped payouts."""
+	if slabs is None:
+		# Legacy callers supplied already-calculated child payouts. Preserve that API.
+		legacy = {}
+		for row in rows:
+			key = (row.get("sales_person") or "(Not Set)", row.get("period") or "", row.get("customer_group") or "")
+			bucket = legacy.setdefault(key, dict(row, incentive_amount=0.0, incentive_qty=0.0, incentive_on_amount=0.0, incentive_on_qty=0.0))
+			for field in ("incentive_amount", "incentive_qty", "incentive_on_amount", "incentive_on_qty"):
+				bucket[field] += nflt(row.get(field))
+			if nflt(row.get("incentive_rate_percent")) >= nflt(bucket.get("incentive_rate_percent")):
+				bucket["incentive_rate_percent"] = nflt(row.get("incentive_rate_percent"))
+				bucket["incentive_band"] = row.get("incentive_band") or bucket.get("incentive_band")
+		return [row for row in legacy.values() if nflt(row.get("incentive_amount")) > 0]
+	canonical = grouped_incentive_rows(rows, slabs, based_on, pay_on, calculation_level)
+	if calculation_level == "Item":
+		return canonical
+	return [row for row in canonical if nflt(row.get("incentive_amount")) > 0]
+
+
+def allocate_item_incentives(rows, slabs, based_on, pay_on, calculation_level="Grouped"):
+	"""Distribute earned payout over positive item surplus for report display.
+
+	The slab and payable amount are still calculated once per Sales Person,
+	Period and Customer Group. Within that scope, an item's share is:
+	group payout * positive item surplus / total positive item surplus.
+	Use Qty or Amount surplus according to Pay On. Largest-remainder rounding
+	preserves the exact payable total at the app's display precision. This is a
+	presentation allocation, not a new item-level entitlement or slab calculation.
+	"""
+	from decimal import Decimal, ROUND_FLOOR, ROUND_HALF_UP
+
+	from sales_performance.services.precision import get_qty_precision
+
+	def key(row):
+		return tuple(row.get(field) or "" for field in ("sales_person", "period", "customer_group"))
+
+	pay_on = normalize_pay_on(pay_on)
+	precision = get_qty_precision() if pay_on == "Qty" else get_currency_precision()
+	factor = Decimal(10) ** precision
+	metric = "qty" if pay_on == "Qty" else "amount"
+	if calculation_level == "Item":
+		return grouped_incentive_rows(rows, slabs, based_on, pay_on, "Item")
+	paid = {key(row): row for row in grouped_incentive_rows(rows, slabs, based_on, pay_on)}
+	out = [dict(row) for row in rows]
+	eligible = {}
+	for index, row in enumerate(out):
+		row.update(empty_incentive(pay_on))
+		surplus = max(
+			Decimal(str(row.get("actual_" + metric) or 0))
+			- Decimal(str(row.get("target_" + metric) or 0)),
+			Decimal(0),
+		)
+		if surplus > 0:
+			eligible.setdefault(key(row), []).append((index, surplus))
+
+	for group_key, parts in eligible.items():
+		payout = paid[group_key]
+		units = int((Decimal(str(payout["incentive_amount"])) * factor).to_integral_value(rounding=ROUND_HALF_UP))
+		if units <= 0:
+			continue
+		total_weight = sum(weight for _, weight in parts)
+		quotas = {index: Decimal(units) * weight / total_weight for index, weight in parts}
+		shares = {index: int(value.to_integral_value(rounding=ROUND_FLOOR)) for index, value in quotas.items()}
+		# Tie breaking uses item dimensions, independent of database row order.
+		ordered = sorted(quotas, key=lambda index: (
+			-(quotas[index] - shares[index]),
+			tuple(str(out[index].get(field) or "") for field in ("item_code", "territory", "planning")),
+		))
+		for index in ordered[:units - sum(shares.values())]:
+			shares[index] += 1
+		for index, share in shares.items():
+			if not share:
+				continue
+			amount = float(Decimal(share) / factor)
+			out[index]["incentive_amount"] = amount
+			out[index]["incentive_on_" + metric] = amount
+			if pay_on == "Qty":
+				out[index]["incentive_qty"] = amount
+			out[index]["incentive_rate_percent"] = payout["incentive_rate_percent"]
+			out[index]["incentive_band"] = payout["incentive_band"]
+	return out
+
+
+def annotate_item_rows_with_grouped_incentive(rows, slabs, based_on, pay_on):
+	"""Keep item rows but put each canonical payout on one stable reference row.
+
+	This makes report totals equal payout totals instead of multiplying a group
+	payout by its item count.
+	"""
+	grouped = grouped_incentive_rows(rows, slabs, based_on, pay_on)
+	by_key = {(r["sales_person"], r["period"], r["customer_group"]): r for r in grouped}
+	first = set()
+	for row in rows:
+		key = (row.get("sales_person") or "", row.get("period") or "", row.get("customer_group") or "")
+		paid = by_key[key]
+		row["incentive_group"] = paid["incentive_group"]
+		for field in ("target_qty", "actual_qty", "qty_achievement_percent", "target_amount", "actual_amount", "amount_achievement_percent", "variance_qty", "variance_amount"):
+			row["incentive_group_" + field] = paid.get(field)
+		row.update(empty_incentive(pay_on))
+		if key not in first:
+			row["is_incentive_group_reference"] = 1
+			row.update({k: paid[k] for k in empty_incentive(pay_on) if k in paid})
+			row["incentive_band"] = paid.get("incentive_band") or ""
+			first.add(key)
+		else:
+			row["is_incentive_group_reference"] = 0
+	return rows
 
 def period_buckets(view, month=None, quarter=None):
 	"""Return [(label, [month_numbers])] for Monthly / Quarterly / Annual."""
@@ -295,6 +401,25 @@ def period_buckets(view, month=None, quarter=None):
 			return [quarters[q - 1]]
 		return quarters
 	return [("Annual", list(range(1, 13)))]
+
+
+def period_selection_from_dates(period, month, quarter, from_date, to_date):
+	"""Infer one reporting bucket when the supplied date range is one calendar month.
+
+	Query-report URLs commonly pass From/To but not the separate Month field.
+	Without this normalization, January actuals are compared with all twelve
+	monthly targets and the eleven unrelated rows misleadingly show zero actuals.
+	"""
+	if not from_date or not to_date:
+		return month, quarter
+	if period == "Monthly" and not month and from_date.year == to_date.year and from_date.month == to_date.month:
+		return from_date.month, quarter
+	if period == "Quarterly" and not quarter and from_date.year == to_date.year:
+		start_quarter = (from_date.month - 1) // 3
+		end_quarter = (to_date.month - 1) // 3
+		if start_quarter == end_quarter:
+			return month, start_quarter + 1
+	return month, quarter
 
 
 def collect_period_incentive_rows(filters):
@@ -405,7 +530,10 @@ def collect_period_incentive_rows(filters):
 		include_monthly=True,
 	)
 	slabs, based_on, pay_on = scheme_settings(filters)
-	buckets = period_buckets(filters.get("period"), filters.get("month"), filters.get("quarter"))
+	month, quarter = period_selection_from_dates(
+		filters.get("period"), filters.get("month"), filters.get("quarter"), from_date, to_date
+	)
+	buckets = period_buckets(filters.get("period"), month, quarter)
 	allowed_groups = None
 	if filters.get("item_group"):
 		allowed_groups = set(get_item_group_subtree_names(filters.item_group))
@@ -501,60 +629,51 @@ def collect_period_incentive_rows(filters):
 	return out
 
 
-def group_dashboard_rows(rows, group_by="sales_person", slabs=None, based_on="Qty Achievement", pay_on="Amount"):
-	field = {
-		"sales_person": "sales_person",
-		"territory": "territory",
-		"item_group": "item_group",
-		"customer_group": "customer_group",
-		"item": "item_code",
-		"period": "period",
-	}.get(group_by or "sales_person", "sales_person")
+def group_dashboard_rows(rows, group_by="sales_person", slabs=None, based_on="Qty Achievement", pay_on="Amount", calculation_level="Grouped"):
+	"""Aggregate item performance and its share of canonical payable incentive."""
+	field = {"sales_person": "sales_person", "territory": "territory", "item_group": "item_group", "customer_group": "customer_group", "item": "item_code", "period": "period"}.get(group_by or "sales_person", "sales_person")
+	annotated = allocate_item_incentives(rows, slabs, based_on, pay_on, calculation_level)
 	grouped = {}
-	for row in rows:
+	for row in annotated:
 		key = row.get(field) or "(Unallocated)"
-		bucket = grouped.setdefault(
-			key,
-			{
-				"dimension": key,
-				"target_qty": 0.0,
-				"actual_qty": 0.0,
-				"target_amount": 0.0,
-				"actual_amount": 0.0,
-			},
-		)
-		bucket["target_qty"] += nflt(row.get("target_qty"))
-		bucket["actual_qty"] += nflt(row.get("actual_qty"))
-		bucket["target_amount"] += nflt(row.get("target_amount"))
-		bucket["actual_amount"] += nflt(row.get("actual_amount"))
-	out = []
+		bucket = grouped.setdefault(key, {"dimension": key, "target_qty": 0.0, "actual_qty": 0.0, "target_amount": 0.0, "actual_amount": 0.0, "incentive_on_amount": 0.0, "incentive_on_qty": 0.0, "incentive_qty": 0.0, "incentive_amount": 0.0, "min_incentive_amount": 0.0, "max_incentive_amount": 0.0, "_bands": set(), "_rates": set()})
+		for name in ("target_qty", "actual_qty", "target_amount", "actual_amount", "incentive_on_amount", "incentive_on_qty", "incentive_qty", "incentive_amount"):
+			bucket[name] += nflt(row.get(name))
+		if nflt(row.get("incentive_amount")) > 0:
+			band = row.get("incentive_band")
+			bucket["_bands"].add(band)
+			bucket["_rates"].add(nflt(row.get("incentive_rate_percent")))
+			if band in ("Min", "Max"):
+				bucket[band.lower() + "_incentive_amount"] += nflt(row.get("incentive_amount"))
 	for bucket in grouped.values():
-		paid = apply_scheme_payout(
-			bucket["target_qty"],
-			bucket["actual_qty"],
-			bucket["target_amount"],
-			bucket["actual_amount"],
-			slabs,
-			based_on,
-			pay_on,
-		)
-		bucket.update(paid)
-		bucket["min_incentive_amount"] = paid["incentive_amount"] if paid.get("incentive_band") == "Min" else 0.0
-		bucket["max_incentive_amount"] = paid["incentive_amount"] if paid.get("incentive_band") == "Max" else 0.0
-		out.append(bucket)
+		metrics = apply_scheme_payout(bucket["target_qty"], bucket["actual_qty"], bucket["target_amount"], bucket["actual_amount"], slabs, based_on, pay_on)
+		bucket["qty_achievement_percent"] = metrics.get("qty_achievement_percent")
+		bucket["amount_achievement_percent"] = metrics.get("amount_achievement_percent")
+		bucket["pay_on"] = normalize_pay_on(pay_on)
+		bands = bucket.pop("_bands")
+		rates = bucket.pop("_rates")
+		bucket["incentive_band"] = next(iter(bands)) if len(bands) == 1 else ("Mixed" if bands else "")
+		bucket["incentive_rate_percent"] = next(iter(rates)) if len(rates) == 1 else 0.0
+	out = list(grouped.values())
 	out.sort(key=lambda r: r["incentive_amount"], reverse=True)
 	return out
 
-
-def dashboard_totals(rows, slabs=None, based_on="Qty Achievement", pay_on="Amount"):
+def dashboard_totals(rows, slabs=None, based_on="Qty Achievement", pay_on="Amount", calculation_level="Grouped"):
+	"""Return totals whose payable values are sums of canonical payouts."""
 	target_qty = sum(nflt(r.get("target_qty")) for r in rows)
 	actual_qty = sum(nflt(r.get("actual_qty")) for r in rows)
 	target_amount = sum(nflt(r.get("target_amount")) for r in rows)
 	actual_amount = sum(nflt(r.get("actual_amount")) for r in rows)
-	paid = apply_scheme_payout(
-		target_qty, actual_qty, target_amount, actual_amount, slabs, based_on, pay_on
-	)
-	paid["min_incentive_amount"] = paid["incentive_amount"] if paid.get("incentive_band") == "Min" else 0.0
-	paid["max_incentive_amount"] = paid["incentive_amount"] if paid.get("incentive_band") == "Max" else 0.0
-	paid["rows_with_incentive"] = sum(1 for r in rows if nflt(r.get("incentive_amount")) > 0)
+	paid = apply_scheme_payout(target_qty, actual_qty, target_amount, actual_amount, slabs, based_on, pay_on)
+	canonical = grouped_incentive_rows(rows, slabs, based_on, pay_on, calculation_level)
+	for name in ("incentive_qty", "incentive_on_amount", "incentive_on_qty", "incentive_amount"):
+		paid[name] = sum(nflt(r.get(name)) for r in canonical)
+	paid["rows_with_incentive"] = sum(1 for r in canonical if nflt(r.get("incentive_amount")) > 0)
+	paid["min_incentive_amount"] = sum(nflt(r.get("incentive_amount")) for r in canonical if r.get("incentive_band") == "Min")
+	paid["max_incentive_amount"] = sum(nflt(r.get("incentive_amount")) for r in canonical if r.get("incentive_band") == "Max")
+	earned = [r for r in canonical if nflt(r.get("incentive_amount")) > 0]
+	bands = {r.get("incentive_band") for r in earned}
+	rates = {nflt(r.get("incentive_rate_percent")) for r in earned}
+	paid["incentive_band"] = next(iter(bands)) if len(bands) == 1 else ("Mixed" if bands else "")
+	paid["incentive_rate_percent"] = next(iter(rates)) if len(rates) == 1 else 0.0
 	return paid

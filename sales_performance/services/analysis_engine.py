@@ -20,6 +20,8 @@ DIMENSIONS = {
 	"customer_group": ("ifnull(si.customer_group, '')", False),
 	"customer": ("ifnull(si.customer_name, si.customer)", False),
 	"item": ("sii.item_code", False),
+	"sales_person_item": ("concat_ws(' | ', ifnull(st.sales_person, ''), sii.item_code)", True),
+	"territory_item": ("concat_ws(' | ', ifnull(si.territory, ''), sii.item_code)", False),
 }
 
 
@@ -337,6 +339,8 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person", *
 		"item_group": "item_group",
 		"customer_group": "customer_group",
 		"item": "item_code",
+		"sales_person_item": "item_code",
+		"territory_item": "item_code",
 	}.get(dimension)
 	if not field:
 		return {}
@@ -399,6 +403,10 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person", *
 		if filters.get("item") and row.get("item_code") != filters.get("item"):
 			continue
 		key = row.get(field) or "(Unallocated)"
+		if dimension == "sales_person_item":
+			key = f"{row.get('sales_person') or '(Unallocated)'} | {row.get('item_code') or '(Unallocated)'}"
+		elif dimension == "territory_item":
+			key = f"{row.get('territory') or '(Unallocated)'} | {row.get('item_code') or '(Unallocated)'}"
 		bucket = out.setdefault(key, {"qty": 0.0, "amount": 0.0, "growth_weight": 0.0, "growth_weighted": 0.0})
 		bucket["qty"] += nflt(row.approved_target_qty)
 		bucket["amount"] += nflt(row.approved_target_amount)

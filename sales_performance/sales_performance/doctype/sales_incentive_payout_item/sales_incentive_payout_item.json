@@ -26,6 +26,31 @@
    "columns": 2
   },
   {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "options": "Item",
+   "label": "Item",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "territory",
+   "fieldtype": "Link",
+   "options": "Territory",
+   "label": "Territory"
+  },
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "options": "Item Group",
+   "label": "Item Group"
+  },
+  {
+   "fieldname": "planning",
+   "fieldtype": "Link",
+   "options": "Sales Target Planning",
+   "label": "Sales Target Planning"
+  },
+  {
    "fieldname": "customer_group",
    "fieldtype": "Link",
    "label": "Customer Group",

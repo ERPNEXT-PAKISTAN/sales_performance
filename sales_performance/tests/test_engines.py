@@ -346,6 +346,42 @@ class TestIncentivePayoutSummary(unittest.TestCase):
 		self.assertEqual(out["Sara"]["incentive_amount"], 20)
 
 
+class TestCanonicalGroupedIncentive(unittest.TestCase):
+	def setUp(self):
+		self.slabs = [{"min_achievement_percent": 100, "min_incentive_percent": 100, "max_achievement_percent": 100, "max_incentive_percent": 100}]
+
+	def test_item_rows_are_scored_once_per_salesperson_period_customer_group(self):
+		from sales_performance.services.incentive_engine import annotate_item_rows_with_grouped_incentive, grouped_incentive_rows
+		# Equivalent to a three-item January payout: only grouped surplus is payable.
+		rows = [
+			{"sales_person": "SP", "period": "January", "customer_group": "Market", "target_qty": 1000, "actual_qty": 1200, "target_amount": 0, "actual_amount": 0},
+			{"sales_person": "SP", "period": "January", "customer_group": "Market", "target_qty": 1000, "actual_qty": 1203, "target_amount": 0, "actual_amount": 0},
+			{"sales_person": "SP", "period": "January", "customer_group": "Market", "target_qty": 1000, "actual_qty": 1015, "target_amount": 0, "actual_amount": 0},
+		]
+		grouped = grouped_incentive_rows(rows, self.slabs, "Qty Achievement", "Qty")
+		self.assertEqual(grouped[0]["incentive_amount"], 418)
+		annotated = annotate_item_rows_with_grouped_incentive(rows, self.slabs, "Qty Achievement", "Qty")
+		self.assertEqual(sum(r["incentive_amount"] for r in annotated), 418)
+		self.assertEqual(sum(1 for r in annotated if r["incentive_amount"]), 1)
+
+	def test_amount_and_periods_remain_separate_groups(self):
+		from sales_performance.services.incentive_engine import grouped_incentive_rows
+		rows = [
+			{"sales_person": "SP", "period": "January", "customer_group": "Market", "target_qty": 10, "actual_qty": 12, "target_amount": 1000, "actual_amount": 1300},
+			{"sales_person": "SP", "period": "Q1", "customer_group": "Market", "target_qty": 10, "actual_qty": 12, "target_amount": 1000, "actual_amount": 1500},
+		]
+		got = grouped_incentive_rows(rows, self.slabs, "Amount Achievement", "Amount")
+		self.assertEqual([r["incentive_amount"] for r in got], [300, 500])
+
+
+class TestPeriodSelectionFromDates(unittest.TestCase):
+	def test_query_report_dates_select_one_month_or_quarter(self):
+		from datetime import date
+		from sales_performance.services.incentive_engine import period_selection_from_dates
+		self.assertEqual(period_selection_from_dates("Monthly", None, None, date(2026, 1, 1), date(2026, 1, 31)), (1, None))
+		self.assertEqual(period_selection_from_dates("Quarterly", None, None, date(2026, 1, 1), date(2026, 3, 31)), (None, 1))
+
+
 class TestPeriodBuckets(unittest.TestCase):
 	def test_monthly_and_quarterly(self):
 		from sales_performance.services.incentive_engine import period_buckets

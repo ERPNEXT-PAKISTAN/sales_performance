@@ -28,7 +28,7 @@ def execute(filters=None):
 			item=filters.get("item"),
 		)
 	except Exception:
-		frappe.log_error(title="Target Achievement Status")
+		frappe.log_error(frappe.get_traceback(), "Target Achievement Status failed")
 		return columns, [], None, empty
 	data = _flatten(board)
 	return columns, data, None, _chart(board.get("totals") or {})

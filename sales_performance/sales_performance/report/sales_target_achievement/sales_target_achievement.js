@@ -24,7 +24,7 @@ frappe.query_reports["Sales Target Achievement"] = {
 			options: "Amount\nQty",
 			default: "Amount",
 			reqd: 1,
-			description: __("Amount = surplus amount × %. Qty = surplus qty × % (not converted to selling price). Payable follows this filter."),
+			description: __("The earned salesperson payout is shared across items in proportion to their positive Qty or Amount surplus."),
 		},
 		{
 			fieldname: "period",
@@ -32,6 +32,16 @@ frappe.query_reports["Sales Target Achievement"] = {
 			fieldtype: "Select",
 			options: ["Annual", "Monthly", "Quarterly"],
 			default: "Monthly",
+		},
+		{ fieldname: "month", label: __("Month"), fieldtype: "Int", depends_on: "eval:doc.period === 'Monthly'" },
+		{ fieldname: "quarter", label: __("Quarter"), fieldtype: "Int", depends_on: "eval:doc.period === 'Quarterly'" },
+		{
+			fieldname: "incentive_band",
+			label: __("Incentive Achievement"),
+			fieldtype: "Select",
+			options: "All\nMin\nMax\nNot Achieve",
+			default: "All",
+			description: __("Min/Max show the earned incentive band. Not Achieve shows rows with no allocated incentive."),
 		},
 		{ fieldname: "sales_person", label: __("Sales Person"), fieldtype: "Link", options: "Sales Person" },
 		{ fieldname: "territory", label: __("Territory"), fieldtype: "Link", options: "Territory" },
@@ -43,6 +53,9 @@ frappe.query_reports["Sales Target Achievement"] = {
 		{ fieldname: "to_date", label: __("To Date"), fieldtype: "Date" },
 	],
 	formatter(value, row, column, data, default_formatter) {
+		if (data && data.is_total_row) {
+			return `<strong>${default_formatter(value, row, column, data)}</strong>`;
+		}
 		value = (window.sales_performance && sales_performance.report_formatter)
 			? sales_performance.report_formatter(value, row, column, data, default_formatter)
 			: default_formatter(value, row, column, data);

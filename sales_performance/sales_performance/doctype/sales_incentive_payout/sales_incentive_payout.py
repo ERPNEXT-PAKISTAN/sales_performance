@@ -122,7 +122,8 @@ class SalesIncentivePayout(Document):
 				"pay_on": self.pay_on or "Amount",
 			}
 		)
-		summary = summarize_payout_by_sales_person(rows, slabs, based_on, pay_on)
+		from sales_performance.services.incentive_engine import calculation_level
+		summary = summarize_payout_by_sales_person(rows, slabs, based_on, pay_on, calculation_level({"company": self.company, "fiscal_year": self.fiscal_year}))
 		self.set("items", [])
 		for row in summary:
 			employee = None
@@ -133,6 +134,10 @@ class SalesIncentivePayout(Document):
 				continue
 			child = self.append("items", {})
 			child.sales_person = row.get("sales_person") or None
+			child.item_code = row.get("item_code") or None
+			child.territory = row.get("territory") or None
+			child.item_group = row.get("item_group") or None
+			child.planning = row.get("planning") or None
 			child.customer_group = row.get("customer_group") or self.customer_group or None
 			child.employee = employee
 			child.period = row.get("period")

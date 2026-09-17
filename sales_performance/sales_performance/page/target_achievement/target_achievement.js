@@ -321,6 +321,12 @@ class TargetAchievement {
 				</tr>`;
 			})
 			.join("");
+		const targetQty = rows.reduce((sum, row) => sum + Number(row.target_qty || 0), 0);
+		const actualQty = rows.reduce((sum, row) => sum + Number(row.actual_qty || 0), 0);
+		const targetAmount = rows.reduce((sum, row) => sum + Number(row.target_amount || 0), 0);
+		const actualAmount = rows.reduce((sum, row) => sum + Number(row.actual_amount || 0), 0);
+		const qtyAchievement = targetQty ? (actualQty / targetQty) * 100 : null;
+		const amountAchievement = targetAmount ? (actualAmount / targetAmount) * 100 : null;
 		host.innerHTML = `<div class="sp-table-wrap"><table class="sp-table">
 			<thead><tr>
 				<th>${name_header}</th>
@@ -328,6 +334,17 @@ class TargetAchievement {
 				<th>${__("Target Amt")}</th><th>${__("Actual Amt")}</th><th>${__("Amt Δ")}</th><th>${__("Amt Ach %")}</th>
 			</tr></thead>
 			<tbody>${body}</tbody>
+			<tfoot><tr class="sp-total-row">
+				<td><strong>${__("Total")}</strong></td>
+				<td><strong>${this.n(targetQty, 0)}</strong></td>
+				<td><strong>${this.n(actualQty, 0)}</strong></td>
+				<td><strong>${this.delta(actualQty - targetQty)}</strong></td>
+				<td><strong>${this.ach(qtyAchievement)}</strong></td>
+				<td><strong>${this.money(targetAmount)}</strong></td>
+				<td><strong>${this.money(actualAmount)}</strong></td>
+				<td><strong>${this.delta(actualAmount - targetAmount, true)}</strong></td>
+				<td><strong>${this.ach(amountAchievement)}</strong></td>
+			</tr></tfoot>
 		</table></div>`;
 	}
 }

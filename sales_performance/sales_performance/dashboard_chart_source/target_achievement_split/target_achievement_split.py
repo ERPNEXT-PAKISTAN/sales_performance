@@ -47,7 +47,7 @@ def get_data(
 			item=filters.get("item"),
 		)
 	except Exception:
-		frappe.log_error(title="Target Achievement Split chart")
+		frappe.log_error(frappe.get_traceback(), "Target Achievement Split chart failed")
 		board = {"totals": {}}
 
 	totals = board.get("totals") or {}

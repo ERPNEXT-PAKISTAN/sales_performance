@@ -3,6 +3,8 @@ from frappe import _
 from frappe.utils import flt
 
 from sales_performance.services.incentive_engine import (
+	allocate_item_incentives,
+	calculation_level,
 	collect_period_incentive_rows,
 	dashboard_totals,
 	group_dashboard_rows,
@@ -54,20 +56,24 @@ def get_dashboard_data(
 	}
 	rows = collect_period_incentive_rows(filters)
 	slabs, based_on, pay_on = scheme_settings(filters)
-	grouped = group_dashboard_rows(rows, group_by or "sales_person", slabs, based_on, pay_on)
-	totals = dashboard_totals(rows, slabs, based_on, pay_on)
+	level = calculation_level(filters)
+	grouped = group_dashboard_rows(rows, group_by or "sales_person", slabs, based_on, pay_on, level)
+	totals = dashboard_totals(rows, slabs, based_on, pay_on, level)
 	posted = _payout_totals(company, fiscal_year)
 	totals["posted_incentive"] = posted["accrued"]
 	totals["paid_incentive"] = posted["paid"]
 	totals["unpaid_incentive"] = posted["unpaid"]
 
-	if (period or "Monthly") == "Monthly" and not month:
-		month_chart = group_dashboard_rows(rows, "period", slabs, based_on, pay_on)
+	if (period or "Monthly") == "Monthly":
+		month_chart = group_dashboard_rows(rows, "period", slabs, based_on, pay_on, level)
 	else:
 		month_rows = collect_period_incentive_rows({**filters, "period": "Monthly", "month": None, "quarter": None})
-		month_chart = group_dashboard_rows(month_rows, "period", slabs, based_on, pay_on)
+		if (period or "Monthly") == "Quarterly" and quarter:
+			selected_quarter = int(quarter)
+			month_rows = [row for row in month_rows if (int(row.get("month_number") or 0) - 1) // 3 + 1 == selected_quarter]
+		month_chart = group_dashboard_rows(month_rows, "period", slabs, based_on, pay_on, level)
 	return {
-		"rows": rows,
+		"rows": allocate_item_incentives(rows, slabs, based_on, pay_on, level),
 		"grouped": grouped,
 		"totals": totals,
 		"month_chart": _months_january_first(month_chart),

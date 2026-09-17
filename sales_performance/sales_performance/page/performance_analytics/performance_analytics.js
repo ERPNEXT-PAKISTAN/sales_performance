@@ -87,7 +87,7 @@ class PerformanceAnalytics {
 	ready_filters() {
 		return this.load_filter_options().then(() => Promise.all([
 			this.set_control_value(this.filters.company, this.default_company()),
-			this.set_control_value(this.filters.period, "Annual"),
+			this.set_control_value(this.filters.period, "Monthly"),
 			this.set_control_value(this.filters.group_by, "sales_person"),
 		]))
 			.then(() => this.set_fiscal_year_default())
@@ -101,7 +101,7 @@ class PerformanceAnalytics {
 		const fields = [
 			["company", "Select", __("Company"), "", this.default_company()],
 			["fiscal_year", "Select", __("Fiscal Year"), "", fy],
-			["period", "Select", __("Incentive Period"), "Monthly\nQuarterly\nAnnual", "Annual"],
+			["period", "Select", __("Incentive Period"), "Monthly\nQuarterly\nAnnual", "Monthly"],
 			["month", "Select", __("Month"), "\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12"],
 			["quarter", "Select", __("Quarter"), "\n1\n2\n3\n4"],
 			["group_by", "Select", __("Incentive Group"), "sales_person\nterritory\nitem_group\ncustomer_group\nitem\nperiod", "sales_person"],
@@ -380,12 +380,12 @@ class PerformanceAnalytics {
 	tab_rows() {
 		const map = {
 			overview: this.sales_rows("sales_person"),
-			sales: this.sales_rows("item"),
+			sales: this.sales_rows("item_group"),
 			salesperson: this.sales_rows("sales_person"),
 			territory: this.sales_rows("territory"),
 			itemgroup: this.sales_rows("item_group"),
 			customergroup: this.sales_rows("customer_group"),
-			item: this.sales_rows("item"),
+			item: this.sales_rows("item_group"),
 			customer: this.sales_rows("customer"),
 			incentive: this.incentive_rows(),
 			payout: this.data.payout && this.data.payout.by_sales_person,
@@ -445,7 +445,7 @@ class PerformanceAnalytics {
 			territory: __("Territory"),
 			itemgroup: __("Item Group"),
 			customergroup: __("Customer Group"),
-			item: __("Item"),
+			item: __("Item Group"),
 			customer: __("Customer"),
 		};
 		this.wrapper.querySelector("#pa-table-title").textContent = titles[this.tab] || __("Detail");
@@ -470,6 +470,22 @@ class PerformanceAnalytics {
 		}
 		if (this.tab === "payout") {
 			host.innerHTML = this.payout_table(rows);
+			return;
+		}
+		if (this.tab === "sales" || this.tab === "item" || this.tab === "salesperson" || this.tab === "territory") {
+			const detailKey = this.tab === "salesperson" ? "sales_person_item" : this.tab === "territory" ? "territory_item" : "item";
+			host.innerHTML = this.item_group_table(rows, term, detailKey);
+			host.querySelectorAll(".pa-item-group-toggle").forEach((button) => {
+				button.addEventListener("click", () => {
+					const group = button.dataset.group;
+					const open = button.getAttribute("aria-expanded") !== "true";
+					button.setAttribute("aria-expanded", open ? "true" : "false");
+					button.textContent = open ? "−" : "+";
+					host.querySelectorAll("[data-parent-group]").forEach((row) => {
+						if (row.dataset.parentGroup === group) row.style.display = open ? "table-row" : "none";
+					});
+				});
+			});
 			return;
 		}
 		const esc = (v) => frappe.utils.escape_html(String(v == null ? "" : v));
@@ -518,8 +534,46 @@ class PerformanceAnalytics {
 		</table></div>`;
 	}
 
+	item_group_table(groups, term, detailKey = "item") {
+		const esc = (v) => frappe.utils.escape_html(String(v == null ? "" : v));
+		const items = (this.data.sales && (this.data.sales[detailKey] || this.data.sales.item)) || [];
+		const children = {};
+		items.forEach((item) => {
+			const group = detailKey === "sales_person_item" || detailKey === "territory_item"
+				? String(item.dimension || "").split(" | ")[0] || "(Unallocated)"
+				: item.item_group || "(Unallocated)";
+			if (term && !String(item.dimension || "").toLowerCase().includes(term) && !group.toLowerCase().includes(term)) return;
+			(children[group] ||= []).push(item);
+		});
+		const row = (r, label, extra = "") => `<tr${extra}>
+			<td>${label}</td><td>${this.plan_pct(r.growth_percent)}</td><td>${this.n(r.previous_qty, 0)}</td><td>${this.n(r.current_qty, 0)}</td>
+			<td>${this.n(r.target_qty, 0)}</td><td>${this.delta(r.qty_variance)}</td><td>${this.ach(r.qty_achievement_percent)}</td>
+			<td>${this.money(r.previous_amount)}</td><td>${this.money(r.current_amount)}</td><td>${this.money(r.target_amount)}</td>
+			<td>${this.delta(r.amount_variance, true)}</td><td>${this.ach(r.amount_achievement_percent)}</td></tr>`;
+		const body = groups.map((group) => {
+			const name = group.dimension || "(Unallocated)";
+			const key = `item-group-${name}`;
+			const detail = (children[name] || []).map((item) => {
+				const label = detailKey === "sales_person_item" || detailKey === "territory_item"
+					? String(item.dimension || "").split(" | ").slice(1).join(" | ")
+					: item.dimension;
+				return row(item, `<span class="pa-item-detail">↳ ${esc(label)}</span>`, ` class="pa-item-detail-row" data-parent-group="${esc(key)}" style="display:none"`);
+			}).join("");
+			return row(group, `<button class="pa-item-group-toggle" data-group="${esc(key)}" aria-expanded="false">+</button> <strong>${esc(name)}</strong>`) + detail;
+		}).join("");
+		const total = this.summarize(groups);
+		return `<div class="pa-wrap"><table class="pa-table"><thead><tr>
+			<th>${__("Item Group / Item")}</th><th>${__("Growth %")}</th><th>${__("PY Qty")}</th><th>${__("TY Qty")}</th><th>${__("Target Qty")}</th><th>${__("Qty Variance")}</th><th>${__("Qty Ach %")}</th>
+			<th>${__("PY Amt")}</th><th>${__("TY Amt")}</th><th>${__("Target Amt")}</th><th>${__("Amt Variance")}</th><th>${__("Amt Ach %")}</th>
+		</tr></thead><tbody>${body}</tbody><tfoot><tr><td><strong>${__("Total")}</strong></td>
+			<td>${this.plan_pct(total.growth_percent)}</td><td>${this.n(total.previous_qty, 0)}</td><td>${this.n(total.current_qty, 0)}</td><td>${this.n(total.target_qty, 0)}</td><td>${this.delta(total.qty_variance)}</td><td>${this.ach(total.qty_achievement_percent)}</td>
+			<td>${this.money(total.previous_amount)}</td><td>${this.money(total.current_amount)}</td><td>${this.money(total.target_amount)}</td><td>${this.delta(total.amount_variance, true)}</td><td>${this.ach(total.amount_achievement_percent)}</td>
+		</tr></tfoot></table></div>`;
+	}
+
 	incentive_table(rows) {
 		const esc = (v) => frappe.utils.escape_html(String(v == null ? "" : v));
+		const totals = (this.data.incentive && this.data.incentive.totals) || {};
 		const body = rows
 			.map(
 				(r) => `<tr>
@@ -538,6 +592,20 @@ class PerformanceAnalytics {
 			</tr>`
 			)
 			.join("");
+		const footer = `<tfoot><tr class="pa-total-row">
+			<td><strong>${__("Total")}</strong></td>
+			<td><strong>${this.n(totals.target_qty, 0)}</strong></td>
+			<td><strong>${this.n(totals.actual_qty, 0)}</strong></td>
+			<td><strong>${this.ach(totals.qty_achievement_percent)}</strong></td>
+			<td><strong>${this.money(totals.target_amount)}</strong></td>
+			<td><strong>${this.money(totals.actual_amount)}</strong></td>
+			<td><strong>${this.ach(totals.amount_achievement_percent)}</strong></td>
+			<td><strong>${this.inc(totals.min_incentive_amount, true)}</strong></td>
+			<td><strong>${this.inc(totals.max_incentive_amount, true)}</strong></td>
+			<td><strong>${this.inc(totals.incentive_on_amount, true)}</strong></td>
+			<td><strong>${this.inc(totals.incentive_on_qty)}</strong></td>
+			<td><strong>${this.inc(totals.incentive_amount, true)}</strong></td>
+		</tr></tfoot>`;
 		return `<div class="pa-wrap"><table class="pa-table">
 			<thead><tr>
 				<th>${__("Name")}</th>
@@ -546,7 +614,7 @@ class PerformanceAnalytics {
 				<th>${__("Min Incentive")}</th><th>${__("Max Incentive")}</th>
 				<th>${__("Incentive on Amount")}</th><th>${__("Incentive on Qty")}</th><th>${__("Payable")}</th>
 			</tr></thead>
-			<tbody>${body}</tbody>
+			<tbody>${body}</tbody>${footer}
 		</table></div>`;
 	}
 

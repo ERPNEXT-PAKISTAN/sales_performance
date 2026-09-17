@@ -3,7 +3,14 @@ from frappe import _
 from frappe.utils import getdate
 
 from sales_performance.services.distribution_engine import MONTHS
-from sales_performance.services.incentive_engine import apply_scheme_payout, collect_period_incentive_rows, scheme_settings
+from sales_performance.services.incentive_engine import (
+	collect_period_incentive_rows,
+	calculation_level,
+	calculation_level,
+	dashboard_totals,
+	period_selection_from_dates,
+	scheme_settings,
+)
 from sales_performance.services.numbers import nflt
 from sales_performance.services.planning_engine import fiscal_year_dates
 from sales_performance.services.precision import round_percent
@@ -19,6 +26,7 @@ def execute(filters=None):
 def get_columns():
 	qty = {"fieldtype": "Float", "precision": 0, "width": 120}
 	amt = {"fieldtype": "Currency", "precision": 0, "width": 130}
+	incentive_amt = {"fieldtype": "Currency", "precision": 2, "width": 150}
 	pct = {"fieldtype": "Percent", "precision": 1, "width": 150}
 	return [
 		{"fieldname": "period", "label": _("Period"), "fieldtype": "Data", "width": 120},
@@ -33,7 +41,7 @@ def get_columns():
 		{"fieldname": "incentive_rate_percent", "label": _("Incentive %"), **pct, "width": 110},
 		{"fieldname": "incentive_on_amount", "label": _("Incentive on Amount"), **amt, "width": 160},
 		{"fieldname": "incentive_on_qty", "label": _("Incentive on Qty"), **qty, "width": 150},
-		{"fieldname": "incentive_amount", "label": _("Payable Incentive"), **amt, "width": 150},
+		{"fieldname": "incentive_amount", "label": _("Payable Incentive"), **incentive_amt},
 		{"fieldname": "incentive_band", "label": _("Incentive Band"), "fieldtype": "Data", "width": 110},
 		{"fieldname": "variance_qty", "label": _("Variance Qty"), **qty, "width": 110},
 		{"fieldname": "variance_amount", "label": _("Variance Amount"), **amt},
@@ -46,9 +54,14 @@ def get_data(filters):
 
 	view = filters.get("period") or "Monthly"
 	start, end = fiscal_year_dates(filters.fiscal_year, filters.company)
+	selected_month, selected_quarter = period_selection_from_dates(
+		view, filters.get("month"), filters.get("quarter"),
+		getdate(filters.get("from_date")) if filters.get("from_date") else None,
+		getdate(filters.get("to_date")) if filters.get("to_date") else None,
+	)
 	line_filters = frappe._dict(filters)
 	line_filters.period = "Monthly"
-	line_filters.month = None
+	line_filters.month = selected_month if view == "Monthly" else None
 	line_filters.quarter = None
 	lines = collect_period_incentive_rows(line_filters)
 	if not lines:
@@ -62,17 +75,15 @@ def get_data(filters):
 	today = getdate()
 	ytd_month = today.month if (getdate(start) <= today <= getdate(end)) else 12
 	slabs, based_on, pay_on = scheme_settings(filters)
+	level = calculation_level(filters)
 
 	def pack(label, month_numbers):
 		wanted = {int(m) for m in month_numbers}
 		subset = [row for row in lines if int(row.get("month_number") or 0) in wanted]
-		target_qty = sum(nflt(r.get("target_qty")) for r in subset)
-		actual_qty = sum(nflt(r.get("actual_qty")) for r in subset)
-		target_amount = sum(nflt(r.get("target_amount")) for r in subset)
-		actual_amount = sum(nflt(r.get("actual_amount")) for r in subset)
-		row = apply_scheme_payout(
-			target_qty, actual_qty, target_amount, actual_amount, slabs, based_on, pay_on
-		)
+		# A quarterly/annual slab is earned on the whole period, not by adding
+		# separately scored monthly payouts.
+		period_rows = [dict(line, period=label) for line in subset]
+		row = dashboard_totals(period_rows, slabs, based_on, pay_on, level)
 		growth_weight = sum(nflt(r.get("target_qty")) or 1 for r in subset if r.get("growth_percent") not in (None, ""))
 		growth_weighted = sum(
 			nflt(r.get("growth_percent")) * (nflt(r.get("target_qty")) or 1)
@@ -84,13 +95,13 @@ def get_data(filters):
 		return row
 
 	if view == "Monthly":
-		if filters.get("month"):
-			month = int(filters.month)
+		if selected_month:
+			month = int(selected_month)
 			return [pack(MONTHS[month - 1], [month])]
 		return [pack(MONTHS[month - 1], [month]) for month in range(1, 13)]
 	if view == "Quarterly":
-		if filters.get("quarter"):
-			quarter = int(filters.quarter)
+		if selected_quarter:
+			quarter = int(selected_quarter)
 			return [pack(f"Q{quarter}", [quarter * 3 - 2, quarter * 3 - 1, quarter * 3])]
 		return [pack(f"Q{quarter}", [quarter * 3 - 2, quarter * 3 - 1, quarter * 3]) for quarter in range(1, 5)]
 	if view == "Half-Yearly":

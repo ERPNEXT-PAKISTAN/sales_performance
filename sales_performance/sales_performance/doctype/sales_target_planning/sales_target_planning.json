@@ -217,6 +217,14 @@
    "options": "Qty\nAmount\nQty and Amount"
   },
   {
+   "default": "Item",
+   "description": "Item means each planned item row qualifies independently; grouped mode combines Sales Person, Period and Customer Group.",
+   "fieldname": "incentive_calculation_level",
+   "fieldtype": "Select",
+   "label": "Incentive Calculation Level",
+   "options": "Item\nSales Person + Period + Customer Group"
+  },
+  {
    "default": "Uniform Percent",
    "fieldname": "growth_method",
    "fieldtype": "Select",
