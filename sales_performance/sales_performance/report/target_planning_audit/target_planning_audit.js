@@ -8,7 +8,7 @@ frappe.query_reports["Target Planning Audit"] = {
 			default: frappe.defaults.get_user_default("Company"),
 		},
 		{ fieldname: "fiscal_year", label: __("Fiscal Year"), fieldtype: "Link", options: "Fiscal Year" },
-		{ fieldname: "customer_group", label: __("Customer Group"), fieldtype: "Link", options: "Customer Group" },
+		{ fieldname: "customer_group", label: __("Customer Group"), fieldtype: "Link", options: "Customer Group", default: "Market" },
 		{
 			fieldname: "status",
 			label: __("Status"),

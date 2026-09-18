@@ -107,9 +107,9 @@ def apply_scheme_payout(
 	metrics = compute_metrics(target_qty, actual_qty, target_amount, actual_amount)
 	pay_on = normalize_pay_on(pay_on)
 	achievement = (
-		metrics["amount_achievement_percent"]
+		(nflt(actual_amount) / nflt(target_amount) * 100 if nflt(target_amount) else 0)
 		if based_on == "Amount Achievement"
-		else metrics["qty_achievement_percent"]
+		else (nflt(actual_qty) / nflt(target_qty) * 100 if nflt(target_qty) else 0)
 	)
 	rate, band = resolve_incentive_rate(achievement, slabs)
 	payout = incentive_on_surplus(
@@ -250,7 +250,7 @@ def grouped_incentive_rows(rows, slabs, based_on="Qty Achievement", pay_on="Amou
 		out = []
 		for row in rows:
 			item = dict(row)
-			item.update(apply_scheme_payout(item.get("target_qty"), item.get("actual_qty"), item.get("target_amount"), item.get("actual_amount"), slabs, based_on, pay_on))
+			item.update(apply_scheme_payout(item.get("raw_target_qty", item.get("target_qty")), item.get("raw_actual_qty", item.get("actual_qty")), item.get("raw_target_amount", item.get("target_amount")), item.get("raw_actual_amount", item.get("actual_amount")), slabs, based_on, pay_on))
 			item["incentive_group"] = " | ".join(part for part in (item.get("sales_person"), item.get("period"), item.get("customer_group"), item.get("item_code")) if part) or "(Unallocated)"
 			out.append(item)
 		return out
@@ -263,7 +263,7 @@ def grouped_incentive_rows(rows, slabs, based_on="Qty Achievement", pay_on="Amou
 			"target_qty": 0.0, "actual_qty": 0.0, "target_amount": 0.0, "actual_amount": 0.0,
 		})
 		for field in ("target_qty", "actual_qty", "target_amount", "actual_amount"):
-			bucket[field] += nflt(row.get(field))
+			bucket[field] += nflt(row.get("raw_" + field, row.get(field)))
 	out = []
 	for bucket in grouped.values():
 		bucket.update(apply_scheme_payout(bucket["target_qty"], bucket["actual_qty"], bucket["target_amount"], bucket["actual_amount"], slabs, based_on, pay_on))
@@ -433,11 +433,13 @@ def collect_period_incentive_rows(filters):
 	from sales_performance.services.planning_engine import fiscal_year_dates
 	from sales_performance.services.analysis_engine import selected_target_item_codes
 
+	from sales_performance.services.access import scoped_filters
 	filters = frappe._dict(filters or {})
 	if not filters.get("company") or not filters.get("fiscal_year"):
 		return []
+	filters = scoped_filters(filters)
 
-	plan_fields = ["name", "planning_version", "sales_person", "territory"]
+	plan_fields = ["name", "planning_version", "sales_person", "territory", "status"]
 	if frappe.db.has_column("Sales Target Planning", "customer_group"):
 		plan_fields.append("customer_group")
 	plans = frappe.get_all(
@@ -446,7 +448,7 @@ def collect_period_incentive_rows(filters):
 		fields=plan_fields,
 		order_by="planning_version desc",
 	)
-	if not plans:
+	if not plans and not filters.get("approved_only"):
 		plans = frappe.get_all(
 			"Sales Target Planning",
 			filters={
@@ -523,6 +525,7 @@ def collect_period_incentive_rows(filters):
 		from_date=from_date,
 		to_date=to_date,
 		sales_person=filters.get("sales_person"),
+		allowed_sales_persons=filters.get("_allowed_sales_persons"),
 		territory=filters.get("territory"),
 		item_group=filters.get("item_group"),
 		customer_group=filters.get("customer_group"),
@@ -556,6 +559,8 @@ def collect_period_incentive_rows(filters):
 	}
 	out = []
 	for row in rows:
+		if filters.get("_allowed_sales_persons") is not None and row.sales_person not in filters._allowed_sales_persons:
+			continue
 		if filters.get("sales_person") and row.sales_person != filters.sales_person:
 			continue
 		if filters.get("territory") and row.territory != filters.territory:
@@ -622,6 +627,7 @@ def collect_period_incentive_rows(filters):
 					"customer_group": row.get("customer_group"),
 					"item_code": row.item_code,
 					"planning": row.parent,
+					"plan_status": latest_plans[row.parent].status,
 					"growth_percent": round_percent(row.get("growth_percent")),
 				}
 			)
@@ -638,7 +644,7 @@ def group_dashboard_rows(rows, group_by="sales_person", slabs=None, based_on="Qt
 		key = row.get(field) or "(Unallocated)"
 		bucket = grouped.setdefault(key, {"dimension": key, "target_qty": 0.0, "actual_qty": 0.0, "target_amount": 0.0, "actual_amount": 0.0, "incentive_on_amount": 0.0, "incentive_on_qty": 0.0, "incentive_qty": 0.0, "incentive_amount": 0.0, "min_incentive_amount": 0.0, "max_incentive_amount": 0.0, "_bands": set(), "_rates": set()})
 		for name in ("target_qty", "actual_qty", "target_amount", "actual_amount", "incentive_on_amount", "incentive_on_qty", "incentive_qty", "incentive_amount"):
-			bucket[name] += nflt(row.get(name))
+			bucket[name] += nflt(row.get("raw_" + name, row.get(name)))
 		if nflt(row.get("incentive_amount")) > 0:
 			band = row.get("incentive_band")
 			bucket["_bands"].add(band)
@@ -660,10 +666,10 @@ def group_dashboard_rows(rows, group_by="sales_person", slabs=None, based_on="Qt
 
 def dashboard_totals(rows, slabs=None, based_on="Qty Achievement", pay_on="Amount", calculation_level="Grouped"):
 	"""Return totals whose payable values are sums of canonical payouts."""
-	target_qty = sum(nflt(r.get("target_qty")) for r in rows)
-	actual_qty = sum(nflt(r.get("actual_qty")) for r in rows)
-	target_amount = sum(nflt(r.get("target_amount")) for r in rows)
-	actual_amount = sum(nflt(r.get("actual_amount")) for r in rows)
+	target_qty = sum(nflt(r.get("raw_target_qty", r.get("target_qty"))) for r in rows)
+	actual_qty = sum(nflt(r.get("raw_actual_qty", r.get("actual_qty"))) for r in rows)
+	target_amount = sum(nflt(r.get("raw_target_amount", r.get("target_amount"))) for r in rows)
+	actual_amount = sum(nflt(r.get("raw_actual_amount", r.get("actual_amount"))) for r in rows)
 	paid = apply_scheme_payout(target_qty, actual_qty, target_amount, actual_amount, slabs, based_on, pay_on)
 	canonical = grouped_incentive_rows(rows, slabs, based_on, pay_on, calculation_level)
 	for name in ("incentive_qty", "incentive_on_amount", "incentive_on_qty", "incentive_amount"):

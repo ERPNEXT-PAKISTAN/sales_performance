@@ -43,7 +43,7 @@ frappe.query_reports["Target Achievement Status"] = {
 				return { query: "sales_performance.api.planning.item_group_query" };
 			},
 		},
-		{ fieldname: "customer_group", label: __("Customer Group"), fieldtype: "Link", options: "Customer Group" },
+		{ fieldname: "customer_group", label: __("Customer Group"), fieldtype: "Link", options: "Customer Group", default: "Market" },
 		{ fieldname: "item", label: __("Item"), fieldtype: "Link", options: "Item" },
 	],
 	formatter(value, row, column, data, default_formatter) {

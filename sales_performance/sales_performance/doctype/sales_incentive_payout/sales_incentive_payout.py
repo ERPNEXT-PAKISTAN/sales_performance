@@ -28,7 +28,14 @@ class SalesIncentivePayout(Document):
 		if self.docstatus == 0:
 			self.payment_status = "Draft"
 
+	def before_submit(self):
+		from sales_performance.services.payout_guard import validate_new_payout
+		validate_new_payout(self)
+
 	def _refresh_incentive_totals(self):
+		if (self.docstatus == 0 or getattr(self, "_action", None) == "submit") and self.pay_on == "Qty":
+			for row in self.items or []:
+				row.incentive_amount = flt(row.incentive_on_qty) * flt(self.get("qty_conversion_rate"))
 		self.total_incentive_on_amount = sum(flt(row.incentive_on_amount) for row in self.items or [])
 		self.total_incentive_on_qty = sum(flt(row.incentive_on_qty) for row in self.items or [])
 		self.total_incentive_amount = sum(flt(row.incentive_amount) for row in self.items or [])
@@ -113,6 +120,7 @@ class SalesIncentivePayout(Document):
 				"month": self.month,
 				"quarter": self.quarter,
 				"pay_on": self.pay_on or "Amount",
+				"approved_only": True,
 			}
 		)
 		slabs, based_on, pay_on = scheme_settings(
@@ -124,6 +132,7 @@ class SalesIncentivePayout(Document):
 		)
 		from sales_performance.services.incentive_engine import calculation_level
 		summary = summarize_payout_by_sales_person(rows, slabs, based_on, pay_on, calculation_level({"company": self.company, "fiscal_year": self.fiscal_year}))
+		self.calculation_snapshot = frappe.as_json({"calculated_at": frappe.utils.now_datetime(), "source_rows": rows, "slabs": slabs, "based_on": based_on, "pay_on": pay_on})
 		self.set("items", [])
 		for row in summary:
 			employee = None

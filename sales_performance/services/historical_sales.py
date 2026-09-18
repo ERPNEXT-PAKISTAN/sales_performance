@@ -51,6 +51,7 @@ def fetch_historical_sales(
 	customer_group=None,
 	item_codes=None,
 	include_monthly=False,
+	allowed_sales_persons=None,
 ):
 	"""Return dict keyed by sales person, territory, item and customer group.
 
@@ -72,6 +73,10 @@ def fetch_historical_sales(
 		"to_date": getdate(to_date),
 		"excluded_groups": EXCLUDED_ITEM_GROUPS,
 	}
+
+	if allowed_sales_persons is not None:
+		conditions.append("st.sales_person in %(allowed_sales_persons)s")
+		values["allowed_sales_persons"] = tuple(allowed_sales_persons or ("",))
 
 	if sales_person:
 		conditions.append("st.sales_person = %(sales_person)s")

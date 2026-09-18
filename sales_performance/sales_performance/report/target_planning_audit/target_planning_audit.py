@@ -50,7 +50,7 @@ def execute(filters=None):
 		fields.append("customer_group")
 	else:
 		columns = [col for col in columns if col["fieldname"] != "customer_group"]
-	data = frappe.get_all(
+	data = frappe.get_list(
 		"Sales Target Planning",
 		filters=flt,
 		fields=fields,

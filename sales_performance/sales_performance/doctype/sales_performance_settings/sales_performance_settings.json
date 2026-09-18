@@ -37,7 +37,7 @@
    "fieldname": "default_growth_percent",
    "fieldtype": "Percent",
    "label": "Default Growth %",
-   "precision": 1
+   "precision": "1"
   },
   {
    "fieldname": "column_break_1",
@@ -91,7 +91,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-15 14:21:05.441257",
+ "modified": "2026-09-18 21:55:33.904685",
  "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Sales Performance Settings",
@@ -122,26 +122,6 @@
    "print": 1,
    "read": 1,
    "role": "Sales Target Manager",
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "role": "All",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "print": 1,
-   "read": 1,
-   "role": "Desk User",
-   "share": 1,
    "write": 1
   },
   {

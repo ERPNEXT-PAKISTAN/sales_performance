@@ -3,12 +3,21 @@
 	if (sales_performance.__runtime_ready) {
 		return;
 	}
+	sales_performance.save_view = (key, filters) => {
+		localStorage.setItem(`sp-view:${frappe.session.user}:${key}`, JSON.stringify(Object.fromEntries(Object.entries(filters).map(([name, field]) => [name, field.get_value()]))));
+		frappe.show_alert({message: __("View saved"), indicator: "green"});
+	};
+	sales_performance.restore_view = async (key, filters) => {
+		let values;
+		try { values = JSON.parse(localStorage.getItem(`sp-view:${frappe.session.user}:${key}`) || "{}"); } catch (e) { values = {}; }
+		for (const [name, value] of Object.entries(values)) if (filters[name]) await filters[name].set_value(value);
+	};
 	sales_performance.__runtime_ready = true;
 	sales_performance.__number_display_ready = true;
 
 	const QTY = 0;
 	const AMT = 0;
-	const PCT = 1;
+	const PCT = 0;
 
 	sales_performance.currency = () =>
 		frappe.defaults.get_user_default("currency") ||
@@ -68,7 +77,7 @@
 	};
 
 	sales_performance.full_number = (value, precision = 0) =>
-		format_number(value || 0, null, precision);
+		format_number(value || 0, null, 0);
 
 	sales_performance.chart_number_opts = (precision = 0) => ({
 		valuesOverPoints: 1,

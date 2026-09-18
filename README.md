@@ -14,7 +14,7 @@ Historical Sales (submitted Sales Invoices, net of returns)
         → Manager review & approval
         → ERPNext Target Detail (idempotent sync)
         → Achievement reports
-        → Incentive Scheme (configuration only; calculation is future work)
+        → Incentive calculation → posted payout → payment tracking
 ```
 
 **Do not** compute target amount as previous-year amount × growth. Quantity and selling rate are planned independently.
@@ -111,8 +111,8 @@ Rates are converted to stock UOM and company currency where Item Price UOM/curre
 
 ## Distribution Methods
 
-- Same Month Previous Year + Growth (default; preserves seasonality)
-- Equal Monthly / Quarterly / Half-Yearly (monthly slots always sum to the annual target)
+- Same Month Previous Year + Growth (preserves seasonality)
+- Equal Monthly (current default) / Quarterly / Half-Yearly (monthly slots always sum to the annual target)
 - Manual Monthly (validated on review/approval)
 - Custom Percentage Distribution (must total 100%)
 
@@ -165,3 +165,28 @@ Previous year net qty 10,000 KG, growth 15%, price list rate 260:
 - Target Qty = 11,500
 - Target Amount = 11,500 × 260 = 2,990,000
 - Previous year amount 2,400,000 stays as historical reference (not 2,400,000 × 1.15)
+
+## Personal and manager views
+
+- **My Sales** (`/app/my-sales`) provides month-by-month personal targets, attributed invoice sales, incentive estimates, payout status, target acknowledgements and questions to managers.
+- **Sales Performance Overview** (`/app/sales-performance-overview`) provides a scoped team heatmap, target/actual cards, payout totals, approval queue and unanswered questions. Existing detailed reports remain available.
+- Customer Group starts at **Market** and can be cleared. Numbers display with zero decimals; thresholds use unrounded comparisons.
+- My Sales uses **approved plans only**. Managers can inspect provisional targets, which are labelled. Approving a plan remains an explicit manager action.
+
+### Access setup
+
+Assign the appropriate existing Sales User/manager role. For personal mapping, link User → active Employee → enabled Sales Person. Alternatively, create **Sales Performance Assignment** with User, Company and Sales Person. Enable **Include Sales Person Subtree** to grant an explicitly assigned team. Administrator, System Manager and Sales Performance Admin can view all people; other accounts require a mapping. Unmapped users receive no sales data.
+
+All dashboard/report data requests enforce this scope on the server. Direct planning/payout document access also checks the entire document's sales-person scope; mixed-person documents may be visible only to a manager with the complete assigned team. The personal page exposes only the person's share. Broad All/Desk User permissions on app business records are removed during setup/migration.
+
+### Payout controls
+
+Qty incentive calculations produce incentive units. A new Qty payout needs **Currency per Incentive Unit** before submission; monetary payable is units × that rate. Existing submitted payouts are not converted or rewritten. Reload legacy drafts with **Get Incentives** before submitting so approved source rows and the scheme are recorded.
+
+Submission saves a calculation snapshot and rejects overlapping submitted entitlements (including overlapping monthly/quarterly/annual scopes). Cancel or reconcile a previous payout before posting the same entitlement again. The overlap check serializes submissions per company. Payout totals include all matching detail rows; only the displayed document history is limited to 100 records.
+
+### Daily use
+
+Sales persons can acknowledge approved targets and ask questions from My Sales. Managers answer questions or create person-specific announcements through **Sales Performance Update**. Approved-plan/revision and payout events appear in the personal Updates tab. Visible pages refresh every minute; no email or push channel is configured by this feature.
+
+The manager approval queue links to plans and compares revisions before approval. Achievement Graphics can prioritize largest gaps, lowest achievement or highest achievement. Dashboard **Save View / Load View** stores filters in the current browser under the signed-in user. Monthly Incentives includes an **Explain Incentives** action.

@@ -26,8 +26,8 @@ def execute(filters=None):
 def get_columns():
 	qty = {"fieldtype": "Float", "precision": 0, "width": 120}
 	amt = {"fieldtype": "Currency", "precision": 0, "width": 130}
-	incentive_amt = {"fieldtype": "Currency", "precision": 2, "width": 150}
-	pct = {"fieldtype": "Percent", "precision": 1, "width": 150}
+	incentive_amt = {"fieldtype": "Currency", "precision": 0, "width": 150}
+	pct = {"fieldtype": "Percent", "precision": 0, "width": 150}
 	return [
 		{"fieldname": "period", "label": _("Period"), "fieldtype": "Data", "width": 120},
 		{"fieldname": "growth_percent", "label": _("Growth %"), **pct, "width": 110},

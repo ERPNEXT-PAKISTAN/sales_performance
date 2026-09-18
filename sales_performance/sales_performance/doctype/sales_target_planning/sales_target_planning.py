@@ -158,6 +158,10 @@ class SalesTargetPlanning(Document):
 		roles = set(frappe.get_roles())
 		if not roles.intersection({"Sales Target Approver", "Sales Performance Admin", "System Manager", "Administrator"}):
 			frappe.throw(_("Not permitted to approve"))
+		if self.status == "Approved":
+			return self.name
+		if self.status not in ("Calculated", "Under Review"):
+			frappe.throw(_("Calculate and review the plan before approval"))
 		if self.status in LOCKED and self.status != "Approved":
 			frappe.throw(_("This plan cannot be approved"))
 		self.status = "Approved"

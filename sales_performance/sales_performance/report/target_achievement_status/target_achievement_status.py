@@ -29,7 +29,7 @@ def execute(filters=None):
 		)
 	except Exception:
 		frappe.log_error(frappe.get_traceback(), "Target Achievement Status failed")
-		return columns, [], None, empty
+		raise
 	data = _flatten(board)
 	return columns, data, None, _chart(board.get("totals") or {})
 
@@ -37,7 +37,7 @@ def execute(filters=None):
 def get_columns():
 	qty = {"fieldtype": "Float", "precision": 0, "width": 110}
 	amt = {"fieldtype": "Currency", "precision": 0, "width": 130}
-	pct = {"fieldtype": "Percent", "precision": 1, "width": 140}
+	pct = {"fieldtype": "Percent", "precision": 0, "width": 140}
 	return [
 		{"fieldname": "row_type", "label": _("Type"), "fieldtype": "Data", "width": 110},
 		{"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 120},

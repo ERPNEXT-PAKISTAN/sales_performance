@@ -47,7 +47,7 @@ frappe.query_reports["Sales Target Achievement"] = {
 		{ fieldname: "territory", label: __("Territory"), fieldtype: "Link", options: "Territory" },
 		{ fieldname: "item_group", label: __("Item Group"), fieldtype: "Link", options: "Item Group",
 			get_query() { return { query: "sales_performance.api.planning.item_group_query" }; } },
-		{ fieldname: "customer_group", label: __("Customer Group"), fieldtype: "Link", options: "Customer Group" },
+		{ fieldname: "customer_group", label: __("Customer Group"), fieldtype: "Link", options: "Customer Group", default: "Market" },
 		{ fieldname: "item", label: __("Item"), fieldtype: "Link", options: "Item" },
 		{ fieldname: "from_date", label: __("From Date"), fieldtype: "Date" },
 		{ fieldname: "to_date", label: __("To Date"), fieldtype: "Date" },

@@ -65,8 +65,8 @@ def execute(filters=None):
 def get_columns(period="Annual"):
 	qty = {"fieldtype": "Float", "precision": 0, "width": 110}
 	amt = {"fieldtype": "Currency", "precision": 0, "width": 130}
-	incentive_amt = {"fieldtype": "Currency", "precision": 2, "width": 150}
-	pct = {"fieldtype": "Percent", "precision": 1, "width": 140}
+	incentive_amt = {"fieldtype": "Currency", "precision": 0, "width": 150}
+	pct = {"fieldtype": "Percent", "precision": 0, "width": 140}
 	columns = [
 		{"fieldname": "sales_person", "label": _("Sales Person"), "fieldtype": "Link", "options": "Sales Person", "width": 140},
 		{"fieldname": "territory", "label": _("Territory"), "fieldtype": "Link", "options": "Territory", "width": 120},

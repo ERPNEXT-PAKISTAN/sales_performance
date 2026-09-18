@@ -15,6 +15,8 @@ def compute_metrics(target_qty, actual_qty, target_amount, actual_amount):
 	qty_var = nflt(nflt(actual_qty) - nflt(target_qty), qp)
 	amt_var = nflt(nflt(actual_amount) - nflt(target_amount), ap)
 	return {
+		"raw_target_qty": nflt(target_qty), "raw_actual_qty": nflt(actual_qty),
+		"raw_target_amount": nflt(target_amount), "raw_actual_amount": nflt(actual_amount),
 		"target_qty": nflt(target_qty, qp),
 		"actual_qty": nflt(actual_qty, qp),
 		"variance_qty": qty_var,

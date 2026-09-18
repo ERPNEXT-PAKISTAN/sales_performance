@@ -41,6 +41,8 @@ def reject_plan(name, reason=None):
 	if not _has_role("Sales Target Approver", "Sales Target Manager", "Sales Performance Admin", "System Manager"):
 		frappe.throw("Not permitted to reject sales target plans")
 	doc = frappe.get_doc("Sales Target Planning", name)
+	if doc.status not in ("Calculated", "Under Review"):
+		frappe.throw("Only calculated or under-review plans can be rejected")
 	doc.status = "Rejected"
 	if reason:
 		doc.notes = (doc.notes or "") + f"\nRejected: {reason}"
@@ -72,6 +74,7 @@ def apply_targets(name):
 	if not _has_role("Sales Target Approver", "Sales Performance Admin", "System Manager"):
 		frappe.throw("Not permitted to apply ERPNext targets")
 	doc = frappe.get_doc("Sales Target Planning", name)
+	doc.check_permission("write")
 	return {"synced": sync_official_targets(doc)}
 
 

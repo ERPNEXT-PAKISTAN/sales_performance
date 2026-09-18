@@ -17,14 +17,17 @@ def _pct(row, field):
 
 
 def row_achieved(row, judge="Qty"):
-	qty = _pct(row, "qty_achievement_percent")
-	amt = _pct(row, "amount_achievement_percent")
-	judge = (judge or "Qty").strip()
+	def achieved(metric):
+		target, actual = row.get("raw_target_" + metric, row.get("target_" + metric)), row.get("raw_actual_" + metric, row.get("actual_" + metric))
+		if target is not None and actual is not None:
+			return nflt(target) > 0 and nflt(actual) >= nflt(target)
+		percent = _pct(row, metric + "_achievement_percent")
+		return percent is not None and percent >= 100
 	if judge == "Amount":
-		return amt is not None and amt >= 100
+		return achieved("amount")
 	if judge == "Both":
-		return qty is not None and amt is not None and qty >= 100 and amt >= 100
-	return qty is not None and qty >= 100
+		return achieved("qty") and achieved("amount")
+	return achieved("qty")
 
 
 def split_rows(rows, judge="Qty"):

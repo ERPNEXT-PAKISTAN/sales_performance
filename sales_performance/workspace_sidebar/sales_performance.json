@@ -21,6 +21,30 @@
   {
    "child": 0,
    "collapsible": 0,
+   "icon": "bar-chart-2",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Sales Performance Overview",
+   "link_to": "sales-performance-overview",
+   "link_type": "Page",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 0,
+   "icon": "bar-chart-2",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "My Sales",
+   "link_to": "my-sales",
+   "link_type": "Page",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 0,
    "icon": "file",
    "indent": 0,
    "keep_closed": 0,
@@ -86,6 +110,18 @@
    "keep_closed": 0,
    "label": "Incentive Dashboard",
    "link_to": "incentive-dashboard",
+   "link_type": "Page",
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 0,
+   "icon": "bar-chart-2",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "Monthly Incentives",
+   "link_to": "monthly-incentives",
    "link_type": "Page",
    "show_arrow": 0,
    "type": "Link"

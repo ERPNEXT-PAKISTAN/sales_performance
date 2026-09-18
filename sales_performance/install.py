@@ -151,7 +151,7 @@ def ensure_desktop():
 		if path and os.path.exists(path):
 			import_file_by_path(path, force=True)
 
-	for page_name in ("incentive_dashboard", "performance_analytics", "target_achievement", "achievement_graphics"):
+	for page_name in ("my_sales", "sales_performance_overview", "incentive_dashboard", "monthly_incentives", "performance_analytics", "target_achievement", "achievement_graphics"):
 		page_json = frappe.get_app_path(
 			"sales_performance", "sales_performance", "page", page_name, f"{page_name}.json"
 		)
@@ -293,7 +293,7 @@ def _ensure_workspace_exists():
 				"Plan & Approve": [("Sales Target Planning", "Sales Target Planning", "DocType"), ("Target Planning Audit", "Target Planning Audit", "Report")],
 				"Performance": [("Performance Analytics", "performance-analytics", "Page"), ("Target Achievement", "target-achievement", "Page"), ("Achievement Graphics", "achievement-graphics", "Page")],
 				"Reports": [("Sales Target Achievement", "Sales Target Achievement", "Report"), ("Sales Target Monthly Performance", "Sales Target Monthly Performance", "Report"), ("Target Achievement Status", "Target Achievement Status", "Report")],
-				"Incentives & Setup": [("Incentive Dashboard", "incentive-dashboard", "Page"), ("Sales Incentive Payout", "Sales Incentive Payout", "DocType"), ("Incentive Scheme", "Incentive Scheme", "DocType"), ("Sales Performance Settings", "Sales Performance Settings", "DocType")],
+				"Incentives & Setup": [("Incentive Dashboard", "incentive-dashboard", "Page"), ("Monthly Incentives", "monthly-incentives", "Page"), ("Sales Incentive Payout", "Sales Incentive Payout", "DocType"), ("Incentive Scheme", "Incentive Scheme", "DocType"), ("Sales Performance Settings", "Sales Performance Settings", "DocType")],
 			}
 			doc.content = json.dumps(
 				[{"id": "sp_header", "type": "header", "data": {"text": "Sales Performance", "col": 12}},

@@ -1,0 +1,136 @@
+{
+ "doctype": "DocType",
+ "name": "Sales Performance Update",
+ "module": "Sales Performance",
+ "autoname": "hash",
+ "engine": "InnoDB",
+ "track_changes": 1,
+ "field_order": [
+  "company",
+  "sales_person",
+  "kind",
+  "subject",
+  "message",
+  "response",
+  "status",
+  "planning",
+  "responded_by",
+  "responded_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "label": "Company",
+   "fieldtype": "Link",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sales_person",
+   "label": "Sales Person",
+   "fieldtype": "Link",
+   "options": "Sales Person",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "kind",
+   "label": "Type",
+   "fieldtype": "Select",
+   "options": "Question\nAnnouncement\nAcknowledgement",
+   "default": "Announcement",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "subject",
+   "label": "Subject",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "message",
+   "label": "Message",
+   "fieldtype": "Small Text",
+   "reqd": 1
+  },
+  {
+   "fieldname": "response",
+   "label": "Manager Response",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "status",
+   "label": "Status",
+   "fieldtype": "Select",
+   "options": "Open\nAnswered\nPublished\nAcknowledged",
+   "default": "Published",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "planning",
+   "label": "Target Plan",
+   "fieldtype": "Link",
+   "options": "Sales Target Planning"
+  },
+  {
+   "fieldname": "responded_by",
+   "label": "Responded By",
+   "fieldtype": "Link",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "responded_on",
+   "label": "Responded On",
+   "fieldtype": "Datetime",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "Sales Performance Admin",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "Sales Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Sales Target Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Sales Performance Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Sales User",
+   "read": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

@@ -19,6 +19,8 @@ class AchievementGraphics {
 		this.charts = {};
 		this.loading_defaults = true;
 		this.make_filters();
+        this.page.add_inner_button(__("Save View"), () => sales_performance.save_view("achievement_graphics", this.filters));
+        this.page.add_inner_button(__("Load View"), () => sales_performance.restore_view("achievement_graphics", this.filters));
 		this.bind();
 		this.ready_filters().finally(() => {
 			this.loading_defaults = false;
@@ -95,7 +97,12 @@ class AchievementGraphics {
 		]))
 			.then(() => this.set_fiscal_year_default())
 			.then(() => this.load_filter_options())
-			.then(() => this.wait_for_required())
+			.then(() => this.set_control_value(this.filters.customer_group, "Market"))
+			.then(async () => {
+                const values = frappe.route_options || {}; frappe.route_options = null;
+                for (const [key,value] of Object.entries(values)) if (this.filters[key]) await this.filters[key].set_value(value);
+            })
+            .then(() => this.wait_for_required())
 			.then(() => this.period_visibility());
 	}
 
@@ -110,7 +117,8 @@ class AchievementGraphics {
 			["sales_person", "Select", __("Sales Person"), ""],
 			["territory", "Select", __("Territory"), ""],
 			["item_group", "Select", __("Item Group"), ""],
-			["customer_group", "Select", __("Customer Group"), ""],
+			["ranking", "Select", __("Show"), "Largest target gap\nLowest achievement\nHighest achievement", "Largest target gap"],
+			["customer_group", "Select", __("Customer Group"), "\nMarket", "Market"],
 			["item", "Select", __("Item"), ""],
 		];
 		this.filters = {};
@@ -155,6 +163,7 @@ class AchievementGraphics {
 		this.wrapper.querySelector("#ag-refresh").addEventListener("click", () => this.refresh());
 		this.wrapper.querySelector("#ag-reset").addEventListener("click", () => this.reset_filters());
 		this.wrapper.querySelector("#ag-tables").addEventListener("click", () => {
+			frappe.route_options = Object.fromEntries(Object.entries(this.filters).map(([k,f])=>[k,f.get_value()]));
 			frappe.set_route("target-achievement");
 		});
 	}
@@ -164,7 +173,7 @@ class AchievementGraphics {
 		this.set_control_value(this.filters.period, "Annual");
 		this.set_control_value(this.filters.judge, "Qty");
 		["month", "quarter", "sales_person", "territory", "item_group", "customer_group", "item"].forEach((name) => {
-			this.set_control_value(this.filters[name], "");
+			this.set_control_value(this.filters[name], name === "customer_group" ? "Market" : "");
 		});
 		this.set_fiscal_year_default().then(() => {
 			this.period_visibility();
@@ -256,6 +265,14 @@ class AchievementGraphics {
 		return text.length > 22 ? `${text.slice(0, 20)}…` : text;
 	}
 
+	rank(a, b) {
+		const mode = this.filters.ranking.get_value();
+		if (mode === "Highest achievement") return this.score(b) - this.score(a);
+		if (mode === "Lowest achievement") return this.score(a) - this.score(b);
+		const metric = this.filters.judge.get_value() === "Amount" ? "amount" : "qty";
+		return Math.max(0, b["target_" + metric] - b["actual_" + metric]) - Math.max(0, a["target_" + metric] - a["actual_" + metric]);
+	}
+
 	render() {
 		const t = this.data.totals || {};
 		const g_ok = t.item_groups_achieved || 0;
@@ -278,13 +295,15 @@ class AchievementGraphics {
 
 		const groups = []
 			.concat(this.data.item_groups_achieved || [], this.data.item_groups_missed || [])
-			.sort((a, b) => this.score(b) - this.score(a))
+			.sort((a, b) => this.rank(a, b))
 			.slice(0, 14);
+		this.group_chart_rows = groups;
 		const items = []
 			.concat(this.data.items_achieved || [], this.data.items_missed || [])
-			.sort((a, b) => this.score(b) - this.score(a))
+			.sort((a, b) => this.rank(a, b))
 			.slice(0, 14);
 
+		this.item_chart_rows = items;
 		this.bar(
 			"#ag-bar-groups",
 			groups.map((r) => this.label(r, false)),
@@ -394,14 +413,23 @@ class AchievementGraphics {
 				{
 					data: { labels, datasets },
 					type: "bar",
+					isNavigable: 1,
 					height: 280,
 					colors: colors || ["#2490ef"],
 				},
 				sales_performance.chart_number_opts(precision)
 			)
 		);
-		if (sales_performance.finish_chart) {
-			sales_performance.finish_chart(this.charts[selector]);
-		}
+		if (host._sp_select) host.removeEventListener("data-select", host._sp_select);
+		host._sp_select = (event) => {
+			const item = selector.includes("items");
+			const row = (item ? this.item_chart_rows : this.group_chart_rows)[event.index ?? event.data?.index ?? event.detail?.index];
+			if (!row) return;
+			frappe.route_options = Object.fromEntries(Object.entries(this.filters).filter(([key]) => key !== "ranking").map(([key, field]) => [key, field.get_value()]));
+			frappe.route_options[item ? "item" : "item_group"] = row.dimension;
+			frappe.set_route("query-report", "Sales Target Achievement");
+		};
+		host.addEventListener("data-select", host._sp_select);
+		if (sales_performance.finish_chart) sales_performance.finish_chart(this.charts[selector]);
 	}
 }

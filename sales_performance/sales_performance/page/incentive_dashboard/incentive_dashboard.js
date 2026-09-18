@@ -16,6 +16,8 @@ class IncentiveDashboard {
 		this.charts = {};
 		this.loading_defaults = true;
 		this.make_filters();
+        this.page.add_inner_button(__("Save View"), () => sales_performance.save_view("incentive_dashboard", this.filters));
+        this.page.add_inner_button(__("Load View"), () => sales_performance.restore_view("incentive_dashboard", this.filters));
 		this.bind();
 		this.ready_filters().then(
 			() => {
@@ -98,7 +100,12 @@ class IncentiveDashboard {
 		]))
 			.then(() => this.set_fiscal_year_default())
 			.then(() => this.load_filter_options())
-			.then(() => this.wait_for_required())
+			.then(() => this.set_control_value(this.filters.customer_group, "Market"))
+			.then(async () => {
+                const values = frappe.route_options || {}; frappe.route_options = null;
+                for (const [key,value] of Object.entries(values)) if (this.filters[key]) await this.filters[key].set_value(value);
+            })
+            .then(() => this.wait_for_required())
 			.then(() => this.period_visibility());
 	}
 
@@ -113,7 +120,7 @@ class IncentiveDashboard {
 			["sales_person", "Select", __("Sales Person"), ""],
 			["territory", "Select", __("Territory"), ""],
 			["item_group", "Select", __("Item Group"), ""],
-			["customer_group", "Select", __("Customer Group"), ""],
+			["customer_group", "Select", __("Customer Group"), "\nMarket", "Market"],
 			["item", "Select", __("Item"), ""],
 		];
 		this.filters = {};
@@ -208,7 +215,7 @@ class IncentiveDashboard {
 				this.render_summary();
 				this.render_charts();
 				this.render_table(this.wrapper.querySelector("#id-search").value);
-				this.page.set_indicator(__("Updated"), "green");
+				this.page.set_indicator(this.data.provisional ? __("Provisional targets") : __("Approved targets"), this.data.provisional ? "orange" : "green");
 			},
 			error: () => this.page.set_indicator(__("Failed"), "red"),
 		});
@@ -218,7 +225,7 @@ class IncentiveDashboard {
 		if (precision === 1) {
 			return window.sales_performance
 				? sales_performance.format_percent(value)
-				: format_number(value || 0, null, 1);
+				: format_number(value || 0, null, 0);
 		}
 		return window.sales_performance
 			? sales_performance.format_qty(value)

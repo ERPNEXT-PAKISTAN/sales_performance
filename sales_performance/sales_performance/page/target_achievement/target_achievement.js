@@ -18,6 +18,8 @@ class TargetAchievement {
 		this.data = {};
 		this.loading_defaults = true;
 		this.make_filters();
+        this.page.add_inner_button(__("Save View"), () => sales_performance.save_view("target_achievement", this.filters));
+        this.page.add_inner_button(__("Load View"), () => sales_performance.restore_view("target_achievement", this.filters));
 		this.bind();
 		this.ready_filters().finally(() => {
 			this.loading_defaults = false;
@@ -94,7 +96,12 @@ class TargetAchievement {
 		]))
 			.then(() => this.set_fiscal_year_default())
 			.then(() => this.load_filter_options())
-			.then(() => this.wait_for_required())
+			.then(() => this.set_control_value(this.filters.customer_group, "Market"))
+			.then(async () => {
+                const values = frappe.route_options || {}; frappe.route_options = null;
+                for (const [key,value] of Object.entries(values)) if (this.filters[key]) await this.filters[key].set_value(value);
+            })
+            .then(() => this.wait_for_required())
 			.then(() => this.period_visibility());
 	}
 
@@ -109,7 +116,7 @@ class TargetAchievement {
 			["sales_person", "Select", __("Sales Person"), ""],
 			["territory", "Select", __("Territory"), ""],
 			["item_group", "Select", __("Item Group"), ""],
-			["customer_group", "Select", __("Customer Group"), ""],
+			["customer_group", "Select", __("Customer Group"), "\nMarket", "Market"],
 			["item", "Select", __("Item"), ""],
 		];
 		this.filters = {};
@@ -154,6 +161,7 @@ class TargetAchievement {
 		this.wrapper.querySelector("#ta-refresh").addEventListener("click", () => this.refresh());
 		this.wrapper.querySelector("#ta-reset").addEventListener("click", () => this.reset_filters());
 		this.wrapper.querySelector("#ta-graphics").addEventListener("click", () => {
+			frappe.route_options = Object.fromEntries(Object.entries(this.filters).map(([k,f])=>[k,f.get_value()]));
 			frappe.set_route("achievement-graphics");
 		});
 		this.wrapper.querySelector("#ta-search").addEventListener("input", () => this.render());
@@ -164,7 +172,7 @@ class TargetAchievement {
 		this.set_control_value(this.filters.period, "Annual");
 		this.set_control_value(this.filters.judge, "Qty");
 		["month", "quarter", "sales_person", "territory", "item_group", "customer_group", "item"].forEach((name) => {
-			this.set_control_value(this.filters[name], "");
+			this.set_control_value(this.filters[name], name === "customer_group" ? "Market" : "");
 		});
 		this.set_fiscal_year_default().then(() => {
 			this.period_visibility();
@@ -242,7 +250,7 @@ class TargetAchievement {
 		if (precision === 1) {
 			return window.sales_performance
 				? sales_performance.format_percent(value)
-				: format_number(value || 0, null, 1);
+				: format_number(value || 0, null, 0);
 		}
 		return window.sales_performance
 			? sales_performance.format_qty(value)

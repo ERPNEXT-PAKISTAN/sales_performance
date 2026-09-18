@@ -18,28 +18,30 @@ from sales_performance.services.incentive_engine import (
 	group_dashboard_rows,
 	scheme_settings,
 )
+from sales_performance.services.access import scoped_filters, scope, is_admin, assignments
 from sales_performance.services.planning_engine import calendar_previous_year_dates, fiscal_year_dates
 
 
 @frappe.whitelist()
 def get_filter_options(company=None, fiscal_year=None):
 	"""Selectable filter values shared by the sales-analysis pages."""
+	allowed = scope(company) if company or not is_admin() else None
 	item_codes = selected_target_item_codes(company, fiscal_year) if company and fiscal_year else None
 	item_filters = {"disabled": 0}
 	if item_codes is not None:
 		item_filters["name"] = ("in", item_codes or ("",))
 	return {
-		"companies": frappe.get_all("Company", order_by="name", pluck="name"),
+		"companies": frappe.get_all("Company", order_by="name", pluck="name") if is_admin() else sorted({a.company for a in assignments()}),
 		"fiscal_years": frappe.get_all("Fiscal Year", order_by="year_start_date desc", pluck="name"),
 		"sales_persons": frappe.get_all(
-			"Sales Person", filters={"is_group": 0, "enabled": 1}, order_by="name", pluck="name"
+			"Sales Person", filters={"is_group": 0, "enabled": 1, **({"name": ["in", allowed]} if allowed is not None else {})}, order_by="name", pluck="name"
 		),
 		"territories": frappe.get_all("Territory", filters={"is_group": 0}, order_by="name", pluck="name"),
 		"item_groups": frappe.get_all("Item Group", filters={"is_group": 0}, order_by="name", pluck="name"),
 		"customer_groups": frappe.get_all(
 			"Customer Group", filters={"is_group": 0}, order_by="name", pluck="name"
 		),
-		"customers": frappe.get_all("Customer", filters={"disabled": 0}, order_by="name", pluck="name"),
+		"customers": frappe.get_list("Customer", filters={"disabled": 0}, order_by="name", pluck="name", limit_page_length=0) if is_admin() else [],
 		"items": frappe.get_all("Item", filters=item_filters, order_by="name", pluck="name"),
 	}
 
@@ -71,6 +73,8 @@ def get_analytics(
 		"customer": customer,
 		"item": item,
 	}
+	filters = scoped_filters({"company": company, **filters})
+	filters.pop("company", None)
 	filters["item_codes"] = selected_target_item_codes(company, fiscal_year)
 
 	sales = {}
@@ -130,11 +134,14 @@ def get_analytics(
 	incentive_rows = collect_period_incentive_rows(incentive_filters)
 	slabs, based_on, pay_on = scheme_settings(incentive_filters)
 	level = calculation_level(incentive_filters)
-	payout = payout_analysis(company, fiscal_year, sales_person)
+	payout = payout_analysis(company, fiscal_year, sales_person, period=period, month=month, quarter=quarter, customer_group=customer_group, territory=territory, item_group=item_group, item=item)
 	overview = summarize_rows(sales["sales_person"])
 	overview.update(dashboard_totals(incentive_rows, slabs, based_on, pay_on, level))
 	overview.update(payout["totals"])
 	return {
+		"sales_scope": "Full fiscal year; previous sales use the prior calendar year",
+		"incentive_scope": "{} {}".format(period, month or quarter or "All periods"),
+		"provisional": any(r.get("plan_status") != "Approved" for r in incentive_rows),
 		"overview": overview,
 		"sales": sales,
 		"trend": trend,

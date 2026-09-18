@@ -18,10 +18,30 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Plan & Approve",
-   "link_count": 2,
+   "link_count": 4,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sales Performance Overview",
+   "link_count": 0,
+   "link_to": "sales-performance-overview",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "My Sales",
+   "link_count": 0,
+   "link_to": "my-sales",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
   },
   {
    "hidden": 0,
@@ -125,7 +145,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Incentives & Setup",
-   "link_count": 4,
+   "link_count": 5,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -136,6 +156,16 @@
    "label": "Incentive Dashboard",
    "link_count": 0,
    "link_to": "incentive-dashboard",
+   "link_type": "Page",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Monthly Incentives",
+   "link_count": 0,
+   "link_to": "monthly-incentives",
    "link_type": "Page",
    "onboard": 0,
    "type": "Link"

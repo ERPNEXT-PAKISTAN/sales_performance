@@ -71,6 +71,7 @@ def fetch_sales_by_dimension(
 	customer=None,
 	item=None,
 	item_codes=None,
+	_allowed_sales_persons=None,
 ):
 	"""Invoice qty/amount grouped by one dimension (calendar or FY window)."""
 	import frappe
@@ -89,6 +90,10 @@ def fetch_sales_by_dimension(
 		"to_date": getdate(to_date),
 		"excluded_groups": EXCLUDED_ITEM_GROUPS,
 	}
+	if _allowed_sales_persons is not None:
+		conditions.append("st.sales_person in %(allowed_sales_persons)s")
+		values["allowed_sales_persons"] = tuple(_allowed_sales_persons or ("",))
+		needs_team = True
 	if sales_person:
 		conditions.append("st.sales_person = %(sales_person)s")
 		values["sales_person"] = sales_person
@@ -162,6 +167,10 @@ def fetch_monthly_sales(company, from_date, to_date, **filters):
 		"excluded_groups": EXCLUDED_ITEM_GROUPS,
 	}
 	needs_team = bool(filters.get("sales_person"))
+	if filters.get("_allowed_sales_persons") is not None:
+		conditions.append("st.sales_person in %(allowed_sales_persons)s")
+		values["allowed_sales_persons"] = tuple(filters["_allowed_sales_persons"] or ("",))
+		needs_team = True
 	if filters.get("sales_person"):
 		conditions.append("st.sales_person = %(sales_person)s")
 		values["sales_person"] = filters["sales_person"]
@@ -387,6 +396,8 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person", *
 	allowed_customer_groups = set(get_customer_group_subtree_names(filters.get("customer_group"))) if filters.get("customer_group") else None
 	out = {}
 	for row in rows:
+		if filters.get("_allowed_sales_persons") is not None and row.sales_person not in filters["_allowed_sales_persons"]:
+			continue
 		if filters.get("item_codes") is not None and row.get("item_code") not in filters.get("item_codes"):
 			continue
 		# Preserve unallocated rows in an unfiltered dimension tab. They are
@@ -420,58 +431,69 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person", *
 	return out
 
 
-def payout_analysis(company, fiscal_year, sales_person=None):
-	import frappe
+def payout_analysis(company, fiscal_year, sales_person=None, **filters):
+    """Aggregate every matching child row; only the document list is paginated."""
+    import frappe
+    from sales_performance.services.access import scope
+    allowed = scope(company, sales_person)
+    docs = frappe.get_all("Sales Incentive Payout",
+        filters={"company": company, "fiscal_year": fiscal_year, "docstatus": ["<", 2]},
+        fields=["name", "sales_person", "period", "month", "quarter", "docstatus", "payment_status", "posting_date", "paid_on", "pay_on"],
+        order_by="posting_date desc, creation desc")
+    if not docs:
+        return summarize_payout_details([], [], filters, allowed)
+    items = frappe.get_all("Sales Incentive Payout Item", filters={"parent": ["in", [d.name for d in docs]]},
+        fields=["parent", "sales_person", "period", "incentive_amount", "incentive_band", "customer_group", "territory", "item_group", "item_code"])
+    if filters.get("customer_group"):
+        filters["customer_groups"] = set(get_customer_group_subtree_names(filters["customer_group"]))
+    if filters.get("item_group"):
+        filters["item_groups"] = set(get_item_group_subtree_names(filters["item_group"]))
+    return summarize_payout_details(docs, items, filters, allowed)
 
-	filters = {"company": company, "fiscal_year": fiscal_year, "docstatus": ("<", 2)}
-	fields = ["name", "sales_person", "period", "month", "docstatus", "total_incentive_amount", "posting_date"]
-	meta = frappe.get_meta("Sales Incentive Payout")
-	if meta.has_field("payment_status"):
-		fields.append("payment_status")
-	docs = frappe.get_all(
-		"Sales Incentive Payout",
-		filters=filters,
-		fields=fields,
-		order_by="creation desc",
-		limit=100,
-	)
-	if sales_person:
-		docs = [d for d in docs if not d.sales_person or d.sales_person == sales_person]
-	items = []
-	names = [d.name for d in docs]
-	if names:
-		items = frappe.get_all(
-			"Sales Incentive Payout Item",
-			filters={"parent": ("in", names)},
-			fields=["parent", "sales_person", "period", "incentive_amount", "incentive_band"],
-			ignore_permissions=True,
-		)
-	by_person = {}
-	for row in items:
-		if sales_person and row.sales_person != sales_person:
-			continue
-		key = row.sales_person or "(Not Set)"
-		bucket = by_person.setdefault(key, {"dimension": key, "incentive_amount": 0.0, "rows": 0})
-		bucket["incentive_amount"] += nflt(row.incentive_amount)
-		bucket["rows"] += 1
-	accrued = sum(nflt(d.total_incentive_amount) for d in docs if d.docstatus == 1)
-	paid = sum(
-		nflt(d.total_incentive_amount)
-		for d in docs
-		if d.docstatus == 1 and d.get("payment_status") == "Paid"
-	)
-	draft = sum(nflt(d.total_incentive_amount) for d in docs if d.docstatus == 0)
-	return {
-		"documents": docs,
-		"by_sales_person": sorted(by_person.values(), key=lambda r: r["incentive_amount"], reverse=True),
-		"totals": {
-			"draft": draft,
-			"accrued": accrued,
-			"paid": paid,
-			"unpaid": max(accrued - paid, 0),
-			"count": len(docs),
-		},
-	}
+
+def summarize_payout_details(docs, items, filters=None, allowed=None):
+    from sales_performance.services.distribution_engine import MONTHS
+    filters = filters or {}
+    documents = {d["name"]: dict(d, total_incentive_amount=0.0) for d in docs}
+    people = {}
+    used = set()
+    for row in items:
+        doc = documents.get(row["parent"])
+        if not doc:
+            continue
+        person = row.get("sales_person") or doc.get("sales_person")
+        if allowed is not None and person not in allowed:
+            continue
+        if filters.get("period") and doc.get("period") != filters["period"]:
+            continue
+        if filters.get("month") and row.get("period") != MONTHS[int(filters["month"]) - 1]:
+            continue
+        if filters.get("quarter") and row.get("period") != "Q" + str(filters["quarter"]):
+            continue
+        if filters.get("customer_groups") is not None and row.get("customer_group") not in filters["customer_groups"]:
+            continue
+        if filters.get("item_groups") is not None and row.get("item_group") not in filters["item_groups"]:
+            continue
+        if any(filters.get(k) and row.get(field) != filters[k] for k, field in (("territory", "territory"), ("item", "item_code"))):
+            continue
+        if filters.get("pay_on") in ("Qty", "Amount") and doc.get("pay_on") != filters["pay_on"]:
+            continue
+        amount = nflt(row.get("incentive_amount"))
+        doc["total_incentive_amount"] += amount
+        used.add(doc["name"])
+        bucket = people.setdefault(person, {"dimension": person, "incentive_amount": 0.0, "rows": 0})
+        bucket["incentive_amount"] += amount
+        bucket["rows"] += 1
+    matched = [doc for name, doc in documents.items() if name in used]
+    if allowed is not None:
+        for doc in matched:
+            doc["sales_person"] = allowed[0] if len(allowed) == 1 else None
+    accrued = sum(d["total_incentive_amount"] for d in matched if d["docstatus"] == 1)
+    paid = sum(d["total_incentive_amount"] for d in matched if d["docstatus"] == 1 and d.get("payment_status") == "Paid")
+    return {"documents": matched[:100], "has_more": len(matched) > 100,
+        "by_sales_person": sorted(people.values(), key=lambda row: row["incentive_amount"], reverse=True),
+        "totals": {"draft": sum(d["total_incentive_amount"] for d in matched if d["docstatus"] == 0),
+                   "accrued": accrued, "paid": paid, "unpaid": max(accrued - paid, 0), "count": len(matched)}}
 
 
 def summarize_rows(rows):

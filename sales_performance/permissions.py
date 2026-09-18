@@ -15,8 +15,6 @@ CUSTOM_ROLES = [
 # Every desk user has All. Include it so the desktop icon and pages appear
 # even when custom roles were not assigned on a new site.
 DESK_ROLES = [
-	"All",
-	"Desk User",
 	"System Manager",
 	"Sales User",
 	"Sales Manager",
@@ -31,7 +29,7 @@ STANDARD_DOCTYPES = [
 	"Sales Performance Settings",
 ]
 
-PAGES = ["incentive-dashboard", "performance-analytics", "target-achievement", "achievement-graphics"]
+PAGES = ["my-sales", "sales-performance-overview", "monthly-incentives", "incentive-dashboard", "performance-analytics", "target-achievement", "achievement-graphics"]
 
 REPORTS = [
 	"Sales Target Achievement",
@@ -43,6 +41,10 @@ REPORTS = [
 
 def apply_sales_performance_roles():
 	_ensure_custom_roles()
+	for name in frappe.get_all("DocType", filters={"module": "Sales Performance", "istable": 0}, pluck="name"):
+		frappe.db.delete("DocPerm", {"parent": name, "role": ["in", ["All", "Desk User"]]})
+		frappe.db.delete("Custom DocPerm", {"parent": name, "role": ["in", ["All", "Desk User"]]})
+		frappe.clear_cache(doctype=name)
 	for name in STANDARD_DOCTYPES:
 		_ensure_doctype_read(name)
 	for name in PAGES:
@@ -90,8 +92,12 @@ def _ensure_doctype_read(doctype):
 	if not frappe.db.exists("DocType", doctype):
 		return
 	doc = frappe.get_doc("DocType", doctype)
+	for row in list(doc.permissions or []):
+		if row.role in ("All", "Desk User"):
+			doc.remove(row)
+	removed = doc.has_value_changed("permissions")
 	existing = {row.role for row in doc.permissions or []}
-	changed = False
+	changed = bool(removed)
 	for role in DESK_ROLES:
 		if role in existing or not frappe.db.exists("Role", role):
 			continue

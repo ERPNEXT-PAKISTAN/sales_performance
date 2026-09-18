@@ -14,15 +14,8 @@ from sales_performance.services.incentive_engine import (
 
 @frappe.whitelist()
 def get_filter_options():
-	return {
-		"companies": frappe.get_all("Company", order_by="name", pluck="name"),
-		"fiscal_years": frappe.get_all("Fiscal Year", order_by="year_start_date desc", pluck="name"),
-		"sales_persons": frappe.get_all(
-			"Sales Person", filters={"is_group": 0, "enabled": 1}, order_by="name", pluck="name"
-		),
-		"territories": frappe.get_all("Territory", filters={"is_group": 0}, order_by="name", pluck="name"),
-		"item_groups": frappe.get_all("Item Group", filters={"is_group": 0}, order_by="name", pluck="name"),
-	}
+	from sales_performance.sales_performance.page.performance_analytics.performance_analytics import get_filter_options as options
+	return options()
 
 
 @frappe.whitelist()
@@ -59,7 +52,8 @@ def get_dashboard_data(
 	level = calculation_level(filters)
 	grouped = group_dashboard_rows(rows, group_by or "sales_person", slabs, based_on, pay_on, level)
 	totals = dashboard_totals(rows, slabs, based_on, pay_on, level)
-	posted = _payout_totals(company, fiscal_year)
+	from sales_performance.services.analysis_engine import payout_analysis
+	posted = payout_analysis(company, fiscal_year, sales_person, period=period, month=month, quarter=quarter, territory=territory, item_group=item_group, customer_group=customer_group, item=item)["totals"]
 	totals["posted_incentive"] = posted["accrued"]
 	totals["paid_incentive"] = posted["paid"]
 	totals["unpaid_incentive"] = posted["unpaid"]
@@ -79,6 +73,7 @@ def get_dashboard_data(
 		"month_chart": _months_january_first(month_chart),
 		"group_by": group_by or "sales_person",
 		"period": period or "Monthly",
+		"provisional": any(r.get("plan_status") != "Approved" for r in rows),
 	}
 
 

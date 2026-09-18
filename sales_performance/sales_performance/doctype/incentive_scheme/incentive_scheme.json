@@ -17,7 +17,8 @@
   "dimension",
   "notes",
   "slabs_section",
-  "slabs"
+  "slabs",
+  "calculation_level"
  ],
  "fields": [
   {
@@ -99,7 +100,7 @@
   }
  ],
  "links": [],
- "modified": "2026-09-15 14:21:05.167660",
+ "modified": "2026-09-18 21:55:33.711726",
  "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Incentive Scheme",
@@ -145,30 +146,6 @@
    "read": 1,
    "report": 1,
    "role": "Sales Performance Manager"
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "All",
-   "share": 1,
-   "write": 1
-  },
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "Desk User",
-   "share": 1,
-   "write": 1
   },
   {
    "create": 1,
