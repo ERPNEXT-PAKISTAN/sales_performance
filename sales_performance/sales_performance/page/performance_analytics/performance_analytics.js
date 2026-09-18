@@ -403,21 +403,32 @@ class PerformanceAnalytics {
 
 	render_charts() {
 		const trend = this.data.trend || [];
-		this.wrapper.querySelector("#pa-chart-a-title").textContent = __("Monthly amount: this year vs previous year");
+		this.wrapper.querySelector("#pa-chart-a-title").textContent = __("Monthly amount trend — this year vs previous year");
 		this.chart("#pa-chart-a", trend.map((r) => r.dimension), [
 			{ name: __("This Year"), values: trend.map((r) => Number(r.current_amount || 0)) },
 			{ name: __("Previous Year"), values: trend.map((r) => Number(r.previous_amount || 0)) },
-		], "axis-mixed");
+		], "line", { colors: ["#2490ef", "#8e44ad"], height: 280 });
+
 		const movers = this.tab_rows().slice(0, 12);
-		const changeKey = this.tab === "incentive" || this.tab === "payout" ? "incentive_amount" : "amount_variance";
-		this.wrapper.querySelector("#pa-chart-b-title").textContent =
-			this.tab === "incentive" || this.tab === "payout" ? __("Incentive by sales person") : __("Largest amount variance vs target");
+		const status = (r) => {
+			const actual = Number(r.current_amount ?? r.actual_amount ?? 0);
+			const target = Math.max(Number(r.target_amount ?? 0), 0);
+			return {
+				achieved: Math.min(Math.max(actual, 0), target),
+				remaining: Math.max(target - Math.max(actual, 0), 0),
+				extra: Math.max(Math.max(actual, 0) - target, 0),
+			};
+		};
+		const statuses = movers.map(status);
+		this.wrapper.querySelector("#pa-chart-b-title").textContent = __("Target status — achieved, remaining, and extra achieved");
 		this.chart("#pa-chart-b", movers.map((r) => r.dimension), [
-			{ name: __("Change"), values: movers.map((r) => Number(r[changeKey] || r.amount_variance || 0)) },
-		], "bar");
+			{ name: __("Achieved"), values: statuses.map((s) => s.achieved) },
+			{ name: __("Remaining"), values: statuses.map((s) => s.remaining) },
+			{ name: __("Extra Achieved"), values: statuses.map((s) => s.extra) },
+		], "bar", { colors: ["#2490ef", "#f39c12", "#27ae60"], stacked: true, height: 300 });
 	}
 
-	chart(selector, labels, datasets, type) {
+	chart(selector, labels, datasets, type, options = {}) {
 		const host = this.wrapper.querySelector(selector);
 		host.innerHTML = "";
 		if (!labels.length || typeof frappe.Chart === "undefined") {
@@ -430,8 +441,9 @@ class PerformanceAnalytics {
 				{
 					data: { labels, datasets },
 					type: type === "bar" ? "bar" : "line",
-					height: 240,
-					colors: ["#2490ef", "#98d1ff"],
+					height: options.height || 280,
+					colors: options.colors || ["#2490ef", "#8e44ad"],
+					...(options.stacked ? { barOptions: { stacked: true } } : {}),
 				},
 				sales_performance.chart_number_opts(0)
 			)

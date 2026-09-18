@@ -17,8 +17,9 @@
 .pa-card strong { font-size: 17px; font-weight: 650; }
 .pa-up { color: #16833b; }
 .pa-down { color: #c0392b; }
-.pa-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-.pa-chart-card { padding: 12px 14px; min-height: 260px; }
+.pa-charts { display: block; margin-bottom: 12px; }
+.pa-chart-card + .pa-chart-card { margin-top: 12px; }
+.pa-chart-card { padding: 12px 14px; min-height: 300px; }
 .pa-chart-card h4 { margin: 0 0 8px; font-size: 13px; }
 .pa-table-head { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border-color); }
 .pa-table-head h4 { margin: 0 0 2px; font-size: 15px; }
