@@ -425,7 +425,7 @@ class PerformanceAnalytics {
 			{ name: __("Achieved"), color: "#2490ef", values: statuses.map((s) => s.achieved) },
 			{ name: __("Remaining"), color: "#f39c12", values: statuses.map((s) => s.remaining) },
 			{ name: __("Extra Achieved"), color: "#27ae60", values: statuses.map((s) => s.extra) },
-		], "bar", { colors: ["#2490ef", "#f39c12", "#27ae60"], stacked: true, height: 300 });
+		], "bar", { colors: ["#2490ef", "#f39c12", "#27ae60"], stacked: true, valuesOverPoints: 1, height: 300 });
 	}
 
 	chart(selector, labels, datasets, type, options = {}) {
@@ -438,23 +438,21 @@ class PerformanceAnalytics {
 		const chart = new frappe.Chart(
 			host,
 			Object.assign(
+				sales_performance.chart_number_opts(0),
 				{
 					data: { labels, datasets },
 					type: type === "bar" ? "bar" : "line",
 					height: options.height || 280,
 					colors: options.colors || ["#2490ef", "#8e44ad"],
 					...(options.stacked ? { barOptions: { stacked: true } } : {}),
-					valuesOverPoints: options.valuesOverPoints ?? 0,
-				},
-				sales_performance.chart_number_opts(0)
+					valuesOverPoints: options.valuesOverPoints ?? 1,
+				}
 			)
 		);
 		if (sales_performance.finish_chart) {
 			sales_performance.finish_chart(chart);
 		}
-		this.render_chart_values(host, labels, datasets);
 	}
-	 render_chart_values(host, labels, datasets) { const rows = labels.map((label, index) => datasets.map((dataset) => dataset.name + ": " + this.n(dataset.values[index] || 0)).join(" / " )).map((values, index) => labels[index] + " — " + values).join("<br>"); host.insertAdjacentHTML("beforeend", "<div class=\"pa-chart-values\">" + rows + "</div>"); }
 	 render_table() {
 		const term = String(this.wrapper.querySelector("#pa-search").value || "").toLowerCase();
 		const rows = this.tab_rows().filter((r) => !term || String(r.dimension || r.name || "").toLowerCase().includes(term));
