@@ -37,3 +37,10 @@
   .pa-filters, .pa-summary { grid-template-columns: repeat(3, 1fr); }
   .pa-charts { grid-template-columns: 1fr; }
 }
+
+/* Match the Achievement Graphics chart treatment without changing report tables or filters. */
+.pa-report .pa-chart-card { border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,.10); padding:16px 20px 18px; min-width:0; }
+.pa-report .pa-chart-card h4 { font-size:.9rem; font-weight:700; margin-bottom:14px; }
+.pa-report .pa-styled-chart { width:100%; overflow-x:auto; overflow-y:hidden; }
+.pa-report .pa-chart-surface { position:relative; width:100%; }
+.pa-report .pa-chart-surface canvas { max-width:100%; }

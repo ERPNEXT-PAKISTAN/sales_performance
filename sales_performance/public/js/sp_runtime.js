@@ -1,5 +1,24 @@
 (() => {
 	frappe.provide("sales_performance");
+	// Replace the cached page definition when the Achievement Graphics design changes.
+	try {
+		const version = "selling-style-v4";
+		if (localStorage.getItem("sp-achievement-graphics-version") !== version) {
+			localStorage.removeItem("_page:achievement-graphics");
+			localStorage.setItem("sp-achievement-graphics-version", version);
+		}
+	} catch (error) {
+		// Desk remains usable when browser storage is unavailable.
+	}
+	try {
+		const version = "achievement-chart-style-v1";
+		if (localStorage.getItem("sp-performance-analytics-version") !== version) {
+			localStorage.removeItem("_page:performance-analytics");
+			localStorage.setItem("sp-performance-analytics-version", version);
+		}
+	} catch (error) {
+		// Desk remains usable when browser storage is unavailable.
+	}
 	if (sales_performance.__runtime_ready) {
 		return;
 	}

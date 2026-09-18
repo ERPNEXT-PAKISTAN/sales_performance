@@ -5,7 +5,7 @@ frappe.pages["performance-analytics"].on_page_load = function (wrapper) {
 		single_column: true,
 	});
 	page.body.html(frappe.render_template("performance_analytics", {}));
-	new PerformanceAnalytics(wrapper, page);
+	wrapper.performance_analytics = new PerformanceAnalytics(wrapper, page);
 };
 
 class PerformanceAnalytics {
@@ -14,6 +14,7 @@ class PerformanceAnalytics {
 		this.page = page;
 		this.tab = "overview";
 		this.data = {};
+		this.charts = {};
 		this.loading_defaults = true;
 		this.make_filters();
         this.page.add_inner_button(__("Save View"), () => sales_performance.save_view("performance_analytics", this.filters));
@@ -212,7 +213,7 @@ class PerformanceAnalytics {
 		};
 	}
 
-	refresh() {
+	async refresh() {
 		const args = this.args();
 		if (!args.company || !args.fiscal_year) {
 			if (this.loading_defaults) {
@@ -223,6 +224,8 @@ class PerformanceAnalytics {
 		const request_id = (this.request_id || 0) + 1;
 		this.request_id = request_id;
 		this.page.set_indicator(__("Loading"), "orange");
+		await this.load_chart_library();
+		if (request_id !== this.request_id) return;
 		frappe.call({
 			method: "sales_performance.sales_performance.page.performance_analytics.performance_analytics.get_analytics",
 			args,
@@ -405,9 +408,9 @@ class PerformanceAnalytics {
 		const trend = this.data.trend || [];
 		this.wrapper.querySelector("#pa-chart-a-title").textContent = __("Monthly amount trend — this year vs previous year");
 		this.chart("#pa-chart-a", trend.map((r) => r.dimension), [
-			{ name: __("This Year"), color: "#2490ef", values: trend.map((r) => Number(r.current_amount || 0)) },
-			{ name: __("Previous Year"), color: "#8e44ad", values: trend.map((r) => Number(r.previous_amount || 0)) },
-		], "line", { colors: ["#2490ef", "#8e44ad"], height: 280 });
+			{ name: __("This Year"), color: "#2979ff", values: trend.map((r) => Number(r.current_amount || 0)) },
+			{ name: __("Previous Year"), color: "#7e57c2", values: trend.map((r) => Number(r.previous_amount || 0)) },
+		], "line", { colors: ["#2979ff", "#7e57c2"], height: 280 });
 
 		const movers = this.tab_rows().slice(0, 12);
 		const status = (r) => {
@@ -422,36 +425,158 @@ class PerformanceAnalytics {
 		const statuses = movers.map(status);
 		this.wrapper.querySelector("#pa-chart-b-title").textContent = __("Target status — achieved, remaining, and extra achieved");
 		this.chart("#pa-chart-b", movers.map((r) => r.dimension), [
-			{ name: __("Achieved"), color: "#2490ef", values: statuses.map((s) => s.achieved) },
-			{ name: __("Remaining"), color: "#f39c12", values: statuses.map((s) => s.remaining) },
-			{ name: __("Extra Achieved"), color: "#27ae60", values: statuses.map((s) => s.extra) },
-		], "bar", { colors: ["#2490ef", "#f39c12", "#27ae60"], stacked: true, valuesOverPoints: 1, height: 300 });
+			{ name: __("Achieved"), color: "#2979ff", values: statuses.map((s) => s.achieved) },
+			{ name: __("Remaining"), color: "#ffa726", values: statuses.map((s) => s.remaining) },
+			{ name: __("Extra Achieved"), color: "#26a69a", values: statuses.map((s) => s.extra) },
+		], "bar", { colors: ["#2979ff", "#ffa726", "#26a69a"], stacked: true, valuesOverPoints: 1, height: 300 });
+	}
+
+	load_chart_library() {
+		if (window.Chart) return Promise.resolve();
+		if (PerformanceAnalytics.chart_loading) return PerformanceAnalytics.chart_loading;
+		PerformanceAnalytics.chart_loading = new Promise((resolve, reject) => {
+			const script = document.createElement("script");
+			const timeout = setTimeout(() => { script.remove(); reject(new Error("Chart library timed out")); }, 15000);
+			script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+			script.onload = () => { clearTimeout(timeout); resolve(); };
+			script.onerror = () => { clearTimeout(timeout); script.remove(); reject(new Error("Chart library unavailable")); };
+			document.head.appendChild(script);
+		}).catch(() => {
+			// Keep indicators, filters and tables usable if the chart CDN cannot be reached.
+			PerformanceAnalytics.chart_loading = null;
+		});
+		return PerformanceAnalytics.chart_loading;
 	}
 
 	chart(selector, labels, datasets, type, options = {}) {
 		const host = this.wrapper.querySelector(selector);
-		host.innerHTML = "";
-		if (!labels.length || typeof frappe.Chart === "undefined") {
-			host.innerHTML = `<div class="pa-empty" style="display:block">${__("No chart data")}</div>`;
+		if (this.charts[selector]) {
+			this.charts[selector].destroy();
+			delete this.charts[selector];
+		}
+		host.replaceChildren();
+		host.classList.add("pa-styled-chart");
+		if (!labels.length || !window.Chart) {
+			const message = document.createElement("div");
+			message.className = "pa-empty";
+			message.style.display = "block";
+			message.textContent = labels.length ? __("Charts could not load. Refresh to retry.") : __("No chart data");
+			host.appendChild(message);
 			return;
 		}
-		const chart = new frappe.Chart(
-			host,
-			Object.assign(
-				sales_performance.chart_number_opts(0),
-				{
-					data: { labels, datasets },
-					type: type === "bar" ? "bar" : "line",
-					height: options.height || 280,
-					colors: options.colors || ["#2490ef", "#8e44ad"],
-					...(options.stacked ? { barOptions: { stacked: true } } : {}),
-					valuesOverPoints: options.valuesOverPoints ?? 1,
+		const is_bar = type === "bar";
+		const surface = document.createElement("div");
+		surface.className = "pa-chart-surface";
+		surface.style.minWidth = Math.max(640, labels.length * 56) + "px";
+		surface.style.height = is_bar ? "560px" : "460px";
+		const canvas = document.createElement("canvas");
+		canvas.setAttribute("role", "img");
+		canvas.setAttribute("aria-label", host.closest(".pa-chart-card").querySelector("h4").textContent);
+		surface.appendChild(canvas);
+		host.appendChild(surface);
+		const styles = getComputedStyle(this.wrapper.querySelector(".pa-report"));
+		const muted = styles.getPropertyValue("--text-muted").trim() || "#6c757d";
+		const text = styles.getPropertyValue("--text-color").trim() || "#1a1e2e";
+		const alpha = (hex, opacity) => {
+			const rgb = hex.replace("#", "").match(/.{2}/g).map((part) => parseInt(part, 16));
+			return `rgba(${rgb.join(",")},${opacity})`;
+		};
+		this.charts[selector] = new Chart(canvas, {
+			type,
+			data: {
+				labels,
+				datasets: datasets.map((dataset, index) => {
+					const color = options.colors?.[index] || dataset.color || "#2979ff";
+					return {
+						label: dataset.name, data: dataset.values,
+						backgroundColor: alpha(color, is_bar ? .55 : .18),
+						borderColor: color,
+						...(is_bar ? {
+							borderWidth: 0, borderRadius: 6, borderSkipped: false,
+							categoryPercentage: .8, barPercentage: 1
+						} : {
+							tension: .35, fill: true, borderWidth: 2,
+							pointRadius: 3, pointBackgroundColor: color
+						})
+					};
+				})
+			},
+			options: {
+				responsive: true, maintainAspectRatio: false,
+				animation: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? false : { duration: 250 },
+				color: muted, font: { family: 'Inter, "Segoe UI", sans-serif' },
+				layout: { padding: { top: 24, right: 16, bottom: 20 } },
+				interaction: { mode: "index", intersect: false },
+				plugins: {
+					datalabels: { display: false },
+					legend: { position: "bottom", labels: { color: muted, usePointStyle: true, boxWidth: 8, padding: 18, font: { size: 11 } } },
+					tooltip: {
+						backgroundColor: "#1a1e2e", padding: 12, cornerRadius: 7,
+						callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${this.n(ctx.raw)}` }
+					}
+				},
+				scales: {
+					x: {
+						stacked: !!options.stacked, grid: { display: false }, border: { display: false },
+						ticks: {
+							color: muted, font: { size: 11 }, autoSkip: false, minRotation: 45, maxRotation: 45, padding: 12,
+							callback: function (value) {
+								const name = String(this.getLabelForValue(value));
+								return name.match(/.{1,32}(?:\s|$)|.{1,32}/g) || name;
+							}
+						},
+						afterFit: (scale) => { scale.height = Math.max(scale.height, is_bar ? 160 : 100); }
+					},
+					y: {
+						stacked: !!options.stacked, beginAtZero: true,
+						grid: { color: "rgba(128,128,128,.12)" }, border: { display: false },
+						ticks: { color: muted, font: { size: 10 }, maxTicksLimit: 5, callback: (value) => this.n(value) }
+					}
 				}
-			)
-		);
-		if (sales_performance.finish_chart) {
-			sales_performance.finish_chart(chart);
-		}
+			},
+			plugins: [{
+				id: "performanceValueLabels",
+				afterDatasetsDraw: (chart) => {
+					const ctx = chart.ctx;
+					ctx.save();
+					ctx.fillStyle = text;
+					ctx.font = "600 10px Inter, sans-serif";
+					const placed = [];
+					chart.data.datasets.forEach((dataset, index) => {
+						if (!chart.isDatasetVisible(index)) return;
+						chart.getDatasetMeta(index).data.forEach((element, row) => {
+							const value = dataset.data[row];
+							if (value == null) return;
+							const label = this.n(value);
+							const width = ctx.measureText(label).width;
+							if (is_bar) {
+								// Label the actual stack segment, never the shared category center.
+								if (!Number(value) || Math.abs(element.base - element.y) < width + 8 || element.width < 12) return;
+								ctx.save();
+								ctx.translate(element.x, (element.y + element.base) / 2);
+								ctx.rotate(-Math.PI / 2);
+								ctx.textAlign = "center";
+								ctx.textBaseline = "middle";
+								ctx.fillText(label, 0, 0);
+								ctx.restore();
+								return;
+							}
+							const x = Math.max(width / 2 + 4, Math.min(chart.width - width / 2 - 4, element.x));
+							const y = element.y + (index % 2 ? 6 : -18);
+							const box = { left: x - width / 2, right: x + width / 2, top: y, bottom: y + 12 };
+							if (box.top < 0 || box.bottom > chart.chartArea.bottom ||
+								placed.some((other) => box.left < other.right + 4 && box.right > other.left - 4 &&
+									box.top < other.bottom + 2 && box.bottom > other.top - 2)) return;
+							placed.push(box);
+							ctx.textAlign = "center";
+							ctx.textBaseline = "top";
+							ctx.fillText(label, x, y);
+						});
+					});
+					ctx.restore();
+				}
+			}]
+		});
 	}
 	 render_table() {
 		const term = String(this.wrapper.querySelector("#pa-search").value || "").toLowerCase();

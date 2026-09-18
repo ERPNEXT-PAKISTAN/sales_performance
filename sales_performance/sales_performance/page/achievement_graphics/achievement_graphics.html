@@ -1,79 +1,26 @@
-<div id="ag_dashboard_root" class="sp-dash">
-	<div class="sp-dash-hero">
-		<div>
-			<h1 class="sp-dash-title">Achievement Graphics</h1>
-			<div class="sp-dash-sub">
-				<p>Item groups and items that hit target vs those that missed</p>
-				<span class="sp-dash-refresh-pill">Last refresh: <span id="ag-last-refresh">—</span></span>
-			</div>
-		</div>
-	</div>
-
-	<div class="sp-kpis">
-		<div class="sp-kpi sp-kpi-green">
-			<div class="sp-kpi-label">Item Groups Achieved</div>
-			<div class="sp-kpi-value" id="ag_stat_g_ok">0</div>
-		</div>
-		<div class="sp-kpi sp-kpi-red">
-			<div class="sp-kpi-label">Item Groups Not Achieved</div>
-			<div class="sp-kpi-value" id="ag_stat_g_miss">0</div>
-		</div>
-		<div class="sp-kpi sp-kpi-blue">
-			<div class="sp-kpi-label">Items Achieved</div>
-			<div class="sp-kpi-value" id="ag_stat_i_ok">0</div>
-		</div>
-		<div class="sp-kpi sp-kpi-purple">
-			<div class="sp-kpi-label">Items Not Achieved</div>
-			<div class="sp-kpi-value" id="ag_stat_i_miss">0</div>
-		</div>
-	</div>
-
-	<div id="ag-error" class="sp-dash-error"></div>
-	<div id="ag-loading" class="sp-dash-loading">Loading achievement graphics...</div>
-
-	<div id="ag-filters-panel" class="sp-filter-panel">
-		<div class="sp-filter-row">
-			<div class="sp-filter-grid" id="ag-filters"></div>
-			<div class="sp-filter-actions">
-				<button type="button" class="sp-btn sp-btn-primary" id="ag-refresh">Refresh</button>
-				<button type="button" class="sp-btn sp-btn-muted" id="ag-reset">Reset</button>
-				<button type="button" class="sp-btn sp-btn-green" id="ag-tables">Tables</button>
-			</div>
-		</div>
-	</div>
-
-	<div class="sp-chart-grid">
-		<div class="sp-card">
-			<h3>Item Groups — Achieved vs Not</h3>
-			<div id="ag-pie-groups" style="min-height:250px;"></div>
-		</div>
-		<div class="sp-card">
-			<h3>Items — Achieved vs Not</h3>
-			<div id="ag-pie-items" style="min-height:250px;"></div>
-		</div>
-		<div class="sp-card">
-			<h3>Item Group hit rate</h3>
-			<div id="ag-pct-groups" style="min-height:120px;"></div>
-		</div>
-		<div class="sp-card">
-			<h3>Item hit rate</h3>
-			<div id="ag-pct-items" style="min-height:120px;"></div>
-		</div>
-		<div class="sp-card sp-wide">
-			<h3>Item Groups — Achievement %</h3>
-			<div id="ag-bar-groups" style="min-height:280px;"></div>
-		</div>
-		<div class="sp-card sp-wide">
-			<h3>Items — Achievement %</h3>
-			<div id="ag-bar-items" style="min-height:280px;"></div>
-		</div>
-		<div class="sp-card sp-wide">
-			<h3>Item Groups — Target vs Actual Amount</h3>
-			<div id="ag-vs-groups" style="min-height:280px;"></div>
-		</div>
-		<div class="sp-card sp-wide">
-			<h3>Items — Target vs Actual Amount</h3>
-			<div id="ag-vs-items" style="min-height:280px;"></div>
-		</div>
-	</div>
-</div>
+<div id="ag_dashboard_root" class="ag-dashboard">
+<header class="ag-header"><div class="ag-heading"><span class="ag-logo-dot"></span><h1>{{ __("Achievement Graphics") }}</h1></div><span class="ag-updated">{{ __("Last refresh") }}: <span id="ag-last-refresh">—</span></span><button class="ag-btn ag-btn-muted" id="ag-filters-toggle" type="button" aria-expanded="true" aria-controls="ag-filters-panel">{{ __("Filters") }}</button></header>
+<div id="ag-filters-panel" class="ag-filters-panel"><div id="ag-filters" class="ag-filters"></div><div class="ag-filter-actions"><button type="button" class="ag-btn ag-btn-primary" id="ag-refresh">{{ __("Refresh") }}</button><button type="button" class="ag-btn ag-btn-muted" id="ag-reset">{{ __("Reset") }}</button><button type="button" class="ag-btn ag-btn-muted" id="ag-tables">{{ __("Target Achievement") }}</button></div></div>
+<div class="ag-indicators"><button type="button" class="ag-indicator ag-green" data-summary="item_groups_achieved">
+<span class="ag-icon-box"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4-9-4Zm0 5 9 4 9-4M3 17l9 4 9-4"/></svg></span><span class="ag-indicator-copy"><span class="ag-indicator-sub">{{ __("Item Groups") }}</span><span class="ag-indicator-title">{{ __("Achieved") }}</span></span>
+<span class="ag-indicator-value" id="ag_stat_g_ok">—</span><span class="ag-indicator-note" data-share="item_groups_achieved">{{ __("Selected period") }}</span></button>
+<button type="button" class="ag-indicator ag-orange" data-summary="item_groups_missed">
+<span class="ag-icon-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v1"/></svg></span><span class="ag-indicator-copy"><span class="ag-indicator-sub">{{ __("Item Groups") }}</span><span class="ag-indicator-title">{{ __("Not Achieved") }}</span></span>
+<span class="ag-indicator-value" id="ag_stat_g_miss">—</span><span class="ag-indicator-note" data-share="item_groups_missed">{{ __("Selected period") }}</span></button>
+<button type="button" class="ag-indicator ag-teal" data-summary="items_achieved">
+<span class="ag-icon-box"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v10"/></svg></span><span class="ag-indicator-copy"><span class="ag-indicator-sub">{{ __("Items") }}</span><span class="ag-indicator-title">{{ __("Achieved") }}</span></span>
+<span class="ag-indicator-value" id="ag_stat_i_ok">—</span><span class="ag-indicator-note" data-share="items_achieved">{{ __("Selected period") }}</span></button>
+<button type="button" class="ag-indicator ag-pink" data-summary="items_missed">
+<span class="ag-icon-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 3v1"/></svg></span><span class="ag-indicator-copy"><span class="ag-indicator-sub">{{ __("Items") }}</span><span class="ag-indicator-title">{{ __("Not Achieved") }}</span></span>
+<span class="ag-indicator-value" id="ag_stat_i_miss">—</span><span class="ag-indicator-note" data-share="items_missed">{{ __("Selected period") }}</span></button></div>
+<div id="ag-error" class="ag-message ag-error" role="alert" hidden></div><div id="ag-loading" class="ag-message" role="status" hidden>{{ __("Loading achievement graphics…") }}</div>
+<main class="ag-content">
+<nav class="ag-tabs" aria-label="{{ __("Achievement views") }}"><button type="button" class="ag-tab active" data-tab="overview" aria-pressed="true">{{ __("Overview") }}</button><button type="button" class="ag-tab" data-tab="groups" aria-pressed="false">{{ __("Item Groups") }} <span class="ag-tab-count" id="ag-group-count">—</span></button><button type="button" class="ag-tab" data-tab="items" aria-pressed="false">{{ __("Items") }} <span class="ag-tab-count" id="ag-item-count">—</span></button></nav>
+<section id="ag-panel-overview" class="ag-panel"><div class="ag-chart-grid"><article class="ag-card"><div class="ag-card-head"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v9h9"/></svg>{{ __("Item Groups — Achieved vs Not") }}</h3></div><div class="ag-card-body"><div id="ag-pie-groups" class="ag-chart ag-pie"></div><div id="ag-pct-groups" class="ag-hit-rate"></div></div></article>
+<article class="ag-card"><div class="ag-card-head"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v9h9"/></svg>{{ __("Items — Achieved vs Not") }}</h3></div><div class="ag-card-body"><div id="ag-pie-items" class="ag-chart ag-pie"></div><div id="ag-pct-items" class="ag-hit-rate"></div></div></article>
+<article class="ag-card ag-wide"><div class="ag-card-head"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12m7 8V4m7 16V8"/></svg>{{ __("Item Groups — Achievement %") }}</h3><span class="ag-card-period ag-ranking-note"></span></div><div class="ag-card-body"><div id="ag-bar-groups" class="ag-chart "></div></div></article>
+<article class="ag-card ag-wide"><div class="ag-card-head"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12m7 8V4m7 16V8"/></svg>{{ __("Items — Achievement %") }}</h3><span class="ag-card-period ag-ranking-note"></span></div><div class="ag-card-body"><div id="ag-bar-items" class="ag-chart "></div></div></article>
+<article class="ag-card ag-wide"><div class="ag-card-head"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12m7 8V4m7 16V8"/></svg>{{ __("Item Groups — Target vs Actual Amount") }}</h3><span class="ag-card-period ag-ranking-note"></span></div><div class="ag-card-body"><div id="ag-vs-groups" class="ag-chart "></div></div></article>
+<article class="ag-card ag-wide"><div class="ag-card-head"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V12m7 8V4m7 16V8"/></svg>{{ __("Items — Target vs Actual Amount") }}</h3><span class="ag-card-period ag-ranking-note"></span></div><div class="ag-card-body"><div id="ag-vs-items" class="ag-chart "></div></div></article></div><p class="ag-footnote">{{ __("Charts show up to 30 rows in the selected ranking. Select a bar or table row to open the achievement report. When Judge By is Both, percentage charts and ranking use quantity; achieved status requires both targets.") }}</p></section>
+<section id="ag-panel-groups" class="ag-panel" hidden></section><section id="ag-panel-items" class="ag-panel" hidden></section>
+</main></div>
