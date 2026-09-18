@@ -405,8 +405,8 @@ class PerformanceAnalytics {
 		const trend = this.data.trend || [];
 		this.wrapper.querySelector("#pa-chart-a-title").textContent = __("Monthly amount trend — this year vs previous year");
 		this.chart("#pa-chart-a", trend.map((r) => r.dimension), [
-			{ name: __("This Year"), values: trend.map((r) => Number(r.current_amount || 0)) },
-			{ name: __("Previous Year"), values: trend.map((r) => Number(r.previous_amount || 0)) },
+			{ name: __("This Year"), color: "#2490ef", values: trend.map((r) => Number(r.current_amount || 0)) },
+			{ name: __("Previous Year"), color: "#8e44ad", values: trend.map((r) => Number(r.previous_amount || 0)) },
 		], "line", { colors: ["#2490ef", "#8e44ad"], height: 280 });
 
 		const movers = this.tab_rows().slice(0, 12);
@@ -422,9 +422,9 @@ class PerformanceAnalytics {
 		const statuses = movers.map(status);
 		this.wrapper.querySelector("#pa-chart-b-title").textContent = __("Target status — achieved, remaining, and extra achieved");
 		this.chart("#pa-chart-b", movers.map((r) => r.dimension), [
-			{ name: __("Achieved"), values: statuses.map((s) => s.achieved) },
-			{ name: __("Remaining"), values: statuses.map((s) => s.remaining) },
-			{ name: __("Extra Achieved"), values: statuses.map((s) => s.extra) },
+			{ name: __("Achieved"), color: "#2490ef", values: statuses.map((s) => s.achieved) },
+			{ name: __("Remaining"), color: "#f39c12", values: statuses.map((s) => s.remaining) },
+			{ name: __("Extra Achieved"), color: "#27ae60", values: statuses.map((s) => s.extra) },
 		], "bar", { colors: ["#2490ef", "#f39c12", "#27ae60"], stacked: true, height: 300 });
 	}
 
@@ -444,6 +444,7 @@ class PerformanceAnalytics {
 					height: options.height || 280,
 					colors: options.colors || ["#2490ef", "#8e44ad"],
 					...(options.stacked ? { barOptions: { stacked: true } } : {}),
+					valuesOverPoints: options.valuesOverPoints ?? 0,
 				},
 				sales_performance.chart_number_opts(0)
 			)
@@ -451,9 +452,10 @@ class PerformanceAnalytics {
 		if (sales_performance.finish_chart) {
 			sales_performance.finish_chart(chart);
 		}
+		this.render_chart_values(host, labels, datasets);
 	}
-
-	render_table() {
+	 render_chart_values(host, labels, datasets) { const rows = labels.map((label, index) => datasets.map((dataset) => dataset.name + ": " + this.n(dataset.values[index] || 0)).join(" / " )).map((values, index) => labels[index] + " — " + values).join("<br>"); host.insertAdjacentHTML("beforeend", "<div class=\"pa-chart-values\">" + rows + "</div>"); }
+	 render_table() {
 		const term = String(this.wrapper.querySelector("#pa-search").value || "").toLowerCase();
 		const rows = this.tab_rows().filter((r) => !term || String(r.dimension || r.name || "").toLowerCase().includes(term));
 		const titles = {
