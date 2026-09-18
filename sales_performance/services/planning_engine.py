@@ -25,6 +25,7 @@ from sales_performance.services.pricing_engine import get_target_price, prefetch
 
 NO_HISTORY_REASON = "No previous-year sales history"
 NO_PRICE_REASON = "No applicable price"
+NEGATIVE_NET_REASON = "Net previous-year returns exceed sales; target set to zero"
 
 
 def make_row_key(sales_person, territory, item_code, customer_group=None):
@@ -195,6 +196,11 @@ def _build_proposal_row(doc, grain, rules, prev_targets, cache, existing_overrid
 	# Annual target uses the complete previous calendar year at this planning grain.
 	# Stable-sales distributions split that annual target evenly by default.
 	calc_qty = apply_growth(prev_qty, growth, precision=qty_precision, whole_number=qty_precision == 0)
+	# Returns remain visible as negative historical actuals, but a target cannot
+	# be negative. Keep the row for review and set its planned quantity to zero.
+	negative_net_qty = calc_qty < 0
+	if negative_net_qty:
+		calc_qty = 0
 	avg_month_qty = nflt(prev_qty / 12.0, qty_precision)
 	monthly_target_qty = nflt(calc_qty / 12.0, qty_precision)
 
@@ -225,6 +231,9 @@ def _build_proposal_row(doc, grain, rules, prev_targets, cache, existing_overrid
 
 	requires_review = 0
 	review_reasons = []
+	if negative_net_qty:
+		requires_review = 1
+		review_reasons.append(NEGATIVE_NET_REASON)
 	if not prev_qty:
 		requires_review = 1
 		review_reasons.append(NO_HISTORY_REASON)
