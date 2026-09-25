@@ -1,8 +1,14 @@
 {
  "content": null,
+ "creation": "2026-09-24 12:18:45.246862",
+ "docstatus": 0,
  "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-09-24 12:18:47.042511",
+ "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "monthly-incentives",
+ "owner": "Administrator",
  "page_name": "monthly-incentives",
  "roles": [
   {
@@ -37,6 +43,9 @@
   },
   {
    "role": "System Manager"
+  },
+  {
+   "role": "Sales Target Editor"
   }
  ],
  "script": null,

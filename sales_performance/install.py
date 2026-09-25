@@ -6,6 +6,7 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
 ROLES = [
 	"Sales Target User",
+	"Sales Target Editor",
 	"Sales Target Manager",
 	"Sales Target Approver",
 	"Sales Performance Manager",

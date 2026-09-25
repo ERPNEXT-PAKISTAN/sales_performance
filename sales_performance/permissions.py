@@ -6,6 +6,7 @@ import frappe
 
 CUSTOM_ROLES = [
 	"Sales Target User",
+	"Sales Target Editor",
 	"Sales Target Manager",
 	"Sales Target Approver",
 	"Sales Performance Manager",

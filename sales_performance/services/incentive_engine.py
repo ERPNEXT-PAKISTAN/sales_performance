@@ -1,6 +1,7 @@
 """Resolve min/max incentive rates from achievement slabs. No payout storage."""
 
 from sales_performance.services.numbers import nflt
+from sales_performance.services.plan_selection import applicable_plans
 from sales_performance.services.precision import get_currency_precision, round_percent, round_qty
 
 
@@ -422,6 +423,24 @@ def period_selection_from_dates(period, month, quarter, from_date, to_date):
 	return month, quarter
 
 
+def combine_plan_months(rows, monthly_targets):
+	"""Combine active allocations for a grain while counting its actuals once."""
+	from sales_performance.services.distribution_engine import equal_monthly
+	combined = {}
+	for row in rows:
+		grain = tuple(row.get(f) or "" for f in ("sales_person", "territory", "item_code", "customer_group"))
+		months = monthly_targets.get((row.get("parent"), row.get("row_key"))) or {
+			part["month_number"]: part for part in equal_monthly(row.get("approved_target_qty"), row.get("approved_target_amount"))
+		}
+		bucket = combined.setdefault(grain, {"months": {}, "plans": set()})
+		bucket["plans"].add(row.get("parent"))
+		for month, values in months.items():
+			target = bucket["months"].setdefault(month, {"target_qty": 0, "target_amount": 0})
+			for field in ("target_qty", "target_amount"):
+				target[field] += nflt(values.get(field))
+	return combined
+
+
 def collect_period_incentive_rows(filters):
 	"""Collect target/actual rows at the planning grain for a selected period."""
 	import frappe
@@ -462,12 +481,7 @@ def collect_period_incentive_rows(filters):
 	if not plans:
 		return []
 
-	latest = {}
-	for p in plans:
-		key = (p.sales_person or "", p.territory or "")
-		if key not in latest:
-			latest[key] = p.name
-	latest_plans = {p.name: p for p in plans if p.name in latest.values()}
+	latest_plans = {p.name: p for p in applicable_plans(plans)}
 
 	detail_fields = [
 		"parent",
@@ -484,7 +498,7 @@ def collect_period_incentive_rows(filters):
 		detail_fields.append("customer_group")
 	rows = frappe.get_all(
 		"Target Proposal Detail",
-		filters={"parent": ("in", list(latest.values()))},
+		filters={"parent": ("in", list(latest_plans))},
 		fields=detail_fields,
 		ignore_permissions=True,
 	)
@@ -511,11 +525,12 @@ def collect_period_incentive_rows(filters):
 	monthly_targets = {}
 	for part in frappe.get_all(
 		"Sales Target Monthly Detail",
-		filters={"parent": ("in", list(latest.values()))},
+		filters={"parent": ("in", list(latest_plans))},
 		fields=["parent", "row_key", "month_number", "target_qty", "target_amount"],
 		ignore_permissions=True,
 	):
 		monthly_targets.setdefault((part.parent, part.row_key), {})[part.month_number] = part
+	combined_targets = combine_plan_months(rows, monthly_targets)
 
 	start, end = fiscal_year_dates(filters.fiscal_year, filters.company)
 	from_date = getdate(filters.get("from_date") or start)
@@ -607,10 +622,7 @@ def collect_period_incentive_rows(filters):
 			}
 		# Monthly detail is authoritative. A legacy plan without it is displayed
 		# with a read-only stable equal split; approved annual targets stay intact.
-		month_target = monthly_targets.get((row.parent, row.row_key)) or {
-			part["month_number"]: part
-			for part in equal_monthly(row.approved_target_qty, row.approved_target_amount)
-		}
+		month_target = combined_targets[grain]["months"]
 		month_qty = actual.get("month_qty") or {}
 		month_amount = actual.get("month_amount") or {}
 		for label, months in buckets:
@@ -626,7 +638,8 @@ def collect_period_incentive_rows(filters):
 					"item_group": row.item_group,
 					"customer_group": row.get("customer_group"),
 					"item_code": row.item_code,
-					"planning": row.parent,
+					"planning": row.parent if len(combined_targets[grain]["plans"]) == 1 else None,
+					"source_plans": sorted(combined_targets[grain]["plans"]),
 					"plan_status": latest_plans[row.parent].status,
 					"growth_percent": round_percent(row.get("growth_percent")),
 				}

@@ -1,5 +1,5 @@
 frappe.ui.form.on("Sales Target Planning", {
-	refresh(frm) {
+	async refresh(frm) {
 		frm.trigger("set_indicators");
 		frm.trigger("set_item_group_queries");
 		const locked = ["Approved", "Cancelled", "Superseded"].includes(frm.doc.status);
@@ -10,7 +10,7 @@ frappe.ui.form.on("Sales Target Planning", {
 			frm.page.set_primary_action(__("Get Previous Year Sales"), () => fetch_previous_year_sales(frm));
 		}
 
-		render_previous_sales_table(frm);
+		frm.toggle_display("previous_sales_html", false);
 
 		if (!frm.is_new() && !locked) {
 			if (["Draft", "Calculated", "Rejected"].includes(frm.doc.status)) {
@@ -77,6 +77,8 @@ frappe.ui.form.on("Sales Target Planning", {
 		if (frm.doc.summary_warnings) {
 			frm.dashboard.set_headline_alert(frappe.utils.escape_html(frm.doc.summary_warnings), "orange");
 		}
+		await frappe.require("/assets/sales_performance/js/target_editor.js");
+		await sales_target_editor.load(frm);
 	},
 
 	get_previous_year_sales(frm) {
@@ -120,6 +122,9 @@ frappe.ui.form.on("Sales Target Planning", {
 
 frappe.ui.form.on("Target Proposal Detail", {
 	approved_target_qty(frm, cdt, cdn) {
+		recalc_row(frm, cdt, cdn);
+	},
+	approved_target_amount(frm, cdt, cdn) {
 		recalc_row(frm, cdt, cdn);
 	},
 	approved_target_rate(frm, cdt, cdn) {
@@ -191,7 +196,7 @@ function render_previous_sales_table(frm) {
 		<div class="stp-panel">
 			<div class="stp-toolbar">
 				<div>
-					<div class="stp-hint">${__("Yearly target = previous calendar year. Monthly = PY ÷ 12. Quarter = monthly × 3. Growth % applies on top of that average.")}</div>
+					<div class="stp-hint">${__("Final annual targets are shown below. Monthly and quarterly figures here are averages; see Monthly Details for actual allocations.")}</div>
 					<div class="stp-hint">${period} · ${visible.length} ${__("items")} · ${__("Growth")} ${Number(flt(frm.doc.uniform_growth_percent) || 0).toFixed(1)}% · ${frappe.utils.escape_html(frm.doc.distribution_method || "")}</div>
 				</div>
 				<input type="search" class="form-control input-sm" id="stp-search" placeholder="${__("Search item / group")}" value="${frappe.utils.escape_html(frm._stp_search || "")}">
@@ -202,7 +207,7 @@ function render_previous_sales_table(frm) {
 
 	const host = field.$wrapper.find(".stp-table-host");
 	if (!rows.length) {
-		host.html(`<div class="stp-empty">${__("Click Get Previous Year Sales to load previous calendar year sales.")}</div>`);
+		host.html(`<div class="stp-empty">${__("Choose a Target Source, then load history, add target rows manually, or import Excel / CSV.")}</div>`);
 		return;
 	}
 	if (!visible.length) {
@@ -234,7 +239,7 @@ function render_previous_sales_table(frm) {
 		.join("");
 
 	const avg_month = (qty) => flt(qty) / 12;
-	const monthly_target = (row) => flt(row.calculated_target_qty) / 12;
+	const monthly_target = (row) => flt(row.approved_target_qty) / 12;
 	const quarter_target = (row) => monthly_target(row) * 3;
 
 	const body = groups
@@ -250,9 +255,9 @@ function render_previous_sales_table(frm) {
 						<td>${num(avg_month(row.previous_year_actual_qty))}</td>
 						<td>${num(monthly_target(row))}</td>
 						<td>${num(quarter_target(row))}</td>
-						<td>${num(row.calculated_target_qty)}</td>
-						<td>${money(row.target_selling_rate)}</td>
-						<td>${money(row.calculated_target_amount)}</td>
+						<td>${num(row.approved_target_qty)}</td>
+						<td>${money(row.approved_target_rate)}</td>
+						<td>${money(row.approved_target_amount)}</td>
 					</tr>`
 				)
 				.join("");
@@ -261,11 +266,11 @@ function render_previous_sales_table(frm) {
 					<td colspan="3"><span class="stp-caret">▶</span>${escape(group.item_group)} (${group.items.length})</td>
 					<td>${num(group.previous_year_actual_qty)}</td>
 					<td>${num(avg_month(group.previous_year_actual_qty))}</td>
-					<td>${num(avg_month(group.calculated_target_qty))}</td>
-					<td>${num(avg_month(group.calculated_target_qty) * 3)}</td>
-					<td>${num(group.calculated_target_qty)}</td>
+					<td>${num(avg_month(group.approved_target_qty))}</td>
+					<td>${num(avg_month(group.approved_target_qty) * 3)}</td>
+					<td>${num(group.approved_target_qty)}</td>
 					<td></td>
-					<td>${money(group.calculated_target_amount)}</td>
+					<td>${money(group.approved_target_amount)}</td>
 				</tr>${items}`;
 		})
 		.join("");
@@ -281,11 +286,11 @@ function render_previous_sales_table(frm) {
 						<td colspan="3">${__("Grand Total")}</td>
 						<td>${num(totals.previous_year_actual_qty)}</td>
 						<td>${num(totals.previous_year_actual_qty / 12)}</td>
-						<td>${num(totals.calculated_target_qty / 12)}</td>
-						<td>${num((totals.calculated_target_qty / 12) * 3)}</td>
-						<td>${num(totals.calculated_target_qty)}</td>
+						<td>${num(totals.approved_target_qty / 12)}</td>
+						<td>${num((totals.approved_target_qty / 12) * 3)}</td>
+						<td>${num(totals.approved_target_qty)}</td>
 						<td></td>
-						<td>${money(totals.calculated_target_amount)}</td>
+						<td>${money(totals.approved_target_amount)}</td>
 					</tr>
 				</tbody>
 			</table>
@@ -325,8 +330,8 @@ function group_previous_sales(rows) {
 				items: [],
 				previous_year_actual_qty: 0,
 				previous_year_actual_amount: 0,
-				calculated_target_qty: 0,
-				calculated_target_amount: 0,
+				approved_target_qty: 0,
+				approved_target_amount: 0,
 			};
 			groups.push(index[key]);
 		}
@@ -334,8 +339,8 @@ function group_previous_sales(rows) {
 		group.items.push(row);
 		group.previous_year_actual_qty += flt(row.previous_year_actual_qty);
 		group.previous_year_actual_amount += flt(row.previous_year_actual_amount);
-		group.calculated_target_qty += flt(row.calculated_target_qty);
-		group.calculated_target_amount += flt(row.calculated_target_amount);
+		group.approved_target_qty += flt(row.approved_target_qty);
+		group.approved_target_amount += flt(row.approved_target_amount);
 	});
 	groups.sort((a, b) => b.previous_year_actual_qty - a.previous_year_actual_qty);
 	return groups;
@@ -346,15 +351,15 @@ function sum_previous_sales(rows) {
 		(sum, row) => {
 			sum.previous_year_actual_qty += flt(row.previous_year_actual_qty);
 			sum.previous_year_actual_amount += flt(row.previous_year_actual_amount);
-			sum.calculated_target_qty += flt(row.calculated_target_qty);
-			sum.calculated_target_amount += flt(row.calculated_target_amount);
+			sum.approved_target_qty += flt(row.approved_target_qty);
+			sum.approved_target_amount += flt(row.approved_target_amount);
 			return sum;
 		},
 		{
 			previous_year_actual_qty: 0,
 			previous_year_actual_amount: 0,
-			calculated_target_qty: 0,
-			calculated_target_amount: 0,
+			approved_target_qty: 0,
+			approved_target_amount: 0,
 		}
 	);
 }
@@ -363,7 +368,9 @@ function recalc_row(frm, cdt, cdn) {
 	const row = locals[cdt][cdn];
 	const qty = flt(row.approved_target_qty);
 	const rate = flt(row.approved_target_rate);
-	row.approved_target_amount = qty * rate;
+	if (frm.doc.entry_basis === "Monthly") return;
+	if (frm.doc.value_basis === "Quantity and Amount") row.approved_target_rate = qty ? flt(row.approved_target_amount) / qty : 0;
+	else row.approved_target_amount = qty * rate;
 	const calc = flt(row.calculated_target_qty);
 	row.override_percent = calc ? ((qty - calc) / calc) * 100 : 0;
 	frm.refresh_field("proposal_details");

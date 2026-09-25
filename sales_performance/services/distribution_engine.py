@@ -17,6 +17,16 @@ def _split_equal(total, parts, precision):
 	base = nflt(total / parts, precision)
 	values = [base] * parts
 	values[-1] = nflt(total - sum(values[:-1]), precision)
+	if total >= 0 and values[-1] < 0:
+		# Small whole-number targets must not leave a negative final month.
+		deficit = -values[-1]
+		values[-1] = 0
+		for index in range(parts - 2, -1, -1):
+			reduction = min(values[index], deficit)
+			values[index] = nflt(values[index] - reduction, precision)
+			deficit = nflt(deficit - reduction, precision)
+			if not deficit:
+				break
 	return values
 
 
@@ -25,6 +35,15 @@ def reconcile_to_total(values, total, precision):
 		return values
 	out = [nflt(v, precision) for v in values]
 	out[-1] = nflt(total - sum(out[:-1]), precision)
+	if total >= 0 and all(nflt(v) >= 0 for v in values) and out[-1] < 0:
+		deficit = -out[-1]
+		out[-1] = 0
+		for index in range(len(out) - 2, -1, -1):
+			reduction = min(out[index], deficit)
+			out[index] = nflt(out[index] - reduction, precision)
+			deficit = nflt(deficit - reduction, precision)
+			if not deficit:
+				break
 	return out
 
 

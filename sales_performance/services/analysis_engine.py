@@ -11,6 +11,7 @@ from sales_performance.services.growth_engine import (
 	get_item_group_subtree_names,
 )
 from sales_performance.services.precision import round_percent
+from sales_performance.services.plan_selection import applicable_plans
 
 
 DIMENSIONS = {
@@ -256,7 +257,7 @@ def merge_period_rows(current_rows, previous_rows, target_map=None):
 
 
 def selected_target_item_codes(company, fiscal_year):
-	"""Return the item scope of the latest applicable target plans.
+	"""Return the item scope of the applicable target plans.
 
 	Dashboards must not report invoice items that are outside Sales Target Planning.
 	"""
@@ -265,22 +266,16 @@ def selected_target_item_codes(company, fiscal_year):
 	plans = frappe.get_all(
 		"Sales Target Planning",
 		filters={"company": company, "fiscal_year": fiscal_year, "status": ("in", ("Approved", "Calculated", "Under Review"))},
-		fields=["name", "status", "planning_version", "sales_person", "territory", "growth_method"],
+		fields=["name", "status", "planning_version", "sales_person", "territory", "growth_method", "target_source"],
 		order_by="planning_version desc",
 	)
-	approved = [plan for plan in plans if plan.status == "Approved"]
-	latest = {}
-	for plan in approved or plans:
-		key = (plan.sales_person or "", plan.territory or "")
-		if key not in latest:
-			latest[key] = plan.name
-	if not latest:
+	plans_by_name = {plan.name: plan for plan in applicable_plans(plans)}
+	if not plans_by_name:
 		return []
-	plans_by_name = {plan.name: plan for plan in plans if plan.name in latest.values()}
 	rules_by_plan = {}
 	for rule in frappe.get_all(
 		"Item Group Growth Rule",
-		filters={"parent": ("in", list(latest.values()))},
+		filters={"parent": ("in", list(plans_by_name))},
 		fields=["parent", "item_group", "apply_to_children"],
 		ignore_permissions=True,
 	):
@@ -289,7 +284,7 @@ def selected_target_item_codes(company, fiscal_year):
 	children_by_group = {}
 	def matches_rule_scope(row):
 		plan = plans_by_name.get(row.parent)
-		if not plan or plan.growth_method != "Item Group Rules":
+		if not plan or plan.growth_method != "Item Group Rules" or plan.get("target_source") in ("Manual", "Copy Existing Plan"):
 			return True
 		for rule in rules_by_plan.get(row.parent, []):
 			if row.item_group == rule.item_group:
@@ -306,7 +301,7 @@ def selected_target_item_codes(company, fiscal_year):
 		row.item_code
 		for row in frappe.get_all(
 			"Target Proposal Detail",
-			filters={"parent": ("in", list(latest.values()))},
+			filters={"parent": ("in", list(plans_by_name))},
 			fields=["parent", "item_code", "item_group"],
 			ignore_permissions=True,
 		)
@@ -339,7 +334,7 @@ def customer_target_totals(company, fiscal_year, previous_start, previous_end, *
 	}
 
 def target_totals_by_dimension(company, fiscal_year, dimension="sales_person", **filters):
-	"""Use filtered targets from only the latest plan in each planning scope."""
+	"""Sum filtered targets from all applicable plans."""
 	import frappe
 
 	field = {
@@ -365,14 +360,7 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person", *
 		fields=["name", "status", "planning_version", "sales_person", "territory"],
 		order_by="planning_version desc",
 	)
-	approved = [p for p in plans if p.status == "Approved"]
-	use = approved or plans
-	latest = {}
-	for plan in use:
-		key = (plan.get("sales_person") or "", plan.get("territory") or "")
-		if key not in latest:
-			latest[key] = plan
-	use = list(latest.values())
+	use = applicable_plans(plans)
 	if not use:
 		return {}
 	rows = frappe.get_all(

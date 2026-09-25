@@ -12,7 +12,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2026-09-15 14:21:06.062284",
+ "modified": "2026-09-24 12:18:47.225548",
  "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Sales Target Monthly Performance",
@@ -54,6 +54,9 @@
   },
   {
    "role": "Sales Performance Admin"
+  },
+  {
+   "role": "Sales Target Editor"
   }
  ],
  "snapshot_report": 0,

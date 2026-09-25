@@ -56,7 +56,6 @@
    "label": "Sales Person",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "read_only": 1,
    "columns": 2
   },
   {
@@ -89,7 +88,8 @@
    "label": "Item Group",
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "fetch_from": "item_code.item_group"
+   "fetch_from": "item_code.item_group",
+   "read_only": 1
   },
   {
    "fieldname": "customer_group",
@@ -104,7 +104,8 @@
    "fieldtype": "Link",
    "options": "UOM",
    "label": "UOM",
-   "fetch_from": "item_code.stock_uom"
+   "fetch_from": "item_code.stock_uom",
+   "read_only": 1
   },
   {
    "fieldname": "cb_hist",
@@ -148,10 +149,11 @@
   },
   {
    "fieldname": "growth_percent",
-   "fieldtype": "Percent",
-   "label": "Growth %",
-   "read_only": 1,
-   "precision": 1
+    "fieldtype": "Percent",
+    "label": "Growth %",
+    "read_only": 1,
+    "precision": 1,
+    "in_list_view": 1
   },
   {
    "fieldname": "calculated_target_qty",
@@ -187,7 +189,7 @@
    "fieldtype": "Currency",
    "label": "Target Selling Rate",
    "options": "Company:company:default_currency",
-   "precision": 0
+   "precision": 6
   },
   {
    "fieldname": "calculated_target_amount",
@@ -227,13 +229,12 @@
    "fieldtype": "Currency",
    "label": "Approved Target Rate",
    "options": "Company:company:default_currency",
-   "precision": 0
+   "precision": 6
   },
   {
    "fieldname": "approved_target_amount",
    "fieldtype": "Currency",
    "label": "Approved Target Amount",
-   "read_only": 1,
    "options": "Company:company:default_currency",
    "precision": 0
   },

@@ -100,7 +100,7 @@
   }
  ],
  "links": [],
- "modified": "2026-09-18 21:55:33.711726",
+ "modified": "2026-09-24 12:18:46.585058",
  "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Incentive Scheme",
@@ -204,6 +204,18 @@
    "read": 1,
    "report": 1,
    "role": "Sales Target Approver",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Target Editor",
    "share": 1,
    "write": 1
   }

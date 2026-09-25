@@ -146,11 +146,20 @@ Reports:
 
 ## Testing
 
+See [Entering and changing sales targets](docs/target-planning.md) for manual entry,
+Excel/CSV imports, same-plan amendments, and salesperson transfers.
+
 ```bash
 bench --site site1.local run-tests --app sales_performance
 ```
 
 Engine tests cover growth, distribution rounding, returns netting, pricing averages, override/lock rules, and duplicate-key matching. Full invoice integration tests are skipped unless ERPNext test masters exist.
+
+The database-independent regression suite can also be run from the bench directory:
+
+```bash
+env/bin/python -m unittest discover -s apps/sales_performance/sales_performance/tests
+```
 
 ## Upgrade Safety
 

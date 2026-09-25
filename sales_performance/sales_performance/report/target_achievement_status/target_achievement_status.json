@@ -12,7 +12,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2026-09-15 23:00:00",
+ "modified": "2026-09-24 12:18:47.263288",
  "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Target Achievement Status",
@@ -22,17 +22,42 @@
  "report_name": "Target Achievement Status",
  "report_type": "Script Report",
  "roles": [
-  { "role": "All" },
-  { "role": "Desk User" },
-  { "role": "System Manager" },
-  { "role": "Sales User" },
-  { "role": "Sales Manager" },
-  { "role": "Accounts Manager" },
-  { "role": "Sales Target User" },
-  { "role": "Sales Target Manager" },
-  { "role": "Sales Target Approver" },
-  { "role": "Sales Performance Manager" },
-  { "role": "Sales Performance Admin" }
+  {
+   "role": "All"
+  },
+  {
+   "role": "Desk User"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Sales Target User"
+  },
+  {
+   "role": "Sales Target Manager"
+  },
+  {
+   "role": "Sales Target Approver"
+  },
+  {
+   "role": "Sales Performance Manager"
+  },
+  {
+   "role": "Sales Performance Admin"
+  },
+  {
+   "role": "Sales Target Editor"
+  }
  ],
  "snapshot_report": 0,
  "timeout": 0

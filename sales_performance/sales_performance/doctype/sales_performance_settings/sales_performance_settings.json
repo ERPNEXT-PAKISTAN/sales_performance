@@ -91,7 +91,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-18 21:55:33.904685",
+ "modified": "2026-09-24 12:18:46.782879",
  "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Sales Performance Settings",
@@ -181,6 +181,16 @@
    "print": 1,
    "read": 1,
    "role": "Sales Performance Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Sales Target Editor",
    "share": 1,
    "write": 1
   }

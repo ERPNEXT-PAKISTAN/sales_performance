@@ -1,7 +1,7 @@
 {
  "app": "sales_performance",
  "bg_color": "blue",
- "creation": "2026-09-14 00:00:00.000000",
+ "creation": "2026-09-14 00:00:00",
  "docstatus": 0,
  "doctype": "Desktop Icon",
  "hidden": 0,
@@ -12,24 +12,49 @@
  "link": "/app/sales-performance",
  "link_type": "External",
  "logo_url": "/assets/sales_performance/images/sales-performance-logo.png",
- "modified": "2026-09-15 14:15:00.000000",
+ "modified": "2026-09-24 12:18:47.280778",
  "modified_by": "Administrator",
  "name": "Sales Performance",
  "owner": "Administrator",
  "parent_icon": "",
  "restrict_removal": 0,
  "roles": [
-  { "role": "All" },
-  { "role": "Desk User" },
-  { "role": "System Manager" },
-  { "role": "Sales User" },
-  { "role": "Sales Manager" },
-  { "role": "Accounts Manager" },
-  { "role": "Sales Target User" },
-  { "role": "Sales Target Manager" },
-  { "role": "Sales Target Approver" },
-  { "role": "Sales Performance Manager" },
-  { "role": "Sales Performance Admin" }
+  {
+   "role": "All"
+  },
+  {
+   "role": "Desk User"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Sales Target User"
+  },
+  {
+   "role": "Sales Target Manager"
+  },
+  {
+   "role": "Sales Target Approver"
+  },
+  {
+   "role": "Sales Performance Manager"
+  },
+  {
+   "role": "Sales Performance Admin"
+  },
+  {
+   "role": "Sales Target Editor"
+  }
  ],
  "sidebar": "Sales Performance",
  "standard": 1

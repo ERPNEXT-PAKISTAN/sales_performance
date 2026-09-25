@@ -80,7 +80,8 @@
    "fieldtype": "Link",
    "in_standard_filter": 1,
    "label": "Item Group",
-   "options": "Item Group"
+   "options": "Item Group",
+   "read_only": 1
   },
   {
    "fieldname": "customer_group",
@@ -94,7 +95,8 @@
    "fieldname": "month",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Month"
+   "label": "Month",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_id2",
@@ -104,13 +106,14 @@
    "fieldname": "month_number",
    "fieldtype": "Int",
    "label": "Month Number",
-   "read_only": 1
+   "reqd": 1
   },
   {
    "fieldname": "distribution_percent",
    "fieldtype": "Percent",
    "label": "Distribution %",
-   "precision": 1
+   "precision": 6,
+   "read_only": 1
   },
   {
    "fieldname": "target_section",
@@ -149,7 +152,7 @@
    "in_list_view": 1,
    "label": "Target Rate",
    "options": "Company:company:default_currency",
-   "precision": 0
+   "precision": 6
   },
   {
    "fieldname": "previous_section",

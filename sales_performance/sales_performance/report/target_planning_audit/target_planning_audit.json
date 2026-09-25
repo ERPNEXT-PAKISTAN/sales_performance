@@ -12,7 +12,7 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2026-09-15 14:21:06.095384",
+ "modified": "2026-09-24 12:18:47.244929",
  "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Target Planning Audit",
@@ -54,6 +54,9 @@
   },
   {
    "role": "Sales Performance Manager"
+  },
+  {
+   "role": "Sales Target Editor"
   }
  ],
  "snapshot_report": 0,

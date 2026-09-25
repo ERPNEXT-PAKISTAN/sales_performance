@@ -60,9 +60,17 @@ def calendar_previous_year_dates(fiscal_year, company=None):
 
 def recalculate_proposal(doc, preserve_overrides=True):
 	import frappe
+	from sales_performance.services.target_editor import normalize
 
 	if doc.status in ("Approved", "Cancelled", "Superseded"):
 		frappe.throw("Approved or cancelled plans cannot be recalculated. Create a revision instead.")
+	if doc.get("target_source") in ("Manual", "Copy Existing Plan"):
+		normalize(doc)
+		doc.status = "Calculated"
+		return doc
+	for row in doc.proposal_details or []:
+		row.row_key = make_row_key(row.sales_person or doc.sales_person, row.territory or doc.territory, row.item_code, row.customer_group)
+	manual_months = [m.as_dict() for m in doc.monthly_details or []] if doc.distribution_method == "Manual Monthly" or doc.get("entry_basis") == "Monthly" else []
 
 	doc.status = "Calculating"
 	if not doc.growth_method:
@@ -164,6 +172,8 @@ def recalculate_proposal(doc, preserve_overrides=True):
 	doc.set("monthly_details", [])
 	for row in monthly:
 		doc.append("monthly_details", row)
+	if manual_months:
+		doc.set("monthly_details", manual_months)
 
 	refresh_summary(doc)
 	doc.status = "Calculated"
@@ -342,10 +352,9 @@ def _fetch_current_year_monthly_actuals(doc):
 		company=doc.company,
 		from_date=start,
 		to_date=min(as_on, end),
-		sales_person=doc.sales_person,
-		territory=doc.territory,
-		item_group=getattr(doc, "item_group", None),
-		customer_group=getattr(doc, "customer_group", None),
+		sales_person=None,
+		territory=None,
+		item_codes=list({r.item_code for r in doc.proposal_details or [] if r.item_code}) or None,
 		include_monthly=True,
 	)
 
@@ -461,7 +470,7 @@ def refresh_summary(doc):
 	doc.rows_overridden = sum(
 		1 for r in rows if r.override_reason or nflt(r.override_percent)
 	)
-	doc.rows_without_price = sum(1 for r in rows if not nflt(r.target_selling_rate) or r.price_source == "")
+	doc.rows_without_price = sum(1 for r in rows if not nflt(r.approved_target_rate) and nflt(r.approved_target_qty))
 	warnings = []
 	no_hist = sum(1 for r in rows if NO_HISTORY_REASON in (r.review_reason or ""))
 	no_price = sum(1 for r in rows if NO_PRICE_REASON in (r.review_reason or ""))

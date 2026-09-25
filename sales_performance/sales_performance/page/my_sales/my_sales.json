@@ -1,10 +1,15 @@
 {
+ "content": null,
+ "creation": "2026-09-24 12:18:45.146267",
+ "docstatus": 0,
  "doctype": "Page",
- "name": "my-sales",
- "page_name": "my-sales",
- "title": "My Sales",
+ "idx": 0,
+ "modified": "2026-09-24 12:18:46.972266",
+ "modified_by": "Administrator",
  "module": "Sales Performance",
- "standard": "Yes",
+ "name": "my-sales",
+ "owner": "Administrator",
+ "page_name": "my-sales",
  "roles": [
   {
    "role": "Sales User"
@@ -32,6 +37,14 @@
   },
   {
    "role": "System Manager"
+  },
+  {
+   "role": "Sales Target Editor"
   }
- ]
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "My Sales"
 }

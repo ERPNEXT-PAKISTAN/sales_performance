@@ -1,21 +1,52 @@
 {
  "content": null,
+ "creation": "2026-09-24 12:18:45.344899",
+ "docstatus": 0,
  "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-09-24 12:18:47.167907",
+ "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "achievement-graphics",
+ "owner": "Administrator",
  "page_name": "achievement-graphics",
  "roles": [
-  { "role": "All" },
-  { "role": "Desk User" },
-  { "role": "Sales Target User" },
-  { "role": "Sales Target Manager" },
-  { "role": "Sales Target Approver" },
-  { "role": "Sales Performance Manager" },
-  { "role": "Sales Performance Admin" },
-  { "role": "Sales Manager" },
-  { "role": "Sales User" },
-  { "role": "Accounts Manager" },
-  { "role": "System Manager" }
+  {
+   "role": "All"
+  },
+  {
+   "role": "Desk User"
+  },
+  {
+   "role": "Sales Target User"
+  },
+  {
+   "role": "Sales Target Manager"
+  },
+  {
+   "role": "Sales Target Approver"
+  },
+  {
+   "role": "Sales Performance Manager"
+  },
+  {
+   "role": "Sales Performance Admin"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Sales Target Editor"
+  }
  ],
  "script": null,
  "standard": "Yes",

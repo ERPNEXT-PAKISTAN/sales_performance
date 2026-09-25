@@ -1,0 +1,98 @@
+{
+ "doctype": "DocType",
+ "name": "Sales Target Amendment",
+ "module": "Sales Performance",
+ "autoname": "hash",
+ "field_order": [
+  "planning",
+  "status",
+  "reason",
+  "effective_month",
+  "base_modified",
+  "before_values",
+  "proposed_values",
+  "approved_by",
+  "approved_on",
+  "amendment_number"
+ ],
+ "fields": [
+  {
+   "fieldname": "planning",
+   "label": "Planning",
+   "fieldtype": "Link",
+   "read_only": 1,
+   "options": "Sales Target Planning"
+  },
+  {
+   "fieldname": "status",
+   "label": "Status",
+   "fieldtype": "Select",
+   "read_only": 1,
+   "options": "Draft\nUnder Review\nApplied\nDiscarded"
+  },
+  {
+   "fieldname": "reason",
+   "label": "Reason",
+   "fieldtype": "Small Text",
+   "read_only": 1
+  },
+  {
+   "fieldname": "effective_month",
+   "label": "Effective From Month",
+   "fieldtype": "Int",
+   "read_only": 1
+  },
+  {
+   "fieldname": "base_modified",
+   "label": "Base Modified",
+   "fieldtype": "Data",
+   "read_only": 1
+  },
+  {
+   "fieldname": "before_values",
+   "label": "Before Values",
+   "fieldtype": "Code",
+   "read_only": 1,
+   "options": "JSON"
+  },
+  {
+   "fieldname": "proposed_values",
+   "label": "Proposed Values",
+   "fieldtype": "Code",
+   "read_only": 1,
+   "options": "JSON"
+  },
+  {
+   "fieldname": "approved_by",
+   "label": "Approved By",
+   "fieldtype": "Link",
+   "read_only": 1,
+   "options": "User"
+  },
+  {
+   "fieldname": "approved_on",
+   "label": "Approved On",
+   "fieldtype": "Datetime",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amendment_number",
+   "label": "Amendment Number",
+   "fieldtype": "Int",
+   "read_only": 1
+  }
+ ],
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1
+  },
+  {
+   "role": "Sales Performance Admin",
+   "read": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC"
+}

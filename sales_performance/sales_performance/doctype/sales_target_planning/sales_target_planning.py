@@ -5,7 +5,6 @@ from frappe.utils import now_datetime
 
 from sales_performance.services.growth_engine import get_item_group_ancestors, item_group_in_subtree
 from sales_performance.services.planning_engine import (
-	apply_row_override,
 	recalculate_proposal,
 	refresh_summary,
 )
@@ -34,10 +33,10 @@ class SalesTargetPlanning(Document):
 
 	def validate(self):
 		self._guard_locked_edits()
+		from sales_performance.services.target_editor import normalize, refresh_actuals
+		normalize(self)
+		refresh_actuals(self)
 		self._validate_business_rules()
-		for row in self.proposal_details or []:
-			if row.approved_target_qty not in (None, "") and row.approved_target_rate not in (None, ""):
-				apply_row_override(row)
 		refresh_summary(self)
 
 	def on_trash(self):
@@ -45,13 +44,22 @@ class SalesTargetPlanning(Document):
 			frappe.throw(_("Approved plans cannot be deleted. Cancel or supersede them instead."))
 
 	def _guard_locked_edits(self):
+		from sales_performance.services.target_editor import APPROVAL_TOKEN
+		if self.flags.authorized_target_action is APPROVAL_TOKEN:
+			return
 		if self.is_new():
+			if self.status in LOCKED:
+				frappe.throw(_("New plans must be saved as Draft before approval."))
 			return
 		previous = self.get_doc_before_save()
 		if not previous:
 			return
-		if previous.status in LOCKED and self.status == previous.status:
-			frappe.throw(_("Approved, cancelled, or superseded plans cannot be modified. Create a revision."))
+		if previous.status in LOCKED:
+			frappe.throw(_("Use Amend Targets to change an approved plan. Cancelled or superseded plans cannot be edited."))
+		if self.status == "Approved":
+			frappe.throw(_("Use the Approve action to approve targets."))
+		if self.amendment_count != previous.amendment_count:
+			frappe.throw(_("Amendment history is maintained by the system."))
 
 	def _validate_business_rules(self):
 		if not self.company:
@@ -66,7 +74,7 @@ class SalesTargetPlanning(Document):
 			if not frappe.db.exists("Price List", self.price_list):
 				frappe.throw(_("Invalid Price List"))
 
-		if self.growth_method == "Item Group Rules" and not self.growth_rules:
+		if self.get("target_source") == "Previous Year" and self.growth_method == "Item Group Rules" and not self.growth_rules:
 			frappe.throw(_("Add at least one Item Group Growth Rule to set targets for selected groups"))
 		seen_groups = set()
 		for rule in self.growth_rules or []:
@@ -165,10 +173,16 @@ class SalesTargetPlanning(Document):
 		if self.status in LOCKED and self.status != "Approved":
 			frappe.throw(_("This plan cannot be approved"))
 		self.status = "Approved"
+		from sales_performance.services.target_editor import APPROVAL_TOKEN
+		self.flags.authorized_target_action = APPROVAL_TOKEN
+		self.check_permission("write")
 		self.approved_by = frappe.session.user
 		self.approved_on = now_datetime()
 		self._validate_approval_readiness()
-		self.save()
+		try:
+			self.save()
+		finally:
+			self.flags.authorized_target_action = False
 		if self.previous_planning:
 			prev = frappe.get_doc("Sales Target Planning", self.previous_planning)
 			if prev.status == "Approved":
