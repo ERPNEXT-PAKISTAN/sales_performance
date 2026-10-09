@@ -19,7 +19,7 @@ class MonthlyIncentives {
             ["fiscal_year", "Fiscal Year", "Link", "Fiscal Year", "", 1],
             ["sales_person", "Sales Person", "Link", "Sales Person"],
             ["item_group", "Item Group", "Link", "Item Group"],
-            ["customer_group", "Customer Group", "Link", "Customer Group", "Market"],
+            ["customer_group", "Customer Group", "Link", "Customer Group", ""],
             ["territory", "Territory", "Link", "Territory"],
             ["item", "Item", "Link", "Item"],
             ["incentive_status", "Incentive Achievement", "Select", "All\nAchieved\nNot Achieved", "All"],
@@ -64,7 +64,7 @@ class MonthlyIncentives {
     async set_defaults() {
         try {
             await Promise.all([
-                this.filters.customer_group.set_value("Market"),
+                this.filters.customer_group.set_value(""),
                 this.filters.incentive_status.set_value("All"),
                 this.filters.pay_on.set_value("Scheme Default"),
             ]);

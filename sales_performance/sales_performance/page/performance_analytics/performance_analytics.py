@@ -18,6 +18,7 @@ from sales_performance.services.incentive_engine import (
 	group_dashboard_rows,
 	scheme_settings,
 )
+from sales_performance.services.plan_selection import target_rows
 from sales_performance.services.access import scoped_filters, scope, is_admin, assignments
 from sales_performance.services.planning_engine import calendar_previous_year_dates, fiscal_year_dates
 
@@ -27,6 +28,9 @@ def get_filter_options(company=None, fiscal_year=None):
 	"""Selectable filter values shared by the sales-analysis pages."""
 	allowed = scope(company) if company or not is_admin() else None
 	item_codes = selected_target_item_codes(company, fiscal_year) if company and fiscal_year else None
+	if company and fiscal_year:
+		planned = {r.sales_person for r in target_rows(company, fiscal_year) if r.sales_person}
+		allowed = sorted(planned if allowed is None else planned.intersection(allowed))
 	item_filters = {"disabled": 0}
 	if item_codes is not None:
 		item_filters["name"] = ("in", item_codes or ("",))
@@ -75,7 +79,8 @@ def get_analytics(
 	}
 	filters = scoped_filters({"company": company, **filters})
 	filters.pop("company", None)
-	filters["item_codes"] = selected_target_item_codes(company, fiscal_year)
+	filters["_target_rows"] = target_rows(company, fiscal_year)
+	filters["item_codes"] = sorted({r.item_code for r in filters["_target_rows"] if r.item_code})
 
 	sales = {}
 	for dimension in ("sales_person", "territory", "item_group", "customer_group", "customer", "item"):

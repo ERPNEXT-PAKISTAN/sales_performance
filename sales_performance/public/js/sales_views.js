@@ -9,7 +9,7 @@ sales_performance.SalesView = class {
         if (!manager) fields.push(["sales_person", "Sales Person", "Select", ""]);
         fields.forEach(([fieldname,label,fieldtype,options]) => {
             this.filters[fieldname] = frappe.ui.form.make_control({parent:$('<div></div>').appendTo(this.root.find('.sp-sales-filters')),render_input:true,
-                df:{fieldname,label:__(label),fieldtype,options,change:()=>{ if(this.ready){ clearTimeout(this.timer); this.timer=setTimeout(()=>fieldname==="company" ? this.load_people().then(()=>this.refresh()) : this.refresh(),180); } }}});
+                df:{fieldname,label:__(label),fieldtype,options,change:()=>{ if(this.ready){ clearTimeout(this.timer); this.timer=setTimeout(()=>["company","fiscal_year","customer_group"].includes(fieldname) ? this.load_people().then(()=>this.refresh()) : this.refresh(),180); } }}});
         });
         this.content = this.root.find('.sp-sales-content');
         page.set_primary_action(__("Refresh"),()=>this.refresh(),"refresh");
@@ -45,7 +45,7 @@ sales_performance.SalesView = class {
             if(!context.companies.includes(this.filters.company.get_value()))await this.filters.company.set_value(context.companies[0]);
             await this.filters.fiscal_year.set_value(route.fiscal_year || year?.name || '');
             await this.filters.month.set_value(route.month || String(new Date().getMonth()+1));
-            await this.filters.customer_group.set_value(route.customer_group === undefined ? 'Market' : route.customer_group);
+            await this.filters.customer_group.set_value(route.customer_group || '');
             await this.load_people(route.sales_person);
             this.ready=true;this.refresh();
             this.autoRefresh = setInterval(()=>{if(this.root.is(':visible') && !document.hidden && !window.cur_dialog)this.refresh(true);},60000);
@@ -53,10 +53,10 @@ sales_performance.SalesView = class {
     }
     async load_people(person){
         if(this.manager)return;
-        const people=await this.call('get_people',{company:this.filters.company.get_value()});
+        const people=await this.call('get_people',{company:this.filters.company.get_value(),fiscal_year:this.filters.fiscal_year.get_value(),customer_group:this.filters.customer_group.get_value()});
         const field=this.filters.sales_person;const previous=person || field.get_value();
         field.df.options=people;field.refresh();
-        await field.set_value(people.includes(previous)?previous:people.length===1?people[0]:'');
+        await field.set_value(people.includes(previous)?previous:people[0] || '');
         field.$wrapper.toggle(people.length!==1);
     }
     async refresh(silent=false){

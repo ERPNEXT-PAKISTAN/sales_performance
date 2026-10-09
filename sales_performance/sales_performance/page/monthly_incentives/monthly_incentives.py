@@ -10,7 +10,7 @@ from sales_performance.services.incentive_engine import (
 
 @frappe.whitelist()
 def get_data(company=None, fiscal_year=None, sales_person=None, item_group=None,
-             customer_group="Market", territory=None, item=None, incentive_status="All",
+             customer_group=None, territory=None, item=None, incentive_status="All",
              pay_on=None, from_date=None, to_date=None, include_details=False, detail_month=None):
     if not company or not fiscal_year:
         frappe.throw(_("Company and Fiscal Year are required"))

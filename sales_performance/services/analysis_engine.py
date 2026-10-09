@@ -11,7 +11,7 @@ from sales_performance.services.growth_engine import (
 	get_item_group_subtree_names,
 )
 from sales_performance.services.precision import round_percent
-from sales_performance.services.plan_selection import applicable_plans
+from sales_performance.services.plan_selection import applicable_plans, target_rows, target_sales_condition
 
 
 DIMENSIONS = {
@@ -73,6 +73,7 @@ def fetch_sales_by_dimension(
 	item=None,
 	item_codes=None,
 	_allowed_sales_persons=None,
+	_target_rows=None,
 ):
 	"""Invoice qty/amount grouped by one dimension (calendar or FY window)."""
 	import frappe
@@ -127,6 +128,9 @@ def fetch_sales_by_dimension(
 		conditions.append("sii.item_code in %(item_codes)s")
 		values["item_codes"] = tuple(item_codes)
 
+	if _target_rows is not None:
+		conditions.append(target_sales_condition(_target_rows, values))
+		needs_team = True
 	if needs_team:
 		sales_join = """left join `tabSales Team` st
 			on st.parent = si.name and st.parenttype = 'Sales Invoice'"""
@@ -202,6 +206,9 @@ def fetch_monthly_sales(company, from_date, to_date, **filters):
 			return []
 		conditions.append("sii.item_code in %(item_codes)s")
 		values["item_codes"] = tuple(filters["item_codes"])
+	if filters.get("_target_rows") is not None:
+		conditions.append(target_sales_condition(filters["_target_rows"], values))
+		needs_team = True
 	if needs_team:
 		sales_join = """left join `tabSales Team` st
 			on st.parent = si.name and st.parenttype = 'Sales Invoice'"""
@@ -257,56 +264,8 @@ def merge_period_rows(current_rows, previous_rows, target_map=None):
 
 
 def selected_target_item_codes(company, fiscal_year):
-	"""Return the item scope of the applicable target plans.
-
-	Dashboards must not report invoice items that are outside Sales Target Planning.
-	"""
-	import frappe
-
-	plans = frappe.get_all(
-		"Sales Target Planning",
-		filters={"company": company, "fiscal_year": fiscal_year, "status": ("in", ("Approved", "Calculated", "Under Review"))},
-		fields=["name", "status", "planning_version", "sales_person", "territory", "growth_method", "target_source"],
-		order_by="planning_version desc",
-	)
-	plans_by_name = {plan.name: plan for plan in applicable_plans(plans)}
-	if not plans_by_name:
-		return []
-	rules_by_plan = {}
-	for rule in frappe.get_all(
-		"Item Group Growth Rule",
-		filters={"parent": ("in", list(plans_by_name))},
-		fields=["parent", "item_group", "apply_to_children"],
-		ignore_permissions=True,
-	):
-		rules_by_plan.setdefault(rule.parent, []).append(rule)
-
-	children_by_group = {}
-	def matches_rule_scope(row):
-		plan = plans_by_name.get(row.parent)
-		if not plan or plan.growth_method != "Item Group Rules" or plan.get("target_source") in ("Manual", "Copy Existing Plan"):
-			return True
-		for rule in rules_by_plan.get(row.parent, []):
-			if row.item_group == rule.item_group:
-				return True
-			if rule.apply_to_children:
-				children = children_by_group.setdefault(
-					rule.item_group, set(get_item_group_subtree_names(rule.item_group))
-				)
-				if row.item_group in children:
-					return True
-		return False
-
-	return sorted({
-		row.item_code
-		for row in frappe.get_all(
-			"Target Proposal Detail",
-			filters={"parent": ("in", list(plans_by_name))},
-			fields=["parent", "item_code", "item_group"],
-			ignore_permissions=True,
-		)
-		if row.item_code and matches_rule_scope(row)
-	})
+	"""The saved proposal rows define the target item scope."""
+	return sorted({r.item_code for r in target_rows(company, fiscal_year) if r.item_code})
 
 
 def customer_target_totals(company, fiscal_year, previous_start, previous_end, **filters):
@@ -354,32 +313,9 @@ def target_totals_by_dimension(company, fiscal_year, dimension="sales_person", *
 		return {}
 	if not frappe.db.has_column("Target Proposal Detail", field):
 		return {}
-	plans = frappe.get_all(
-		"Sales Target Planning",
-		filters={"company": company, "fiscal_year": fiscal_year, "status": ("in", ("Approved", "Calculated", "Under Review"))},
-		fields=["name", "status", "planning_version", "sales_person", "territory"],
-		order_by="planning_version desc",
-	)
-	use = applicable_plans(plans)
-	if not use:
-		return {}
-	rows = frappe.get_all(
-		"Target Proposal Detail",
-		filters={"parent": ("in", [p.name for p in use])},
-		fields=[
-			field,
-			"sales_person",
-			"territory",
-			"item_group",
-			"customer_group",
-			"item_code",
-			"approved_target_qty",
-			"approved_target_amount",
-			"growth_percent",
-			"previous_year_actual_qty",
-		],
-		ignore_permissions=True,
-	)
+	rows = filters.get("_target_rows")
+	if rows is None:
+		rows = target_rows(company, fiscal_year)
 	allowed_item_groups = set(get_item_group_subtree_names(filters.get("item_group"))) if filters.get("item_group") else None
 	allowed_customer_groups = set(get_customer_group_subtree_names(filters.get("customer_group"))) if filters.get("customer_group") else None
 	out = {}

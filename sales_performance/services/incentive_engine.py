@@ -483,40 +483,8 @@ def collect_period_incentive_rows(filters):
 
 	latest_plans = {p.name: p for p in applicable_plans(plans)}
 
-	detail_fields = [
-		"parent",
-		"row_key",
-		"sales_person",
-		"territory",
-		"item_group",
-		"item_code",
-		"approved_target_qty",
-		"approved_target_amount",
-		"growth_percent",
-	]
-	if frappe.db.has_column("Target Proposal Detail", "customer_group"):
-		detail_fields.append("customer_group")
-	rows = frappe.get_all(
-		"Target Proposal Detail",
-		filters={"parent": ("in", list(latest_plans))},
-		fields=detail_fields,
-		ignore_permissions=True,
-	)
-	# Older detail rows can predate these dimensions. The parent plan remains
-	# authoritative for their scope, so retain it for report output and matching.
-	for row in rows:
-		plan = latest_plans.get(row.parent)
-		if not plan:
-			continue
-		if not row.get("territory") and plan.get("territory"):
-			row.territory = plan.territory
-		if not row.get("customer_group") and plan.get("customer_group"):
-			row.customer_group = plan.customer_group
-	# Keep all achievement and incentive outputs on the same item-group rule
-	# scope as Performance Analytics, including plans revised after their rows
-	# were originally calculated.
-	allowed_item_codes = set(selected_target_item_codes(filters.company, filters.fiscal_year))
-	rows = [row for row in rows if row.item_code in allowed_item_codes]
+	from sales_performance.services.plan_selection import target_rows
+	rows = target_rows(filters.company, filters.fiscal_year, bool(filters.get("approved_only")))
 	# Proposal rows define the scope of achievement and incentive actuals,
 	# including when only selected items in an item group were planned.
 	planned_item_codes = sorted({row.item_code for row in rows if row.item_code})

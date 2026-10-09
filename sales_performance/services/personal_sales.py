@@ -40,8 +40,15 @@ def get_context():
 
 
 @frappe.whitelist()
-def get_people(company):
+def get_people(company, fiscal_year=None, customer_group=None):
     allowed = scope(company)
+    if fiscal_year:
+        from sales_performance.services.plan_selection import target_rows
+        from sales_performance.services.growth_engine import get_customer_group_subtree_names
+        groups = set(get_customer_group_subtree_names(customer_group)) if customer_group else None
+        planned = {r.sales_person for r in target_rows(company, fiscal_year, approved_only=True)
+                   if r.sales_person and (groups is None or r.customer_group in groups)}
+        allowed = sorted(planned if allowed is None else planned.intersection(allowed))
     return frappe.get_all("Sales Person", filters={"is_group": 0, **({"name": ["in", allowed]} if allowed is not None else {})}, pluck="name", order_by="name")
 
 
@@ -80,7 +87,7 @@ def pace(row, first, last, metric="amount"):
 
 
 @frappe.whitelist()
-def get_personal_data(company, fiscal_year, month, sales_person=None, customer_group="Market"):
+def get_personal_data(company, fiscal_year, month, sales_person=None, customer_group=None):
     person = personal_person(company, sales_person)
     first, last = month_dates(company, fiscal_year, month)
     filters = {"company": company, "fiscal_year": fiscal_year, "sales_person": person,
@@ -133,15 +140,18 @@ def plan_updates(rows, person, company):
 
 
 @frappe.whitelist()
-def get_personal_sales(company, fiscal_year, month, sales_person=None, customer_group="Market", offset=0):
+def get_personal_sales(company, fiscal_year, month, sales_person=None, customer_group=None, offset=0):
     person = personal_person(company, sales_person)
     first, last = month_dates(company, fiscal_year, month)
     offset = max(0, int(offset))
     from sales_performance.services.growth_engine import get_customer_group_subtree_names
     conditions = ""
     values = {"company": company, "person": person, "first": first, "last": last, "offset": offset}
+    from sales_performance.services.plan_selection import target_rows, target_sales_condition
+    planned = target_rows(company, fiscal_year, approved_only=True)
+    conditions = "and " + target_sales_condition(planned, values)
     if customer_group:
-        conditions = "and si.customer_group in %(groups)s"
+        conditions += " and si.customer_group in %(groups)s"
         values["groups"] = tuple(get_customer_group_subtree_names(customer_group))
     # Show only the user's attributed portion; never expose whole invoice totals.
     records = frappe.db.sql(f"""select si.name, si.posting_date, si.customer_name, si.is_return,
@@ -193,7 +203,7 @@ def acknowledge_plan(company, sales_person, planning):
 
 
 @frappe.whitelist()
-def get_manager_data(company, fiscal_year, month, customer_group="Market"):
+def get_manager_data(company, fiscal_year, month, customer_group=None):
     allowed = require_manager(company)
     first, last = month_dates(company, fiscal_year, month)
     filters = {"company":company,"fiscal_year":fiscal_year,"period":"Monthly","customer_group":customer_group}

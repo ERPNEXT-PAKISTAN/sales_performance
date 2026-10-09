@@ -102,7 +102,7 @@ class AchievementGraphics {
 		]))
 			.then(() => this.set_fiscal_year_default())
 			.then(() => this.load_filter_options())
-			.then(() => this.set_control_value(this.filters.customer_group, "Market"))
+			.then(() => this.set_control_value(this.filters.customer_group, ""))
 			.then(async () => {
                 const values = frappe.route_options || {}; frappe.route_options = null;
                 for (const [key,value] of Object.entries(values)) if (this.filters[key]) await this.filters[key].set_value(value);
@@ -123,7 +123,7 @@ class AchievementGraphics {
 			["territory", "Select", __("Territory"), ""],
 			["item_group", "Select", __("Item Group"), ""],
 			["ranking", "Select", __("Show"), "Largest target gap\nLowest achievement\nHighest achievement", "Largest target gap"],
-			["customer_group", "Select", __("Customer Group"), "\nMarket", "Market"],
+			["customer_group", "Select", __("Customer Group"), "", ""],
 			["item", "Select", __("Item"), ""],
 		];
 		this.filters = {};
@@ -196,7 +196,7 @@ class AchievementGraphics {
 		this.set_control_value(this.filters.judge, "Qty");
 		this.set_control_value(this.filters.ranking, "Largest target gap");
 		["month", "quarter", "sales_person", "territory", "item_group", "customer_group", "item"].forEach((name) => {
-			this.set_control_value(this.filters[name], name === "customer_group" ? "Market" : "");
+			this.set_control_value(this.filters[name], "");
 		});
 		this.set_fiscal_year_default().then(() => {
 			this.period_visibility();

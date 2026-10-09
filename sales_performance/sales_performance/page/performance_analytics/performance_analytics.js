@@ -95,7 +95,7 @@ class PerformanceAnalytics {
 		]))
 			.then(() => this.set_fiscal_year_default())
 			.then(() => this.load_filter_options())
-			.then(() => this.set_control_value(this.filters.customer_group, "Market"))
+			.then(() => this.set_control_value(this.filters.customer_group, ""))
 			.then(async () => {
                 const values = frappe.route_options || {}; frappe.route_options = null;
                 for (const [key,value] of Object.entries(values)) if (this.filters[key]) await this.filters[key].set_value(value);
@@ -116,7 +116,7 @@ class PerformanceAnalytics {
 			["sales_person", "Select", __("Sales Person"), ""],
 			["territory", "Select", __("Territory"), ""],
 			["item_group", "Select", __("Item Group"), ""],
-			["customer_group", "Select", __("Customer Group"), "\nMarket", "Market"],
+			["customer_group", "Select", __("Customer Group"), "", ""],
 			["customer", "Select", __("Customer"), ""],
 			["item", "Select", __("Item"), ""],
 		];
