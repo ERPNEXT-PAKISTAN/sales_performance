@@ -139,7 +139,7 @@ class PerformanceAnalytics {
 	load_filter_options() {
 		return Promise.resolve(frappe.call({
 			method: "sales_performance.sales_performance.page.performance_analytics.performance_analytics.get_filter_options",
-			args: { company: this.filters.company.get_value(), fiscal_year: this.filters.fiscal_year.get_value() },
+			args: { company: this.filters.company.get_value(), fiscal_year: this.filters.fiscal_year.get_value(), include_unplanned: 1 },
 		})).then((r) => {
 			const lists = r.message || {};
 			const fields = { company: "companies", fiscal_year: "fiscal_years", sales_person: "sales_persons", territory: "territories", item_group: "item_groups", customer_group: "customer_groups", customer: "customers", item: "items" };

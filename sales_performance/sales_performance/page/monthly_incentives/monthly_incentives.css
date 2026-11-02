@@ -1,25 +1,99 @@
-.monthly-incentives { padding: 16px; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
-.monthly-incentives .mi-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 4px 12px; margin-bottom: 12px; }
-.monthly-incentives .mi-filter, .monthly-incentives .mi-results { min-width: 0; }
-.monthly-incentives .mi-filter .form-group { margin-bottom: 8px; }
-.monthly-incentives .mi-summary { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 12px; }
-.monthly-incentives .mi-scroll { overflow-y: auto; overflow-x: hidden; max-height: 65vh; width: 100%; border: 1px solid var(--border-color); border-radius: 8px; }
-.monthly-incentives .mi-table { margin: 0; width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; font-size: 11px; }
-.monthly-incentives .mi-label-column { width: 20%; }
-.monthly-incentives .mi-table th, .monthly-incentives .mi-table td { padding: 10px 3px; min-width: 0; white-space: normal; overflow-wrap: anywhere; border-top: 0; border-bottom: 1px solid var(--border-color); }
-.monthly-incentives .mi-table tr > :first-child { background: var(--card-bg); border-right: 1px solid var(--border-color); text-align: left; }
-.monthly-incentives .mi-table thead th { position: sticky; top: 0; z-index: 3; background: var(--subtle-fg); text-align: right; }
-.monthly-incentives .mi-number { text-align: right; }
-.monthly-incentives .mi-person, .monthly-incentives .mi-person > :first-child { font-weight: 600; background: var(--subtle-fg); }
-.monthly-incentives .mi-toggle { border: 0; background: transparent; color: var(--text-color); text-align: left; padding: 0; width: 100%; font-weight: 600; cursor: pointer; overflow-wrap: anywhere; }
-.monthly-incentives .mi-toggle:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.monthly-incentives .mi-item th { padding-left: 14px; font-weight: 400; }
-.monthly-incentives .mi-item small { display: block; margin-top: 4px; }
-.monthly-incentives .mi-total { font-weight: 700; background: var(--subtle-fg); }
-.monthly-incentives .mi-table tfoot th, .monthly-incentives .mi-table tfoot td { position: sticky; bottom: 0; z-index: 4; background: var(--subtle-fg); font-weight: 700; border-top: 2px solid var(--border-color); }
-.monthly-incentives .mi-note { margin: 12px 0 0; font-size: 12px; }
-.monthly-incentives .mi-message { padding: 48px 16px; text-align: center; }
-@media (max-width: 767px) { .monthly-incentives { padding: 8px 0; } .monthly-incentives .mi-table { font-size: 9px; } .monthly-incentives .mi-table th, .monthly-incentives .mi-table td { padding: 8px 1px; } .monthly-incentives .mi-item th { padding-left: 4px; } }
+.monthly-incentives {
+	--mi-accent: #047857;
+	--mi-accent-dark: #064e3b;
+	--mi-soft: #ecfdf5;
+	--mi-border: #d7e9e1;
+	width: 100%;
+	max-width: 100%;
+	min-width: 0;
+	padding: 18px 16px 36px;
+	box-sizing: border-box;
+}
 
-.monthly-incentives .mi-value { border:0; background:transparent; color:inherit; padding:0; font:inherit; text-align:inherit; width:100%; overflow-wrap:anywhere; }
-.monthly-incentives .mi-value:hover { text-decoration:underline; color:var(--primary); }
+.monthly-incentives *, .monthly-incentives *::before, .monthly-incentives *::after { box-sizing: border-box; }
+
+.monthly-incentives .mi-filters {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 8px 10px;
+	margin-bottom: 15px;
+	padding: 15px;
+	border: 1px solid var(--mi-border);
+	border-top: 4px solid var(--mi-accent);
+	border-radius: 15px;
+	background: linear-gradient(120deg, #f3fbf7, #fff 68%);
+	box-shadow: 0 7px 20px rgba(20, 60, 45, .06);
+}
+
+.monthly-incentives .mi-filter, .monthly-incentives .mi-results { min-width: 0; }
+.monthly-incentives .mi-filter .form-group { margin-bottom: 4px; }
+.monthly-incentives .mi-filter .control-label { color: #526c60; font-size: 10px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+.monthly-incentives .mi-filter .form-control { height: 32px; border: 1px solid #d6e2dc; border-radius: 8px; background: #fff; font-size: 12px; font-weight: 600; }
+.monthly-incentives .mi-filter .form-control:focus { border-color: var(--mi-accent); box-shadow: 0 0 0 3px rgba(4, 120, 87, .12); }
+
+.monthly-incentives .mi-summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 14px;
+	margin: 0 0 12px;
+	padding: 12px 15px;
+	border: 1px solid #d9e9e2;
+	border-radius: 12px;
+	background: linear-gradient(100deg, #e8f8f0, #f4f3ff 72%, #fff7ed);
+	color: #526579;
+	font-size: 12px;
+}
+
+.monthly-incentives .mi-summary strong { padding: 5px 10px; border-radius: 999px; background: #065f46; color: #fff; font-size: 12px; }
+.monthly-incentives .mi-summary .text-muted { color: #64748b !important; }
+
+.monthly-incentives .mi-scroll {
+	width: 100%;
+	max-height: 68vh;
+	overflow: auto;
+	border: 1px solid #dce7e2;
+	border-radius: 14px;
+	background: #fff;
+	box-shadow: 0 10px 26px rgba(25, 60, 48, .075);
+}
+
+.monthly-incentives .mi-scroll:focus-visible { outline: 3px solid rgba(4, 120, 87, .28); outline-offset: 2px; }
+.monthly-incentives .mi-table { width: 100%; min-width: 1080px; margin: 0; table-layout: fixed; border-collapse: separate; border-spacing: 0; background: #fff; font-size: 11px; font-variant-numeric: tabular-nums; }
+.monthly-incentives .mi-label-column { width: 22%; }
+.monthly-incentives .mi-table th, .monthly-incentives .mi-table td { min-width: 0; padding: 9px 5px; border: 0; border-bottom: 1px solid #e8eeeb; white-space: normal; overflow-wrap: anywhere; }
+.monthly-incentives .mi-table tr > :first-child { position: sticky; left: 0; z-index: 2; border-right: 1px solid #dce7e2; background: #f8fbf9; text-align: left; }
+.monthly-incentives .mi-table thead th { position: sticky; top: 0; z-index: 3; background: linear-gradient(110deg, #064e3b, #047857 62%, #0e7490); color: #fff; text-align: right; font-weight: 800; }
+.monthly-incentives .mi-table thead th:first-child { z-index: 5; background: linear-gradient(110deg, #064e3b, #047857); }
+.monthly-incentives .mi-table thead th:not(:first-child) { border-left: 1px solid rgba(255, 255, 255, .16); }
+.monthly-incentives .mi-number { text-align: right; }
+.monthly-incentives .mi-table tbody tr:nth-child(even) td { background-color: #fbfdfc; }
+.monthly-incentives .mi-table tbody tr:hover td { background-color: #f0fdfa; }
+.monthly-incentives .mi-person th, .monthly-incentives .mi-person td { background: #e9f7f0 !important; color: #14532d; font-weight: 750; }
+.monthly-incentives .mi-person th { border-left: 4px solid #10b981; }
+.monthly-incentives .mi-toggle { width: 100%; padding: 2px 0; border: 0; background: transparent; color: #14532d; text-align: left; font-weight: 800; cursor: pointer; overflow-wrap: anywhere; }
+.monthly-incentives .mi-toggle span { display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; margin-right: 5px; border-radius: 7px; background: #d1fae5; color: #047857; }
+.monthly-incentives .mi-toggle:focus-visible { outline: 2px solid #059669; outline-offset: 2px; border-radius: 4px; }
+.monthly-incentives .mi-toggle small { color: #64748b; font-weight: 600; }
+.monthly-incentives .mi-item th { padding-left: 25px; background: #fff !important; color: #344054; font-weight: 650; }
+.monthly-incentives .mi-item td { background: #fff !important; }
+.monthly-incentives .mi-item:hover th, .monthly-incentives .mi-item:hover td { background: #f5faff !important; }
+.monthly-incentives .mi-item small { display: block; margin-top: 4px; color: #7a8795; font-size: 10px; font-weight: 450; }
+.monthly-incentives .mi-total { background: #f1f5f9 !important; color: #1e293b; font-weight: 800; }
+.monthly-incentives .mi-table tfoot th, .monthly-incentives .mi-table tfoot td { position: sticky; bottom: 0; z-index: 4; border-top: 2px solid #9bd6bd; border-bottom: 0; background: linear-gradient(105deg, #d1fae5, #e0f2fe) !important; color: #064e3b; font-weight: 850; }
+.monthly-incentives .mi-table tfoot th { z-index: 5; border-left: 4px solid #047857; }
+.monthly-incentives .mi-value { width: 100%; padding: 2px 0; border: 0; background: transparent; color: inherit; text-align: inherit; font: inherit; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.monthly-incentives .mi-table thead .mi-value { color: #fff; font-weight: 800; }
+.monthly-incentives .mi-value:hover { color: #0f766e; text-decoration: underline; }
+.monthly-incentives .mi-table thead .mi-value:hover { color: #d1fae5; }
+.monthly-incentives .mi-note { margin: 11px 2px 0; padding: 9px 12px; border-left: 3px solid #f59e0b; border-radius: 4px 8px 8px 4px; background: #fffbeb; color: #64748b; font-size: 11px; }
+.monthly-incentives .mi-message { padding: 46px 18px; border: 1px dashed #cbd5e1; border-radius: 14px; background: linear-gradient(130deg, #f8fafc, #ecfdf5); color: #64748b; text-align: center; }
+
+@media (max-width: 767px) {
+	.monthly-incentives { padding: 10px 3px 28px; }
+	.monthly-incentives .mi-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 10px; }
+	.monthly-incentives .mi-table { min-width: 920px; font-size: 10px; }
+	.monthly-incentives .mi-label-column { width: 25%; }
+	.monthly-incentives .mi-table th, .monthly-incentives .mi-table td { padding: 8px 3px; }
+	.monthly-incentives .mi-item th { padding-left: 14px; }
+}

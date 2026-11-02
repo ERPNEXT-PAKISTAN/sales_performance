@@ -17,7 +17,7 @@ class MonthlyIncentives {
         for (const [fieldname, label, fieldtype, options, value, reqd] of [
             ["company", "Company", "Link", "Company", "", 1],
             ["fiscal_year", "Fiscal Year", "Link", "Fiscal Year", "", 1],
-            ["sales_person", "Sales Person", "Link", "Sales Person"],
+            ["sales_person", "Sales Person", "Select", __("All Sales Persons"), __("All Sales Persons")],
             ["item_group", "Item Group", "Link", "Item Group"],
             ["customer_group", "Customer Group", "Link", "Customer Group", ""],
             ["territory", "Territory", "Link", "Territory"],
@@ -31,9 +31,12 @@ class MonthlyIncentives {
                 parent: $('<div class="mi-filter"></div>').appendTo(host), render_input: true,
                 df: {fieldname, label: __(label), fieldtype, options, default: value, reqd,
                     change: () => {
-                        if (!this.ready) return;
+                        if (!this.ready || this.loading_sales_people) return;
                         clearTimeout(this.filter_timer);
-                        this.filter_timer = setTimeout(() => this.refresh(), 200);
+                        this.filter_timer = setTimeout(async () => {
+                            if (["company", "fiscal_year"].includes(fieldname)) await this.load_sales_people();
+                            this.refresh();
+                        }, 200);
                     }},
             });
         }
@@ -80,6 +83,7 @@ class MonthlyIncentives {
                 year = years[0]?.name;
             }
             await this.filters.fiscal_year.set_value(year || "");
+            await this.load_sales_people();
         } catch (error) {
             // Leave filters editable if a default cannot be resolved.
         } finally {
@@ -88,9 +92,38 @@ class MonthlyIncentives {
         }
     }
 
+    async load_sales_people() {
+        const control = this.filters.sales_person;
+        const previous = control.get_value();
+        const all_people = __("All Sales Persons");
+        const company = this.filters.company.get_value();
+        this.loading_sales_people = true;
+        try {
+            let people = [];
+            if (company) {
+                const response = await frappe.call({
+                    method: "sales_performance.services.personal_sales.get_people",
+                    args: {company, fiscal_year: this.filters.fiscal_year.get_value()},
+                });
+                people = response.message || [];
+            }
+            control.df.options = [all_people, ...people];
+            control.refresh();
+            await control.set_value(people.includes(previous) ? previous : all_people);
+        } finally {
+            this.loading_sales_people = false;
+        }
+    }
+
+    filter_values() {
+        const values = Object.fromEntries(Object.entries(this.filters).map(([key, field]) => [key, field.get_value()]));
+        if (values.sales_person === __("All Sales Persons")) values.sales_person = "";
+        return values;
+    }
+
     async refresh() {
         const sequence = ++this.sequence;
-        const args = Object.fromEntries(Object.entries(this.filters).map(([key, field]) => [key, field.get_value()]));
+        const args = this.filter_values();
         this.data = null;
         if (!args.company || !args.fiscal_year) {
             this.message(__("Select Company and Fiscal Year to view monthly incentives."));
@@ -111,7 +144,7 @@ class MonthlyIncentives {
     }
 
     async explain(month = null, person = null, item = null) {
-        const args = Object.fromEntries(Object.entries(this.filters).map(([key, field]) => [key, field.get_value()]));
+        const args = this.filter_values();
         const response = await frappe.call({method: "sales_performance.sales_performance.page.monthly_incentives.monthly_incentives.get_data", args: {...args, include_details: 1, detail_month: month}});
         const data = response.message;
         const rows = (data.details || []).filter(row => (!person || row.sales_person === person) && (!item || ["item_code", "territory", "customer_group", "item_group"].every(key => (row[key] || "") === (item[key] || ""))) && (month || row.incentive_amount > 0));

@@ -293,7 +293,7 @@ def _ensure_workspace_exists():
 			cards = {
 				"Plan & Approve": [("Sales Target Planning", "Sales Target Planning", "DocType"), ("Target Planning Audit", "Target Planning Audit", "Report")],
 				"Performance": [("Performance Analytics", "performance-analytics", "Page"), ("Target Achievement", "target-achievement", "Page"), ("Achievement Graphics", "achievement-graphics", "Page")],
-				"Reports": [("Sales Target Achievement", "Sales Target Achievement", "Report"), ("Sales Target Monthly Performance", "Sales Target Monthly Performance", "Report"), ("Target Achievement Status", "Target Achievement Status", "Report")],
+				"Reports": [("Sales Target Achievement", "Sales Target Achievement", "Report"), ("Sales Target by Territory", "Sales Target by Territory", "Report"), ("Sales Target Monthly Performance", "Sales Target Monthly Performance", "Report"), ("Target Achievement Status", "Target Achievement Status", "Report")],
 				"Incentives & Setup": [("Incentive Dashboard", "incentive-dashboard", "Page"), ("Monthly Incentives", "monthly-incentives", "Page"), ("Sales Incentive Payout", "Sales Incentive Payout", "DocType"), ("Incentive Scheme", "Incentive Scheme", "DocType"), ("Sales Performance Settings", "Sales Performance Settings", "DocType")],
 			}
 			doc.content = json.dumps(
@@ -309,6 +309,29 @@ def _ensure_workspace_exists():
 					if (link_label, link_to, link_type) not in existing:
 						doc.append("links", {"type": "Link", "label": link_label, "link_to": link_to, "link_type": link_type, "is_query_report": 1 if link_type == "Report" else 0})
 			doc.flags.ignore_permissions = True
+			doc.save()
+		existing = {(link.label, link.link_to, link.link_type) for link in doc.links or []}
+		report_link = ("Sales Target by Territory", "Sales Target by Territory", "Report")
+		changed = False
+		if report_link not in existing:
+			doc.append(
+				"links",
+				{
+					"type": "Link",
+					"label": report_link[0],
+					"link_to": report_link[1],
+					"link_type": report_link[2],
+					"is_query_report": 1,
+				},
+			)
+			changed = True
+		for link in doc.links or []:
+			if link.type == "Card Break" and link.label == "Reports" and link.link_count != 4:
+				link.link_count = 4
+				changed = True
+		if changed:
+			doc.flags.ignore_permissions = True
+			doc.flags.ignore_validate = True
 			doc.save()
 		return
 	if not frappe.db.exists("Module Def", "Sales Performance"):

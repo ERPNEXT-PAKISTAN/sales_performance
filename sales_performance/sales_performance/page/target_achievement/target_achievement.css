@@ -1,1 +1,130 @@
-/* Visual style lives in /assets/sales_performance/css/desk_dashboard.css */
+#ta_dashboard_root {
+	--ta-ink: #173b46;
+	--ta-line: #dbe9e8;
+	width: 100%;
+	color: #334155;
+}
+
+#ta_dashboard_root .sp-dash-hero {
+	margin: 0 0 18px;
+	padding: 20px 22px;
+	border: 1px solid #d9e9e8;
+	border-radius: 17px;
+	background: linear-gradient(115deg, #ecfdf5 0%, #f0fdfa 45%, #eef2ff 100%);
+	box-shadow: 0 8px 24px rgba(15, 118, 110, .09);
+}
+
+#ta_dashboard_root .sp-dash-title {
+	background: linear-gradient(115deg, #047857, #0e7490 55%, #4f46e5);
+	-webkit-background-clip: text;
+	background-clip: text;
+	font-size: 31px;
+	letter-spacing: -.04em;
+}
+
+#ta_dashboard_root .sp-dash-sub p { color: #526b71; }
+#ta_dashboard_root .sp-dash-refresh-pill { border: 1px solid #b7e4d1; border-radius: 999px; background: #fff; color: #047857; }
+
+#ta_dashboard_root .sp-kpis { gap: 11px; margin-bottom: 18px; }
+#ta_dashboard_root .sp-kpi { min-height: 94px; padding: 15px 17px; border: 1px solid rgba(255, 255, 255, .6); border-radius: 15px; box-shadow: 0 7px 18px rgba(26, 53, 71, .12); }
+#ta_dashboard_root .sp-kpi:nth-child(1) { background: linear-gradient(135deg, #059669, #0d9488); }
+#ta_dashboard_root .sp-kpi:nth-child(2) { background: linear-gradient(135deg, #e11d48, #be123c); }
+#ta_dashboard_root .sp-kpi:nth-child(3) { background: linear-gradient(135deg, #0284c7, #2563eb); }
+#ta_dashboard_root .sp-kpi:nth-child(4) { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+#ta_dashboard_root .sp-kpi-label { font-weight: 700; letter-spacing: .02em; }
+#ta_dashboard_root .sp-kpi-value { font-size: 27px; font-variant-numeric: tabular-nums; }
+#ta_dashboard_root .sp-kpi:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(26, 53, 71, .18); }
+
+#ta_dashboard_root .sp-filter-panel {
+	margin-bottom: 17px;
+	padding: 14px;
+	border: 1px solid var(--ta-line);
+	border-top: 4px solid #0f766e;
+	border-radius: 15px;
+	background: linear-gradient(120deg, #f0fdfa, #fff 52%, #f5f3ff);
+	box-shadow: 0 7px 20px rgba(26, 53, 71, .07);
+}
+
+#ta_dashboard_root .sp-filter-row { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+#ta_dashboard_root .sp-filter-grid {
+	display: grid !important;
+	grid-auto-flow: row !important;
+	grid-auto-columns: unset !important;
+	grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)) !important;
+	gap: 9px !important;
+}
+
+#ta_dashboard_root .sp-filter-item { padding: 8px 9px 6px; border: 1px solid #dce9e8; border-radius: 10px; background: rgba(255, 255, 255, .86); }
+#ta_dashboard_root .sp-filter-item .control-label,
+#ta_dashboard_root .sp-filter-item label { margin-bottom: 4px !important; color: #526b71 !important; font-size: 10px !important; font-weight: 750 !important; letter-spacing: .04em; text-transform: uppercase; }
+#ta_dashboard_root .sp-filter-item input,
+#ta_dashboard_root .sp-filter-item select,
+#ta_dashboard_root .sp-filter-item .form-control { height: 32px !important; min-height: 32px !important; border: 1px solid #d6e2e2 !important; border-radius: 8px !important; background-color: #fff !important; color: #243746 !important; font-size: 12px !important; font-weight: 650 !important; }
+#ta_dashboard_root .sp-filter-item input:focus,
+#ta_dashboard_root .sp-filter-item select:focus,
+#ta_dashboard_root .sp-filter-item .form-control:focus { border-color: #0f9b8e !important; box-shadow: 0 0 0 3px rgba(15, 118, 110, .13) !important; }
+
+#ta_dashboard_root .sp-filter-actions { flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+#ta_dashboard_root .sp-filter-actions .sp-btn { min-height: 36px; padding: 0 15px; border-radius: 9px; font-weight: 750; transition: transform .15s ease, box-shadow .15s ease; }
+#ta_dashboard_root .sp-filter-actions .sp-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 12px rgba(26, 53, 71, .14); }
+#ta_dashboard_root .sp-filter-actions .sp-btn-primary { background: linear-gradient(120deg, #0f766e, #059669); box-shadow: 0 4px 11px rgba(5, 150, 105, .2); }
+#ta_dashboard_root .sp-filter-actions .sp-btn-muted { border: 1px solid #cbd5e1; background: #f8fafc; color: #475569; }
+#ta_dashboard_root .sp-filter-actions .sp-btn-green { background: linear-gradient(120deg, #4f46e5, #7c3aed); box-shadow: 0 4px 11px rgba(79, 70, 229, .2); }
+
+#ta_dashboard_root .sp-card {
+	margin-bottom: 0;
+	padding: 17px;
+	border: 1px solid #e2e9ef;
+	border-radius: 15px;
+	box-shadow: 0 7px 20px rgba(26, 53, 71, .065);
+}
+
+#ta_dashboard_root .sp-table-stack { gap: 13px; }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(1) { border-top: 4px solid #059669; background: linear-gradient(145deg, #fff, #f0fdf4 170%); }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(2) { border-top: 4px solid #e11d48; background: linear-gradient(145deg, #fff, #fff1f2 170%); }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(3) { border-top: 4px solid #0284c7; background: linear-gradient(145deg, #fff, #eff6ff 170%); }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(4) { border-top: 4px solid #7c3aed; background: linear-gradient(145deg, #fff, #f5f3ff 170%); }
+#ta_dashboard_root .sp-card h3 { color: var(--ta-ink); }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(1) .sp-table-head h3 { color: #047857; }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(2) .sp-table-head h3 { color: #be123c; }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(3) .sp-table-head h3 { color: #1d4ed8; }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(4) .sp-table-head h3 { color: #6d28d9; }
+
+#ta_dashboard_root .sp-table-toolbar { margin-bottom: 0; }
+#ta_dashboard_root .sp-table-toolbar h3 { color: var(--ta-ink); }
+#ta_dashboard_root .sp-search { border-color: #d6e2e2; border-radius: 9px; background: #fff; }
+#ta_dashboard_root .sp-search:focus { border-color: #0f9b8e; outline: 0; box-shadow: 0 0 0 3px rgba(15, 118, 110, .13); }
+#ta_dashboard_root .sp-table-wrap { border: 1px solid #dfe8ec; border-radius: 11px; }
+#ta_dashboard_root .sp-table { border-collapse: separate; border-spacing: 0; background: #fff; font-size: 11px; font-variant-numeric: tabular-nums; }
+#ta_dashboard_root .sp-table th,
+#ta_dashboard_root .sp-table td { padding: 9px 10px; border-bottom-color: #e8eef1; }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(1) .sp-table thead th { background: linear-gradient(110deg, #047857, #0d9488); color: #fff; }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(2) .sp-table thead th { background: linear-gradient(110deg, #be123c, #e11d48); color: #fff; }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(3) .sp-table thead th { background: linear-gradient(110deg, #1d4ed8, #0284c7); color: #fff; }
+#ta_dashboard_root .sp-table-stack > .sp-card:nth-child(4) .sp-table thead th { background: linear-gradient(110deg, #6d28d9, #9333ea); color: #fff; }
+#ta_dashboard_root .sp-table tbody tr:nth-child(even) td { background: #f8fbfc; }
+#ta_dashboard_root .sp-table tbody tr:hover td { background: #ecfdf5; }
+#ta_dashboard_root .sp-table tfoot td { border-top: 2px solid #a7f3d0; background: linear-gradient(100deg, #d1fae5, #cffafe); color: #164e4a; font-weight: 850; }
+#ta_dashboard_root .sp-table .sp-ok { padding: 2px 7px; border-radius: 999px; background: #dcfce7; color: #166534; font-weight: 800; }
+#ta_dashboard_root .sp-table .sp-bad { padding: 2px 7px; border-radius: 999px; background: #ffe4e6; color: #be123c; font-weight: 800; }
+#ta_dashboard_root .sp-empty { padding: 34px 14px; border: 1px dashed #b7d7d4; border-radius: 10px; background: #f0fdfa; color: #4b6869; }
+
+@media (max-width: 1000px) {
+	#ta_dashboard_root .sp-filter-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 640px) {
+	#ta_dashboard_root .sp-dash-hero { padding: 15px; }
+	#ta_dashboard_root .sp-dash-title { font-size: 25px; }
+	#ta_dashboard_root .sp-filter-panel { padding: 10px; }
+	#ta_dashboard_root .sp-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 7px !important; }
+	#ta_dashboard_root .sp-filter-actions { justify-content: stretch; }
+	#ta_dashboard_root .sp-filter-actions .sp-btn { flex: 1 1 auto; }
+	#ta_dashboard_root .sp-card { padding: 12px; }
+	#ta_dashboard_root .sp-table-toolbar { align-items: stretch; flex-direction: column; }
+	#ta_dashboard_root .sp-search { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	#ta_dashboard_root *, #ta_dashboard_root *::before, #ta_dashboard_root *::after { transition-duration: .01ms !important; }
+}

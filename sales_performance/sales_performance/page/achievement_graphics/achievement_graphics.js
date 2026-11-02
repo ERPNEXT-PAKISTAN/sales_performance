@@ -135,19 +135,33 @@ class AchievementGraphics {
 			const control = frappe.ui.form.make_control({
 				parent: $(parent),
 				render_input: true,
-				df: { fieldname: name, fieldtype, label, options, default: value, change: () => this.on_filter_change() },
+				df: { fieldname: name, fieldtype, label, options, default: value, change: () => this.on_filter_change(name) },
 			});
 			this.filters[name] = control;
 		});
 		this.period_visibility();
 	}
 
-	load_filter_options() {
-		return Promise.resolve(frappe.call({ method: "sales_performance.sales_performance.page.performance_analytics.performance_analytics.get_filter_options", args: { company: this.filters.company.get_value(), fiscal_year: this.filters.fiscal_year.get_value() } })).then((r) => {
-			const lists = r.message || {};
+	async load_filter_options() {
+		this.loading_filter_options = true;
+		try {
+			const response = await frappe.call({
+				method: "sales_performance.sales_performance.page.performance_analytics.performance_analytics.get_filter_options",
+				args: { company: this.filters.company.get_value(), fiscal_year: this.filters.fiscal_year.get_value(), include_unplanned: 1 },
+			});
+			const lists = response.message || {};
 			const fields = { company: "companies", fiscal_year: "fiscal_years", sales_person: "sales_persons", territory: "territories", item_group: "item_groups", customer_group: "customer_groups", item: "items" };
-			Object.entries(fields).forEach(([field, key]) => { const control = this.filters[field]; const value = control.get_value(); control.df.options = ["", ...(lists[key] || [])].join("\n"); control.refresh(); if (value) control.set_value(value); });
-		});
+			for (const [field, key] of Object.entries(fields)) {
+				const control = this.filters[field];
+				const previous = control.get_value();
+				const options = lists[key] || [];
+				control.df.options = ["", ...options].join("\n");
+				control.refresh();
+				await control.set_value(options.includes(previous) ? previous : "");
+			}
+		} finally {
+			this.loading_filter_options = false;
+		}
 	}
 
 	period_visibility() {
@@ -156,11 +170,14 @@ class AchievementGraphics {
 		sales_performance.set_filter_visible(this.filters.quarter, period === "Quarterly");
 	}
 
-	on_filter_change() {
+	on_filter_change(fieldname) {
 		this.period_visibility();
-		if (this.loading_defaults) return;
+		if (this.loading_defaults || this.loading_filter_options) return;
 		clearTimeout(this.filter_timer);
-		this.filter_timer = setTimeout(() => this.refresh(), 150);
+		this.filter_timer = setTimeout(async () => {
+			if (["company", "fiscal_year"].includes(fieldname)) await this.load_filter_options();
+			this.refresh();
+		}, 150);
 	}
 
 	bind() {

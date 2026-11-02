@@ -2,14 +2,14 @@ frappe.provide("sales_performance");
 sales_performance.SalesView = class {
     constructor(page, manager = false) {
         this.page = page; this.manager = manager; this.tab = "Home"; this.filters = {}; this.sequence = 0;
-        this.root = $('<div class="sp-sales-view"><div class="sp-sales-filters"></div><div class="sp-sales-content"></div></div>').appendTo(page.body);
+        const viewClass = manager ? "sp-sales-view sp-sales-overview" : "sp-sales-view sp-my-sales";
+        this.root = $(`<div class="${viewClass}"><div class="sp-sales-filters"></div><div class="sp-sales-content"></div></div>`).appendTo(page.body);
         const fields = [["company", "Company", "Select", ""], ["fiscal_year", "Fiscal Year", "Select", ""],
             ["month", "Month", "Select", Array.from({length:12}, (_, i) => ({value:String(i+1),label:__(frappe.datetime.str_to_obj(`2026-${String(i+1).padStart(2,"0")}-01`).toLocaleString("en",{month:"long"}))}))],
-            ["customer_group", "Customer Group", "Link", "Customer Group"]];
-        if (!manager) fields.push(["sales_person", "Sales Person", "Select", ""]);
+            ["sales_person", "Sales Person", "Select", ""], ["customer_group", "Customer Group", "Link", "Customer Group"]];
         fields.forEach(([fieldname,label,fieldtype,options]) => {
             this.filters[fieldname] = frappe.ui.form.make_control({parent:$('<div></div>').appendTo(this.root.find('.sp-sales-filters')),render_input:true,
-                df:{fieldname,label:__(label),fieldtype,options,change:()=>{ if(this.ready){ clearTimeout(this.timer); this.timer=setTimeout(()=>["company","fiscal_year","customer_group"].includes(fieldname) ? this.load_people().then(()=>this.refresh()) : this.refresh(),180); } }}});
+                df:{fieldname,label:__(label),fieldtype,options,change:()=>{ if(this.ready&&!this.loading_people){ clearTimeout(this.timer); this.timer=setTimeout(()=>["company","fiscal_year","customer_group"].includes(fieldname) ? this.load_people().then(()=>this.refresh()) : this.refresh(),180); } }}});
         });
         this.content = this.root.find('.sp-sales-content');
         page.set_primary_action(__("Refresh"),()=>this.refresh(),"refresh");
@@ -30,7 +30,7 @@ sales_performance.SalesView = class {
     }
     esc(v){return frappe.utils.escape_html(String(v ?? ""));}
     n(v){return format_number(v || 0,null,0);}
-    values(){return Object.fromEntries(Object.entries(this.filters).map(([k,f])=>[k,f.get_value()]));}
+    values(){const values=Object.fromEntries(Object.entries(this.filters).map(([k,f])=>[k,f.get_value()]));if(this.manager&&values.sales_person===__('All Sales Persons'))values.sales_person='';return values;}
     async call(method,args){const r=await frappe.call({method:'sales_performance.services.personal_sales.'+method,args});return r.message;}
     async initialize(){
         try {
@@ -52,12 +52,15 @@ sales_performance.SalesView = class {
         }catch(e){this.content.html('<div class="sp-sales-empty">'+__('Unable to load your account. Check your assignment and try Refresh.')+'</div>');}
     }
     async load_people(person){
-        if(this.manager)return;
         const people=await this.call('get_people',{company:this.filters.company.get_value(),fiscal_year:this.filters.fiscal_year.get_value(),customer_group:this.filters.customer_group.get_value()});
         const field=this.filters.sales_person;const previous=person || field.get_value();
-        field.df.options=people;field.refresh();
-        await field.set_value(people.includes(previous)?previous:people[0] || '');
-        field.$wrapper.toggle(people.length!==1);
+        const all_people=__('All Sales Persons');
+        this.loading_people=true;
+        try{
+            field.df.options=this.manager?[all_people,...people]:people;field.refresh();
+            await field.set_value(people.includes(previous)?previous:(this.manager?all_people:people[0] || ''));
+            field.$wrapper.toggle(true);
+        }finally{this.loading_people=false;}
     }
     async refresh(silent=false){
         if(!this.ready)return this.initialize();

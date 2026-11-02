@@ -42,14 +42,10 @@ def get_context():
 @frappe.whitelist()
 def get_people(company, fiscal_year=None, customer_group=None):
     allowed = scope(company)
-    if fiscal_year:
-        from sales_performance.services.plan_selection import target_rows
-        from sales_performance.services.growth_engine import get_customer_group_subtree_names
-        groups = set(get_customer_group_subtree_names(customer_group)) if customer_group else None
-        planned = {r.sales_person for r in target_rows(company, fiscal_year, approved_only=True)
-                   if r.sales_person and (groups is None or r.customer_group in groups)}
-        allowed = sorted(planned if allowed is None else planned.intersection(allowed))
-    return frappe.get_all("Sales Person", filters={"is_group": 0, **({"name": ["in", allowed]} if allowed is not None else {})}, pluck="name", order_by="name")
+    filters = {"is_group": 0}
+    if allowed is not None:
+        filters["name"] = ["in", allowed or [""]]
+    return frappe.get_all("Sales Person", filters=filters, pluck="name", order_by="name")
 
 
 def month_dates(company, fiscal_year, month):
@@ -203,10 +199,10 @@ def acknowledge_plan(company, sales_person, planning):
 
 
 @frappe.whitelist()
-def get_manager_data(company, fiscal_year, month, customer_group=None):
-    allowed = require_manager(company)
+def get_manager_data(company, fiscal_year, month, customer_group=None, sales_person=None):
+    require_manager(company, sales_person)
     first, last = month_dates(company, fiscal_year, month)
-    filters = {"company":company,"fiscal_year":fiscal_year,"period":"Monthly","customer_group":customer_group}
+    filters = {"company":company,"fiscal_year":fiscal_year,"period":"Monthly","customer_group":customer_group,"sales_person":sales_person}
     rows = collect_period_incentive_rows(filters)
     slabs,based_on,pay_on = scheme_settings(filters)
     level = calculation_level(filters)
@@ -220,11 +216,18 @@ def get_manager_data(company, fiscal_year, month, customer_group=None):
             summary=dashboard_totals(subset,slabs,based_on,pay_on,level)
             cells.append(summary)
         heatmap.append({"sales_person":person,"months":cells,"pace":pace(cells[int(month)-1],first,last)})
-    queue = frappe.get_list("Sales Target Planning",filters={"company":company,"fiscal_year":fiscal_year,"status":["in",["Draft","Calculated","Under Review"]]},
+    queue_filters = {"company":company,"fiscal_year":fiscal_year,"status":["in",["Draft","Calculated","Under Review"]]}
+    if sales_person:
+        queue_filters["sales_person"] = sales_person
+    queue = frappe.get_list("Sales Target Planning",filters=queue_filters,
         fields=["name","sales_person","status","planning_version","rows_requiring_review","rows_overridden","summary_warnings","previous_planning"],order_by="modified desc",limit_page_length=100)
-    messages=frappe.get_list("Sales Performance Update",filters={"company":company,"kind":"Question","status":"Open"},fields=["name","sales_person","subject","message"],order_by="creation",limit_page_length=100)
+    message_filters = {"company":company,"kind":"Question","status":"Open"}
+    if sales_person:
+        message_filters["sales_person"] = sales_person
+    messages=frappe.get_list("Sales Performance Update",filters=message_filters,fields=["name","sales_person","subject","message"],order_by="creation",limit_page_length=100)
     return {"totals":dashboard_totals(selected,slabs,based_on,pay_on,level),"heatmap":heatmap,"months":MONTHS,
-        "payouts":payout_analysis(company,fiscal_year,period="Monthly",month=month,customer_group=customer_group),
+        "sales_person":sales_person or _("All Sales Persons"),
+        "payouts":payout_analysis(company,fiscal_year,sales_person=sales_person,period="Monthly",month=month,customer_group=customer_group),
         "queue":queue,"questions":messages,"provisional":any(r.get("plan_status")!="Approved" for r in selected),
         "pay_on":pay_on,"currency":frappe.get_cached_value("Company",company,"default_currency"),"updated_at":now_datetime()}
 

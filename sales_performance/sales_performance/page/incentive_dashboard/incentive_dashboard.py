@@ -13,9 +13,9 @@ from sales_performance.services.incentive_engine import (
 
 
 @frappe.whitelist()
-def get_filter_options():
+def get_filter_options(company=None, fiscal_year=None):
 	from sales_performance.sales_performance.page.performance_analytics.performance_analytics import get_filter_options as options
-	return options()
+	return options(company, fiscal_year, include_unplanned=True)
 
 
 @frappe.whitelist()

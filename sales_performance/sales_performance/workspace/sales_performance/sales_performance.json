@@ -106,7 +106,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Reports",
-   "link_count": 3,
+   "link_count": 4,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -117,6 +117,16 @@
    "label": "Sales Target Achievement",
    "link_count": 0,
    "link_to": "Sales Target Achievement",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Sales Target by Territory",
+   "link_count": 0,
+   "link_to": "Sales Target by Territory",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
@@ -242,6 +252,9 @@
   },
   {
    "role": "Sales Performance Admin"
+  },
+  {
+   "role": "Sales Target Editor"
   }
  ],
  "sequence_id": 0.0,

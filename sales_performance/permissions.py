@@ -34,6 +34,7 @@ PAGES = ["my-sales", "sales-performance-overview", "monthly-incentives", "incent
 
 REPORTS = [
 	"Sales Target Achievement",
+	"Sales Target by Territory",
 	"Sales Target Monthly Performance",
 	"Target Planning Audit",
 	"Target Achievement Status",

@@ -24,13 +24,18 @@ from sales_performance.services.planning_engine import calendar_previous_year_da
 
 
 @frappe.whitelist()
-def get_filter_options(company=None, fiscal_year=None):
+def get_filter_options(company=None, fiscal_year=None, include_unplanned=False):
 	"""Selectable filter values shared by the sales-analysis pages."""
 	allowed = scope(company) if company or not is_admin() else None
 	item_codes = selected_target_item_codes(company, fiscal_year) if company and fiscal_year else None
-	if company and fiscal_year:
+	if company and fiscal_year and not frappe.utils.cint(include_unplanned):
 		planned = {r.sales_person for r in target_rows(company, fiscal_year) if r.sales_person}
 		allowed = sorted(planned if allowed is None else planned.intersection(allowed))
+	person_filters = {"is_group": 0}
+	if not frappe.utils.cint(include_unplanned):
+		person_filters["enabled"] = 1
+	if allowed is not None:
+		person_filters["name"] = ["in", allowed or [""]]
 	item_filters = {"disabled": 0}
 	if item_codes is not None:
 		item_filters["name"] = ("in", item_codes or ("",))
@@ -38,7 +43,7 @@ def get_filter_options(company=None, fiscal_year=None):
 		"companies": frappe.get_all("Company", order_by="name", pluck="name") if is_admin() else sorted({a.company for a in assignments()}),
 		"fiscal_years": frappe.get_all("Fiscal Year", order_by="year_start_date desc", pluck="name"),
 		"sales_persons": frappe.get_all(
-			"Sales Person", filters={"is_group": 0, "enabled": 1, **({"name": ["in", allowed]} if allowed is not None else {})}, order_by="name", pluck="name"
+			"Sales Person", filters=person_filters, order_by="name", pluck="name"
 		),
 		"territories": frappe.get_all("Territory", filters={"is_group": 0}, order_by="name", pluck="name"),
 		"item_groups": frappe.get_all("Item Group", filters={"is_group": 0}, order_by="name", pluck="name"),

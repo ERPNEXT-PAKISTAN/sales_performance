@@ -117,7 +117,7 @@ class IncentiveDashboard {
 			["month", "Select", __("Month"), "\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12"],
 			["quarter", "Select", __("Quarter"), "\n1\n2\n3\n4"],
 			["group_by", "Select", __("Group By"), "sales_person\nterritory\nitem_group\ncustomer_group\nitem\nperiod", "sales_person"],
-			["sales_person", "Select", __("Sales Person"), ""],
+			["sales_person", "Select", __("Sales Person"), "", __("All Sales Persons")],
 			["territory", "Select", __("Territory"), ""],
 			["item_group", "Select", __("Item Group"), ""],
 			["customer_group", "Select", __("Customer Group"), "", ""],
@@ -132,19 +132,34 @@ class IncentiveDashboard {
 			const control = frappe.ui.form.make_control({
 				parent: $(parent),
 				render_input: true,
-				df: { fieldname: name, fieldtype, label, options, default: value, change: () => this.on_filter_change() },
+				df: { fieldname: name, fieldtype, label, options, default: value, change: () => this.on_filter_change(name) },
 			});
 			this.filters[name] = control;
 		});
 		this.period_visibility();
 	}
 
-	load_filter_options() {
-		return Promise.resolve(frappe.call({ method: "sales_performance.sales_performance.page.performance_analytics.performance_analytics.get_filter_options", args: { company: this.filters.company.get_value(), fiscal_year: this.filters.fiscal_year.get_value() } })).then((r) => {
-			const lists = r.message || {};
+	async load_filter_options() {
+		this.loading_filter_options = true;
+		try {
+			const response = await frappe.call({ method: "sales_performance.sales_performance.page.incentive_dashboard.incentive_dashboard.get_filter_options", args: { company: this.filters.company.get_value(), fiscal_year: this.filters.fiscal_year.get_value() } });
+			const lists = response.message || {};
 			const fields = { company: "companies", fiscal_year: "fiscal_years", sales_person: "sales_persons", territory: "territories", item_group: "item_groups", customer_group: "customer_groups", item: "items" };
-			Object.entries(fields).forEach(([field, key]) => { const control = this.filters[field]; const value = control.get_value(); control.df.options = ["", ...(lists[key] || [])].join("\n"); control.refresh(); if (value) control.set_value(value); });
-		});
+			for (const [field, key] of Object.entries(fields)) {
+				const control = this.filters[field];
+				const previous = control.get_value();
+				const options = lists[key] || [];
+				const all_people = __("All Sales Persons");
+				control.df.options = [field === "sales_person" ? all_people : "", ...options].join("\n");
+				control.refresh();
+				const next = field === "sales_person"
+					? (options.includes(previous) ? previous : all_people)
+					: (options.includes(previous) ? previous : "");
+				await control.set_value(next);
+			}
+		} finally {
+			this.loading_filter_options = false;
+		}
 	}
 
 	period_visibility() {
@@ -153,11 +168,14 @@ class IncentiveDashboard {
 		sales_performance.set_filter_visible(this.filters.quarter, period === "Quarterly");
 	}
 
-	on_filter_change() {
+	on_filter_change(fieldname) {
 		this.period_visibility();
-		if (this.loading_defaults) return;
+		if (this.loading_defaults || this.loading_filter_options) return;
 		clearTimeout(this.filter_timer);
-		this.filter_timer = setTimeout(() => this.refresh(), 150);
+		this.filter_timer = setTimeout(async () => {
+			if (["company", "fiscal_year"].includes(fieldname)) await this.load_filter_options();
+			this.refresh();
+		}, 150);
 	}
 
 	bind() {
@@ -170,7 +188,7 @@ class IncentiveDashboard {
 				period: this.filters.period.get_value(),
 				month: this.filters.month.get_value(),
 				quarter: this.filters.quarter.get_value(),
-				sales_person: this.filters.sales_person.get_value(),
+				sales_person: this.args().sales_person,
 				customer_group: this.filters.customer_group.get_value(),
 			});
 		});
@@ -178,6 +196,7 @@ class IncentiveDashboard {
 	}
 
 	args() {
+		const sales_person = this.filters.sales_person.get_value();
 		return {
 			company: this.filters.company.get_value(),
 			fiscal_year: this.filters.fiscal_year.get_value(),
@@ -185,7 +204,7 @@ class IncentiveDashboard {
 			month: this.filters.month.get_value(),
 			quarter: this.filters.quarter.get_value(),
 			group_by: this.filters.group_by.get_value() || "sales_person",
-			sales_person: this.filters.sales_person.get_value(),
+			sales_person: sales_person === __("All Sales Persons") ? "" : sales_person,
 			territory: this.filters.territory.get_value(),
 			item_group: this.filters.item_group.get_value(),
 			customer_group: this.filters.customer_group.get_value(),
@@ -307,7 +326,7 @@ class IncentiveDashboard {
 						data: { labels, datasets: [{ name: __("Incentive"), values }] },
 						type: "bar",
 						height: 280,
-						colors: ["#2490ef"],
+						colors: [selector === "#id-chart-month" ? "#4f46e5" : "#0f766e"],
 					},
 					number_opts
 				)
