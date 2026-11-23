@@ -36,7 +36,7 @@
 
 	const QTY = 0;
 	const AMT = 0;
-	const PCT = 0;
+	const PCT = 2;
 
 	sales_performance.currency = () =>
 		frappe.defaults.get_user_default("currency") ||
@@ -47,6 +47,8 @@
 	sales_performance.format_amount = (value, currency) =>
 		format_currency(value || 0, currency || sales_performance.currency(), AMT);
 	sales_performance.format_percent = (value) => format_number(value || 0, null, PCT);
+	sales_performance.format_incentive_amount = (value, currency) =>
+		format_currency(value || 0, currency || sales_performance.currency(), 2);
 
 	sales_performance.stampNow = () =>
 		new Date().toLocaleString(undefined, {
@@ -108,7 +110,7 @@
 		},
 	});
 
-	sales_performance.finish_chart = (chart) => {
+	sales_performance.finish_chart = (chart, precision = 0) => {
 		if (!chart || !chart.parent) {
 			return;
 		}
@@ -125,7 +127,7 @@
 				if (values[i] === undefined || values[i] === null) {
 					return;
 				}
-				const next = sales_performance.full_number(values[i], 0);
+				const next = sales_performance.full_number(values[i], precision);
 				if (el.textContent !== next) {
 					el.textContent = next;
 				}
@@ -204,12 +206,13 @@
 
 	sales_performance.report_formatter = (value, row, column, data, default_formatter) => {
 		const raw = data && column && column.fieldname in data ? data[column.fieldname] : value;
+		const precision = sales_performance.explicit_precision(column);
 		if (column.fieldtype === "Currency") {
-			value = sales_performance.format_amount(value);
+			value = precision === null ? sales_performance.format_amount(value) : format_currency(value || 0, sales_performance.currency(), precision);
 		} else if (column.fieldtype === "Float") {
-			value = sales_performance.format_qty(value);
+			value = precision === null ? sales_performance.format_qty(value) : format_number(value || 0, null, precision);
 		} else if (column.fieldtype === "Percent") {
-			value = value == null || value === "" ? "" : `${sales_performance.format_percent(value)}%`;
+			value = value == null || value === "" ? "" : `${format_number(value, null, precision === null ? PCT : precision)}%`;
 		} else {
 			value = default_formatter(value, row, column, data);
 		}

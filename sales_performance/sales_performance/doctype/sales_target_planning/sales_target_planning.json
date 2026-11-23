@@ -35,6 +35,10 @@
   "uniform_growth_percent",
   "growth_section",
   "growth_rules",
+  "scope_section",
+  "selected_sales_persons",
+  "selected_territories",
+  "selected_customer_groups",
   "pricing_section",
   "pricing_method",
   "price_list",
@@ -261,6 +265,33 @@
    "fieldtype": "Table",
    "label": "Item Group Growth Rules",
    "options": "Item Group Growth Rule"
+  },
+  {
+   "fieldname": "scope_section",
+   "fieldtype": "Section Break",
+   "label": "Plan Selections",
+   "description": "Selected values limit all targets in this plan. An empty table includes all values in that dimension."
+  },
+  {
+   "fieldname": "selected_sales_persons",
+   "fieldtype": "Table",
+   "label": "Selected Sales Persons",
+   "options": "Planning Sales Person",
+   "description": "Only these sales persons are included. Leave empty to include all."
+  },
+  {
+   "fieldname": "selected_territories",
+   "fieldtype": "Table",
+   "label": "Selected Territories",
+   "options": "Planning Territory",
+   "description": "Only these territories are included. Leave empty to include all."
+  },
+  {
+   "fieldname": "selected_customer_groups",
+   "fieldtype": "Table",
+   "label": "Selected Customer Groups",
+   "options": "Planning Customer Group",
+   "description": "Only these customer groups are included. Leave empty to include all."
   },
   {
    "collapsible": 1,
@@ -514,7 +545,7 @@
   }
  ],
  "links": [],
- "modified": "2026-11-01 21:05:15.206524",
+ "modified": "2026-11-13 11:00:10.555733",
  "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Sales Target Planning",

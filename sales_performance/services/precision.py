@@ -3,6 +3,7 @@ from sales_performance.services.numbers import ncint, nflt
 QTY_PRECISION = 0
 AMOUNT_PRECISION = 0
 PERCENT_PRECISION = 1
+INCENTIVE_PRECISION = 2
 
 
 def round_qty(qty, precision=None, whole_number=False):
@@ -27,6 +28,10 @@ def get_qty_precision(uom=None, fallback=None):
 
 def get_currency_precision(fallback=None):
 	return AMOUNT_PRECISION
+
+
+def get_incentive_precision():
+	return INCENTIVE_PRECISION
 
 
 def get_percent_precision(fallback=None):

@@ -8,6 +8,8 @@ from sales_performance.services.numbers import nflt as flt, ncint as cint
 
 from sales_performance.services.planning_engine import make_row_key, _distribute_row, refresh_summary
 from sales_performance.services.precision import get_qty_precision, get_currency_precision
+from sales_performance.services.planning_scope import dimension_allowed
+from sales_performance.services.growth_engine import get_item_group_ancestors, item_group_in_subtree, growth_rule_covers_item_group
 
 DIMENSIONS = ("sales_person", "territory", "item_code", "customer_group")
 # An in-process capability cannot be forged by passing JSON document flags.
@@ -16,6 +18,9 @@ HEADERS = ("title", "sales_person", "territory", "item_group", "customer_group",
            "entry_basis", "value_basis", "growth_method", "uniform_growth_percent", "pricing_method",
            "price_list", "distribution_method", "notes", "incentive_calculation_level")
 TABLES = {
+	"selected_sales_persons": ("sales_person",),
+	"selected_territories": ("territory",),
+	"selected_customer_groups": ("customer_group",),
     "proposal_details": DIMENSIONS + ("row_key", "item_group", "uom", "pricing_method", "price_list",
         "target_selling_rate", "approved_target_qty", "approved_target_rate", "approved_target_amount",
         "override_reason", "remarks"),
@@ -58,6 +63,35 @@ def apply_snapshot(doc, data):
         doc.set(field, rows)
 
 
+def prune_outside_selection(doc):
+    """Drop targets excluded by the current selection tables before normalizing."""
+    for table, field in (("selected_sales_persons", "sales_person"),
+                         ("selected_territories", "territory"),
+                         ("selected_customer_groups", "customer_group")):
+        rows = doc.get(table) or []
+        seen = set()
+        unique = []
+        for row in rows:
+            value = row.get(field)
+            if value and value in seen:
+                continue
+            seen.add(value)
+            unique.append(row)
+        if len(unique) != len(rows):
+            doc.set(table, [row.as_dict() for row in unique])
+    fields = ("sales_person", "territory", "customer_group")
+    current = doc.proposal_details or []
+    kept = [row for row in current if all(
+        dimension_allowed(doc, field, row.get(field) or doc.get(field)) for field in fields
+    )]
+    if len(kept) != len(current):
+        kept_ids = {id(row) for row in kept}
+        removed = {row.row_key for row in current if id(row) not in kept_ids and row.row_key}
+        doc.set("proposal_details", [row.as_dict() for row in kept])
+        doc.set("monthly_details", [row.as_dict() for row in doc.monthly_details or [] if row.row_key not in removed])
+    return len(current) - len(kept)
+
+
 def number(value, label):
     try:
         result = float(value or 0)
@@ -87,6 +121,16 @@ def normalize(doc, force_distribution=False, pricing_start_month=1):
         row.sales_person = row.sales_person or doc.sales_person
         row.territory = row.territory or doc.territory
         row.customer_group = row.customer_group or doc.customer_group
+        for field in ("sales_person", "territory", "customer_group"):
+            if not dimension_allowed(doc, field, row.get(field)):
+                frappe.throw(f"{field.replace('_', ' ').title()} {row.get(field) or '(blank)'} is outside the plan selection")
+        ancestors = get_item_group_ancestors(row.item_group) if doc.item_group or doc.growth_method == "Item Group Rules" else []
+        if doc.item_group and not item_group_in_subtree(row.item_group, doc.item_group, ancestors):
+            frappe.throw(f"Item Group {row.item_group} is outside the plan selection")
+        if doc.growth_method == "Item Group Rules" and not growth_rule_covers_item_group(
+            row.item_group, [r.as_dict() for r in doc.growth_rules or []], ancestors
+        ):
+            frappe.throw(f"Item Group {row.item_group} is outside the growth rule selection")
         if not row.sales_person and not row.territory:
             frappe.throw(f"Select a Sales Person or Territory for {row.item_code}")
         key = make_row_key(*(row.get(f) for f in DIMENSIONS))

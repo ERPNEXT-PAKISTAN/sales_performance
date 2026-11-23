@@ -31,8 +31,9 @@ var updated_text = typeof updated !== "undefined" ? updated : frappe.datetime.no
 var hierarchy = filters.period === "Annual" ? "Territory → Item Group" : "Period → Territory → Item Group";
 var filter_value = function(key, value) { return ["from_date", "to_date"].includes(key) ? frappe.datetime.str_to_user(value) : value; };
 var currency = function(value) { return frappe.format(value || 0, {fieldtype: "Currency", precision: 0}, {for_print: true}); };
+var incentive_currency = function(value) { return frappe.format(value || 0, {fieldtype: "Currency", precision: 2}, {for_print: true}); };
 var quantity = function(value) { return frappe.format(value || 0, {fieldtype: "Float", precision: 0}, {for_print: true}); };
-var percent = function(value) { return frappe.format(value || 0, {fieldtype: "Percent", precision: 0}, {for_print: true}); };
+var percent = function(value) { return frappe.format(value || 0, {fieldtype: "Percent", precision: 2}, {for_print: true}); };
 var include_col = function(col) { return col.name && col._id !== "_check" && !["pay_on", "incentive_band"].includes(col.fieldname || col.id); };
 %}
 <style>
@@ -90,7 +91,7 @@ var include_col = function(col) { return col.name && col._id !== "_check" && !["
     <div class="kpi"><div class="kpi-label">{{ __("Target") }}</div><div class="kpi-pair"><div><span class="kpi-metric-label">{{ __("Amount") }}</span><strong class="kpi-value">{{ currency(summary_values.target_amount) }}</strong></div><div><span class="kpi-metric-label">{{ __("Qty") }}</span><strong class="kpi-value">{{ quantity(summary_values.target_qty) }}</strong></div></div></div>
     <div class="kpi"><div class="kpi-label">{{ __("Actual") }}</div><div class="kpi-pair"><div><span class="kpi-metric-label">{{ __("Amount") }}</span><strong class="kpi-value">{{ currency(summary_values.actual_amount) }}</strong></div><div><span class="kpi-metric-label">{{ __("Qty") }}</span><strong class="kpi-value">{{ quantity(summary_values.actual_qty) }}</strong></div></div></div>
     <div class="kpi"><div class="kpi-label">{{ __("Achievement") }}</div><div class="kpi-pair"><div><span class="kpi-metric-label">{{ __("Amount") }}</span><strong class="kpi-value">{{ percent(summary_values.amount_achievement_percent) }}</strong></div><div><span class="kpi-metric-label">{{ __("Qty") }}</span><strong class="kpi-value">{{ percent(summary_values.qty_achievement_percent) }}</strong></div></div></div>
-    <div class="kpi"><div class="kpi-label">{{ __("Incentive") }}</div><div class="kpi-pair"><div><span class="kpi-metric-label">{{ __("Amount") }}</span><strong class="kpi-value">{{ currency(summary_values.incentive_amount) }}</strong></div><div><span class="kpi-metric-label">{{ __("Rate %") }}</span><strong class="kpi-value">{{ percent(summary_values.incentive_rate_percent) }}</strong></div></div></div>
+    <div class="kpi"><div class="kpi-label">{{ __("Incentive") }}</div><div class="kpi-pair"><div><span class="kpi-metric-label">{{ __("Amount") }}</span><strong class="kpi-value">{{ incentive_currency(summary_values.incentive_amount) }}</strong></div><div><span class="kpi-metric-label">{{ __("Rate %") }}</span><strong class="kpi-value">{{ percent(summary_values.incentive_rate_percent) }}</strong></div></div></div>
   </section>
   <section class="report-panel">
     <div class="toolbar"><div><strong>{{ __("Territory details") }}</strong><div class="count">{{ __("{0} groups · {1} item rows · Grouped by {2}", [num(visible_groups), num(visible_items), __(hierarchy)]) }}</div></div></div>

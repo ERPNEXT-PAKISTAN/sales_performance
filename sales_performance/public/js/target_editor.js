@@ -3,12 +3,12 @@
     if (window.sales_target_editor) return;
     const api = "sales_performance.api.target_editing.";
     const headers = ["title", "sales_person", "territory", "item_group", "customer_group", "target_source", "entry_basis", "value_basis", "growth_method", "uniform_growth_percent", "pricing_method", "price_list", "distribution_method", "notes", "incentive_calculation_level"];
-    const tables = ["proposal_details", "monthly_details", "growth_rules", "custom_percents"];
+    const tables = ["proposal_details", "monthly_details", "growth_rules", "selected_sales_persons", "selected_territories", "selected_customer_groups", "custom_percents"];
     const esc = value => frappe.utils.escape_html(String(value ?? ""));
     const canApprove = () => frappe.session.user === "Administrator" || ["Sales Target Approver", "Sales Performance Admin", "System Manager"].some(r => frappe.user.has_role(r));
     const canAmend = () => frappe.session.user === "Administrator" || ["Sales Target Editor", "Sales Target Manager", "Sales Performance Admin", "System Manager"].some(r => frappe.user.has_role(r));
     const canReject = () => canApprove() || frappe.user.has_role("Sales Target Manager");
-    const call = async (method, args) => (await frappe.call({method: api + method, args, freeze: true})).message;
+    const call = async (method, args, options = {}) => (await frappe.call({method: api + method, args, freeze: true, ...options})).message;
     const payload = frm => Object.fromEntries([...headers, ...tables].map(f => [f, frm.doc[f]]));
     const monthOptions = Array.from({length: 12}, (_, i) => String(i + 1)).join("\n");
     const historicalMarker = "[Historical target retained]";
@@ -105,13 +105,17 @@
     }
     async function saveAmendment(frm, submit = false) {
         const a = frm._target_amendment;
-        const result = await call("save_amendment", {name: frm.doc.name, amendment: a.name, modified: a.modified, payload: payload(frm), submit: submit ? 1 : 0});
-        frm._target_amendment = result;
-        apply(frm, result.payload);
-        frm.doc.__unsaved = 0;
-        editor.refresh(frm);
-        frappe.show_alert({message: submit ? __("Amendment submitted for review; live targets are unchanged") : __("Amendment saved; live targets are unchanged"), indicator: "green"});
-        return result;
+        try {
+            const result = await call("save_amendment", {name: frm.doc.name, amendment: a.name, modified: a.modified, payload: payload(frm), submit: submit ? 1 : 0}, {silent: true});
+            frm._target_amendment = result;
+            apply(frm, result.payload);
+            frm.doc.__unsaved = 0;
+            editor.refresh(frm);
+            frappe.msgprint({title: __("Draft saved"), message: __("Your changes are saved. Reports will update when you click Save & Apply Changes."), indicator: "green"});
+            return result;
+        } catch (error) {
+            frappe.msgprint({title: __("Save failed"), message: __("Draft changes were not saved. Your edits remain in the form; please try again."), indicator: "red"});
+        }
     }
     async function showPreview(frm, amendment, approve = false) {
         const data = await call("amendment_preview", {name: frm.doc.name, amendment});
@@ -367,6 +371,7 @@
             frm.add_custom_button(__("Transfer Targets"), () => transferTargets(frm), __("More"));
             frm.add_custom_button(__("Import Excel / CSV"), () => importTargets(frm), __("More"));
             if (amendment) {
+                frm.add_custom_button(__("Save Amendment Draft"), () => saveAmendment(frm));
                 frm.add_custom_button(__("Remove All Rows for Sales Person"), () => {
                     const personOf = row => row.sales_person || frm.doc.sales_person;
                     const people = [...new Set((frm.doc.proposal_details || []).map(personOf).filter(Boolean))].sort();
@@ -421,13 +426,17 @@
                             if (flt(row.override_percent) && !String(row.override_reason || "").trim()) row.override_reason = reason;
                         }
                         frm.refresh_field("proposal_details");
-                        await call("apply_amendment", {name: frm.doc.name, amendment: amendment.name,
-                            modified: amendment.modified, payload: payload(frm)});
-                        delete frm._target_amendment;
-                        delete frm._pending_target_amendment;
-                        frm.doc.__unsaved = 0;
-                        await frm.reload_doc();
-                        frappe.show_alert({message: __("Changes applied to the plan and reports."), indicator: "green"});
+                        try {
+                            await call("apply_amendment", {name: frm.doc.name, amendment: amendment.name,
+                                modified: amendment.modified, payload: payload(frm)}, {silent: true});
+                            delete frm._target_amendment;
+                            delete frm._pending_target_amendment;
+                            frm.doc.__unsaved = 0;
+                            await frm.reload_doc();
+                            frappe.msgprint({title: __("Update successful"), message: __("Plan saved. Reports now use the selected sales persons and customer groups."), indicator: "green"});
+                        } catch (error) {
+                            frappe.msgprint({title: __("Update failed"), message: __("Plan changes were not saved. Your edits remain in the form; please try again."), indicator: "red"});
+                        }
                     });
                 });
                 frm.add_custom_button(__("Exit Amendment"), () => frappe.confirm(__("Return to approved targets? Saved changes stay pending."), async () => { delete frm._target_amendment; frm.doc.__unsaved = 0; await frm.reload_doc(); }), __("More"));

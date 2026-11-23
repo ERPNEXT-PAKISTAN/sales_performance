@@ -241,6 +241,7 @@ class IncentiveDashboard {
 	}
 
 	n(value, precision = 0) {
+		if (precision === 2) return format_number(value || 0, null, 2);
 		if (precision === 1) {
 			return window.sales_performance
 				? sales_performance.format_percent(value)
@@ -257,6 +258,12 @@ class IncentiveDashboard {
 			: format_currency(value || 0, frappe.defaults.get_default("currency"), 0);
 	}
 
+	incentiveMoney(value) {
+		return window.sales_performance
+			? sales_performance.format_incentive_amount(value)
+			: format_currency(value || 0, frappe.defaults.get_default("currency"), 2);
+	}
+
 	ach(value) {
 		if (value == null || value === "") return "—";
 		const n = Number(value);
@@ -266,7 +273,7 @@ class IncentiveDashboard {
 
 	inc(value, as_money = false) {
 		const n = Number(value || 0);
-		const html = as_money ? this.money(n) : this.n(n);
+		const html = as_money ? this.incentiveMoney(n) : this.n(n, 2);
 		return n > 0 ? `<span class="sp-ok">${html}</span>` : html;
 	}
 
@@ -279,9 +286,9 @@ class IncentiveDashboard {
 			[__("Incentive on Amount"), this.inc(t.incentive_on_amount, true), ""],
 			[__("Incentive on Qty"), this.inc(t.incentive_on_qty), ""],
 			[__("Payable Incentive"), this.inc(t.incentive_amount, true), "id-green"],
-			[__("Accrued"), this.money(t.posted_incentive), ""],
-			[__("Paid"), this.money(t.paid_incentive), "id-green"],
-			[__("Not Paid"), this.money(t.unpaid_incentive), "id-orange"],
+			[__("Accrued"), this.incentiveMoney(t.posted_incentive), ""],
+			[__("Paid"), this.incentiveMoney(t.paid_incentive), "id-green"],
+			[__("Not Paid"), this.incentiveMoney(t.unpaid_incentive), "id-orange"],
 		];
 		this.wrapper.querySelector("#id-summary").innerHTML = cards
 			.map(([label, value, klass]) => `<div class="id-card ${klass}"><span>${label}</span><strong>${value}</strong></div>`)
@@ -316,7 +323,7 @@ class IncentiveDashboard {
 		}
 		const number_opts =
 			window.sales_performance && sales_performance.chart_number_opts
-				? sales_performance.chart_number_opts(0)
+				? sales_performance.chart_number_opts(2)
 				: { valuesOverPoints: 1, axisOptions: { shortenYAxisNumbers: 0 } };
 		try {
 			this.charts[selector] = new frappe.Chart(
@@ -332,7 +339,7 @@ class IncentiveDashboard {
 				)
 			);
 			if (sales_performance.finish_chart) {
-				sales_performance.finish_chart(this.charts[selector]);
+				sales_performance.finish_chart(this.charts[selector], 2);
 			}
 		} catch (e) {
 			console.error(e);

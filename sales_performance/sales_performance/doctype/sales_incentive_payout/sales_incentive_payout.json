@@ -167,7 +167,7 @@
    "fieldtype": "Currency",
    "label": "Incentive on Amount",
    "options": "Company:company:default_currency",
-   "precision": "0",
+   "precision": "2",
    "read_only": 1
   },
   {
@@ -178,7 +178,7 @@
    "fieldname": "total_incentive_on_qty",
    "fieldtype": "Float",
    "label": "Incentive on Qty",
-   "precision": "0",
+   "precision": "2",
    "read_only": 1
   },
   {
@@ -191,7 +191,7 @@
    "in_list_view": 1,
    "label": "Payable Incentive",
    "options": "Company:company:default_currency",
-   "precision": "0",
+   "precision": "2",
    "read_only": 1
   },
   {
@@ -307,7 +307,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-01 21:05:15.578637",
+ "modified": "2026-11-13 11:00:11.559032",
  "modified_by": "Administrator",
  "module": "Sales Performance",
  "name": "Sales Incentive Payout",

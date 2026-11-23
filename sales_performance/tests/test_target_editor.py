@@ -6,12 +6,13 @@ from unittest.mock import patch, MagicMock
 
 import frappe
 
-from sales_performance.services.target_editor import normalize, transfer, apply_snapshot
+from sales_performance.services.target_editor import normalize, transfer, apply_snapshot, snapshot, prune_outside_selection
 from sales_performance.services.target_sync import _percentages
 from sales_performance.api.target_editing import (
     validate_effective_month, import_rows, read_import, approver, target_amender,
     _apply_annual_amendments_to_months,
     _scale_months_to_total,
+    repair_stale_territories,
 )
 
 
@@ -52,6 +53,30 @@ class TestTargetEditor(unittest.TestCase):
         self.assertEqual(sum(m.target_qty for m in self.doc.monthly_details), 120)
         self.assertEqual(sum(m.target_amount for m in self.doc.monthly_details), 1200)
         self.assertTrue(all(m.row_key == self.doc.proposal_details[0].row_key for m in self.doc.monthly_details))
+
+    def test_selection_amendment_prunes_proposal_and_months(self):
+        self.doc.append("proposal_details", dict(sales_person="Bob", item_code="Widget", approved_target_qty=60, approved_target_rate=10))
+        normalize(self.doc)
+        self.doc.set("selected_sales_persons", [dict(sales_person="Alice"), dict(sales_person="Alice")])
+        self.doc.set("selected_customer_groups", [])
+        self.assertEqual(prune_outside_selection(self.doc), 1)
+        self.assertEqual(len(self.doc.selected_sales_persons), 1)
+        self.assertEqual({row.sales_person for row in self.doc.proposal_details}, {"Alice"})
+        self.assertEqual(len(self.doc.monthly_details), 12)
+        saved = snapshot(self.doc)
+        self.assertEqual(saved["selected_sales_persons"], [{"sales_person": "Alice"}])
+        restored = Plan(proposal_details=[], monthly_details=[])
+        apply_snapshot(restored, saved)
+        self.assertEqual(restored.selected_sales_persons[0].sales_person, "Alice")
+
+    def test_old_amendment_territory_uses_matching_approved_row(self):
+        approved = Plan(proposal_details=[Row(row_key="key", sales_person="Alice", item_code="Widget", customer_group="Market", territory="MULTAN 1")])
+        data = {"proposal_details": [dict(row_key="key", sales_person="Alice", item_code="Widget", customer_group="Market", territory="MULTAN")],
+                "monthly_details": [dict(row_key="key", territory="MULTAN", month_number=1)]}
+        self.db.exists.side_effect = lambda doctype, value: value == "MULTAN 1"
+        self.assertEqual(repair_stale_territories(data, approved), 1)
+        self.assertEqual(data["proposal_details"][0]["territory"], "MULTAN 1")
+        self.assertEqual(data["monthly_details"][0]["territory"], "MULTAN 1")
 
     def test_zero_rate_falls_back_to_last_invoice(self):
         self.doc.proposal_details[0].approved_target_rate = 0

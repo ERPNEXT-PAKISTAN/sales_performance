@@ -243,6 +243,7 @@ class PerformanceAnalytics {
 	}
 
 	n(value, precision = 0) {
+		if (precision === 2) return format_number(value || 0, null, 2);
 		if (precision === 1) {
 			return window.sales_performance
 				? sales_performance.format_percent(value)
@@ -257,6 +258,12 @@ class PerformanceAnalytics {
 		return window.sales_performance
 			? sales_performance.format_amount(value)
 			: format_currency(value || 0, frappe.defaults.get_default("currency"), 0);
+	}
+
+	incentiveMoney(value) {
+		return window.sales_performance
+			? sales_performance.format_incentive_amount(value)
+			: format_currency(value || 0, frappe.defaults.get_default("currency"), 2);
 	}
 
 	pct(value) {
@@ -282,7 +289,7 @@ class PerformanceAnalytics {
 
 	inc(value, as_money = false) {
 		const n = Number(value || 0);
-		const html = as_money ? this.money(n) : this.n(n);
+		const html = as_money ? this.incentiveMoney(n) : this.n(n, 2);
 		return n > 0 ? `<span class="sp-ok">${html}</span>` : html;
 	}
 
@@ -334,9 +341,9 @@ class PerformanceAnalytics {
 		const p = (this.data.payout && this.data.payout.totals) || {};
 		if (this.tab === "incentive") {
 			return [
-				[__("Incentive"), this.money(i.incentive_amount)],
-				[__("Min band"), this.money(i.min_incentive_amount)],
-				[__("Max band"), this.money(i.max_incentive_amount)],
+				[__("Incentive"), this.incentiveMoney(i.incentive_amount)],
+				[__("Min band"), this.incentiveMoney(i.min_incentive_amount)],
+				[__("Max band"), this.incentiveMoney(i.max_incentive_amount)],
 				[__("Target Qty"), this.n(i.target_qty, 0)],
 				[__("Target Amt"), this.money(i.target_amount)],
 				[__("Qty Ach %"), this.ach(i.qty_achievement_percent)],
@@ -349,7 +356,7 @@ class PerformanceAnalytics {
 				[__("Accrued"), this.money(p.accrued)],
 				[__("Paid"), this.money(p.paid)],
 				[__("Not Paid"), this.money(p.unpaid)],
-				[__("Incentive calc"), this.money(i.incentive_amount)],
+				[__("Incentive calc"), this.incentiveMoney(i.incentive_amount)],
 			];
 		}
 		const o = this.summarize(this.tab_rows());
@@ -775,7 +782,7 @@ class PerformanceAnalytics {
 				(r) => `<tr>
 				<td>${esc(r.dimension)}</td>
 				<td>${this.n(r.rows, 0)}</td>
-				<td>${this.money(r.incentive_amount)}</td>
+				<td>${this.incentiveMoney(r.incentive_amount)}</td>
 			</tr>`
 			)
 			.join("");
@@ -786,7 +793,7 @@ class PerformanceAnalytics {
 				<td>${esc(d.sales_person)}</td>
 				<td>${esc(d.period || "")} ${esc(d.month || "")}</td>
 				<td>${esc(d.payment_status || (d.docstatus === 1 ? "Submitted" : "Draft"))}</td>
-				<td>${this.money(d.total_incentive_amount)}</td>
+				<td>${this.incentiveMoney(d.total_incentive_amount)}</td>
 			</tr>`
 			)
 			.join("");

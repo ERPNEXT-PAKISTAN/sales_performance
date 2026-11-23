@@ -1,0 +1,1 @@
+{"doctype":"DocType","name":"Planning Territory","module":"Sales Performance","istable":1,"editable_grid":1,"field_order":["territory"],"fields":[{"fieldname":"territory","fieldtype":"Link","options":"Territory","label":"Territory","reqd":1,"in_list_view":1}],"permissions":[],"actions":[],"links":[]}

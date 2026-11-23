@@ -2,7 +2,14 @@
 
 from sales_performance.services.numbers import nflt
 from sales_performance.services.plan_selection import applicable_plans
-from sales_performance.services.precision import get_currency_precision, round_percent, round_qty
+from sales_performance.services.precision import get_incentive_precision, round_percent, round_qty
+
+
+def round_incentive(value):
+	from decimal import Decimal, ROUND_HALF_UP
+
+	unit = Decimal(1).scaleb(-get_incentive_precision())
+	return float(Decimal(str(value)).quantize(unit, rounding=ROUND_HALF_UP))
 
 
 def resolve_incentive_rate(achievement_percent, slabs):
@@ -70,9 +77,10 @@ def incentive_on_surplus(
 	if pay_on == "Qty":
 		if surplus_qty <= 0:
 			return empty_incentive(pay_on)
-		qty_pay = nflt(surplus_qty * rate)
+		from decimal import Decimal
+		qty_pay = round_incentive(Decimal(str(surplus_qty)) * Decimal(str(rate_percent)) / 100)
 		return {
-			"incentive_rate_percent": round_percent(rate_percent) or 0.0,
+			"incentive_rate_percent": round_percent(rate_percent, 2) or 0.0,
 			"incentive_qty": qty_pay,
 			"incentive_on_qty": qty_pay,
 			"incentive_on_amount": 0.0,
@@ -82,9 +90,10 @@ def incentive_on_surplus(
 
 	if surplus_amount <= 0:
 		return empty_incentive(pay_on)
-	amount_pay = nflt(surplus_amount * rate, get_currency_precision())
+	from decimal import Decimal
+	amount_pay = round_incentive(Decimal(str(surplus_amount)) * Decimal(str(rate_percent)) / 100)
 	return {
-		"incentive_rate_percent": round_percent(rate_percent) or 0.0,
+		"incentive_rate_percent": round_percent(rate_percent, 2) or 0.0,
 		"incentive_qty": 0.0,
 		"incentive_on_qty": 0.0,
 		"incentive_on_amount": amount_pay,
@@ -308,13 +317,11 @@ def allocate_item_incentives(rows, slabs, based_on, pay_on, calculation_level="G
 	"""
 	from decimal import Decimal, ROUND_FLOOR, ROUND_HALF_UP
 
-	from sales_performance.services.precision import get_qty_precision
-
 	def key(row):
 		return tuple(row.get(field) or "" for field in ("sales_person", "period", "customer_group"))
 
 	pay_on = normalize_pay_on(pay_on)
-	precision = get_qty_precision() if pay_on == "Qty" else get_currency_precision()
+	precision = get_incentive_precision()
 	factor = Decimal(10) ** precision
 	metric = "qty" if pay_on == "Qty" else "amount"
 	if calculation_level == "Item":

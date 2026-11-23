@@ -360,6 +360,8 @@ def payout_analysis(company, fiscal_year, sales_person=None, **filters):
     import frappe
     from sales_performance.services.access import scope
     allowed = scope(company, sales_person)
+    planned_people = {row.sales_person for row in target_rows(company, fiscal_year) if row.sales_person}
+    allowed = sorted(planned_people if allowed is None else planned_people.intersection(allowed))
     docs = frappe.get_all("Sales Incentive Payout",
         filters={"company": company, "fiscal_year": fiscal_year, "docstatus": ["<", 2]},
         fields=["name", "sales_person", "period", "month", "quarter", "docstatus", "payment_status", "posting_date", "paid_on", "pay_on"],

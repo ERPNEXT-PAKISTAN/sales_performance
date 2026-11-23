@@ -31,7 +31,7 @@ def scope(company=None, requested=None, user=None):
     if not user or user == "Guest":
         frappe.throw(_("Please sign in"), frappe.PermissionError)
     if is_admin(user):
-        return [requested] if requested else None
+        return sales_person_subtree(requested) if requested else None
     people = set()
     for assignment in assignments(user):
         if company and assignment.company != company:
@@ -46,13 +46,25 @@ def scope(company=None, requested=None, user=None):
     if requested:
         if not isinstance(requested, str) or requested not in people:
             frappe.throw(_("You cannot view this Sales Person"), frappe.PermissionError)
-        return [requested]
+        return sorted(set(sales_person_subtree(requested)).intersection(people))
     return sorted(people)
+
+
+def sales_person_subtree(name):
+    """A group filter includes the group and its descendants."""
+    if not name:
+        return []
+    bounds = frappe.db.get_value("Sales Person", name, ["lft", "rgt", "is_group"], as_dict=True)
+    if not bounds or not bounds.is_group:
+        return [name]
+    return frappe.get_all("Sales Person", filters={"lft": [">=", bounds.lft], "rgt": ["<=", bounds.rgt]}, pluck="name")
 
 
 def scoped_filters(filters):
     filters = frappe._dict(filters or {})
     filters._allowed_sales_persons = scope(filters.get("company"), filters.get("sales_person"))
+    if filters.get("sales_person") and len(filters._allowed_sales_persons or []) > 1:
+        filters.sales_person = None
     return filters
 
 

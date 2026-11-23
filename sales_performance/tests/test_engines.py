@@ -22,9 +22,24 @@ from sales_performance.services.historical_sales import rollup_monthly
 from sales_performance.services.planning_engine import apply_row_override, complete_monthly_row
 from sales_performance.services.pricing_engine import average_selling_price
 from sales_performance.services.target_sync import _match_child, planning_key
+from sales_performance.services.planning_scope import dimension_allowed
 
 
 class TestGrowth(unittest.TestCase):
+	def test_independent_plan_selections(self):
+		plan = {
+			"selected_sales_persons": [{"sales_person": "Alice"}, {"sales_person": "Bob"}],
+			"selected_territories": [{"territory": "North"}],
+			"selected_customer_groups": [{"customer_group": "Retail"}],
+		}
+		self.assertTrue(dimension_allowed(plan, "sales_person", "Bob"))
+		self.assertFalse(dimension_allowed(plan, "sales_person", "Charlie"))
+		self.assertTrue(dimension_allowed(plan, "territory", "North"))
+		self.assertFalse(dimension_allowed(plan, "territory", "South"))
+		self.assertFalse(dimension_allowed(plan, "customer_group", "Wholesale"))
+		plan["selected_sales_persons"] = []
+		plan["sales_person"] = "Alice"
+		self.assertTrue(dimension_allowed(plan, "sales_person", "Charlie"))
 	def test_positive_growth(self):
 		self.assertEqual(apply_growth(100, 10, precision=2), 110)
 
@@ -54,6 +69,7 @@ class TestGrowth(unittest.TestCase):
 		exact_only = [{"item_group": "GI Coil", "growth_percent": 10, "apply_to_children": 0, "priority": 1}]
 		self.assertFalse(growth_rule_covers_item_group("GI Coil 0.6", exact_only, ancestors))
 		self.assertTrue(growth_rule_covers_item_group("GI Coil", exact_only, ["GI Coil", "All"]))
+
 
 
 class TestHistoricalNetting(unittest.TestCase):
@@ -328,6 +344,13 @@ class TestIncentiveBands(unittest.TestCase):
 		self.assertEqual(missed["incentive_amount"], 0)
 		self.assertEqual(missed["incentive_on_amount"], 0)
 		self.assertEqual(missed["incentive_on_qty"], 0)
+
+	def test_fractional_incentive_rate_and_amount(self):
+		from sales_performance.services.incentive_engine import incentive_on_surplus
+
+		payout = incentive_on_surplus(1, 0, 123, 0, 1.5, pay_on="Amount")
+		self.assertEqual(payout["incentive_rate_percent"], 1.5)
+		self.assertEqual(payout["incentive_amount"], 1.85)
 
 
 class TestIncentivePayoutSummary(unittest.TestCase):

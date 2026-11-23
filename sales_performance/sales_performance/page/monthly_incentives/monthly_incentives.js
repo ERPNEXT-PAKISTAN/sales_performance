@@ -150,7 +150,7 @@ class MonthlyIncentives {
         const rows = (data.details || []).filter(row => (!person || row.sales_person === person) && (!item || ["item_code", "territory", "customer_group", "item_group"].every(key => (row[key] || "") === (item[key] || ""))) && (month || row.incentive_amount > 0));
         const dialog = new frappe.ui.Dialog({title: __("Incentive calculation details"), size: "extra-large", fields: [{fieldtype: "HTML", fieldname: "detail"}]});
         const metric = data.pay_on === "Qty" ? "qty" : "amount";
-        dialog.fields_dict.detail.$wrapper.html(`<p>${__("Calculation for the selected cells and filters. Grouped schemes allocate the group payout across eligible items; zero values mean no allocated incentive.")}</p><div style="max-height:65vh;overflow:auto"><table class="table"><thead><tr>${["Sales Person","Item","Month","Target","Actual","Surplus","Rate %","Incentive","Plan"].map(h=>`<th>${__(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(row=>`<tr>${[row.sales_person,row.item_code,row.period,format_number(row["target_"+metric],null,0),format_number(row["actual_"+metric],null,0),format_number(Math.max(0,row["actual_"+metric]-row["target_"+metric]),null,0),format_number(row.incentive_rate_percent,null,0),format_number(row.incentive_amount,null,0),row.planning].map(v=>`<td>${this.escape(v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
+        dialog.fields_dict.detail.$wrapper.html(`<p>${__("Calculation for the selected cells and filters. Grouped schemes allocate the group payout across eligible items; zero values mean no allocated incentive.")}</p><div style="max-height:65vh;overflow:auto"><table class="table"><thead><tr>${["Sales Person","Item","Month","Target","Actual","Surplus","Rate %","Incentive","Plan"].map(h=>`<th>${__(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(row=>`<tr>${[row.sales_person,row.item_code,row.period,format_number(row["target_"+metric],null,0),format_number(row["actual_"+metric],null,0),format_number(Math.max(0,row["actual_"+metric]-row["target_"+metric]),null,0),format_number(row.incentive_rate_percent,null,2),format_number(row.incentive_amount,null,2),row.planning].map(v=>`<td>${this.escape(v)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
         dialog.show();
     }
 
@@ -158,7 +158,7 @@ class MonthlyIncentives {
     message(text) { this.results.html(`<div class="mi-message text-muted">${this.escape(text)}</div>`); }
     cells(values, total, personIndex = null, itemIndex = null) {
         return [...this.data.month_numbers.map((month) => values[month - 1]), total].map((value, index) => {
-            const number = this.escape(format_number(value, null, 0));
+            const number = this.escape(format_number(value, null, 2));
             const month = this.data.month_numbers[index];
             const button = month ? `<button type="button" class="mi-value" data-detail-month="${month}" ${personIndex !== null ? `data-person-index="${personIndex}"` : ""} ${itemIndex !== null ? `data-item-index="${itemIndex}"` : ""} aria-label="${this.escape(__("Explain incentive"))}">${number}</button>` : number;
             return `<td class="mi-number ${index === this.data.month_numbers.length ? "mi-total" : ""}">${button}</td>`;
@@ -184,6 +184,6 @@ class MonthlyIncentives {
         const unit = data.pay_on === "Qty" ? __("Incentive quantity") : `${__("Incentive amount")} (${this.escape(data.currency)})`;
         this.results.html(`<div class="mi-summary"><strong>${unit}</strong><span class="text-muted">${__("Expand a sales person to see item details. Total is the sum of monthly incentives.")}</span></div>
             <div class="mi-scroll" tabindex="0" role="region" aria-label="${this.escape(__("Monthly incentives table"))}"><table class="table mi-table"><colgroup><col class="mi-label-column">${data.month_numbers.map(() => "<col>").join("")}<col></colgroup><thead><tr><th scope="col">${__("Sales Person / Item")}</th>${data.month_numbers.map((month) => `<th scope="col" title="${this.escape(__(data.months[month - 1]))}"><button type="button" class="mi-value" data-detail-month="${month}">${this.escape(__(data.months[month - 1]).slice(0, 3))}</button></th>`).join("")}<th scope="col">${__("Total")}</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><th scope="row">${__("Grand Total")}</th>${this.cells(data.months_total, data.total)}</tr></tfoot></table></div>
-            <p class="mi-note text-muted">${__("Dates limit actual sales; targets remain full monthly targets. Achieved means a positive item incentive in the selected range. Display values are rounded to whole numbers.")}</p>`);
+            <p class="mi-note text-muted">${__("Dates limit actual sales; targets remain full monthly targets. Achieved means a positive item incentive in the selected range. Incentives display two decimal places.")}</p>`);
     }
 }

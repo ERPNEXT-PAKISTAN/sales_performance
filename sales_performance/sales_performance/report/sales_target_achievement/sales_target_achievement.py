@@ -88,7 +88,7 @@ def execute(filters=None):
 def get_columns(period="Annual", grouped=False, group_by=None):
 	qty = {"fieldtype": "Float", "precision": 0, "width": 110}
 	amt = {"fieldtype": "Currency", "precision": 0, "width": 130}
-	incentive_amt = {"fieldtype": "Currency", "precision": 0, "width": 150}
+	incentive_amt = {"fieldtype": "Currency", "precision": 2, "width": 150}
 	pct = {"fieldtype": "Percent", "precision": 0, "width": 140}
 	columns = [
 		{"fieldname": "sales_person", "label": _("Sales Person"), "fieldtype": "Link", "options": "Sales Person", "width": 140},
@@ -122,7 +122,7 @@ def get_columns(period="Annual", grouped=False, group_by=None):
 			{"fieldname": "actual_amount", "label": _("Actual Amount"), **amt},
 			{"fieldname": "variance_amount", "label": _("Amount Variance"), **amt},
 			{"fieldname": "amount_achievement_percent", "label": _("Amount Achievement %"), **pct, "width": 160},
-			{"fieldname": "incentive_rate_percent", "label": _("Incentive %"), **pct, "width": 110},
+			{"fieldname": "incentive_rate_percent", "label": _("Incentive %"), "fieldtype": "Percent", "precision": 2, "width": 110},
 			{"fieldname": "incentive_amount", "label": _("Allocated Incentive"), **incentive_amt},
 			{"fieldname": "planning", "label": _("Planning"), "fieldtype": "Link", "options": "Sales Target Planning", "width": 140},
 			{"fieldname": "customer_group", "label": _("Customer Group"), "fieldtype": "Link", "options": "Customer Group", "width": 140},

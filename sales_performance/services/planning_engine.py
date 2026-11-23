@@ -94,10 +94,10 @@ def recalculate_proposal(doc, preserve_overrides=True):
 		company=doc.company,
 		from_date=prev_start,
 		to_date=prev_end,
-		sales_person=doc.sales_person,
-		territory=doc.territory,
+		sales_person=None,
+		territory=None,
 		item_group=getattr(doc, "item_group", None),
-		customer_group=getattr(doc, "customer_group", None),
+		customer_group=None,
 		include_monthly=True,
 	)
 	current_actuals = _fetch_current_year_monthly_actuals(doc)
@@ -118,7 +118,7 @@ def recalculate_proposal(doc, preserve_overrides=True):
 		history = {
 			key: grain
 			for key, grain in history.items()
-			if _item_group_allowed_for_planning(grain.get("item_group"), doc, rules)
+			if _grain_allowed(grain, doc, rules)
 		}
 
 	existing_overrides = {}
@@ -146,7 +146,7 @@ def recalculate_proposal(doc, preserve_overrides=True):
 
 	for key, old in existing_overrides.items():
 		if key not in {r["row_key"] for r in proposal} and old.item_code:
-			if not _item_group_allowed_for_planning(old.item_group, doc, rules):
+			if not _grain_allowed({"item_group": old.item_group, "sales_person": old.sales_person, "territory": old.territory, "customer_group": old.customer_group}, doc, rules):
 				continue
 			grain = {
 				"sales_person": old.sales_person,
@@ -491,6 +491,15 @@ def _item_group_allowed_for_planning(item_group, doc, rules):
 	if doc.growth_method == "Item Group Rules":
 		return growth_rule_covers_item_group(item_group, rules, ancestors)
 	return True
+
+
+def _grain_allowed(grain, doc, rules):
+	from sales_performance.services.planning_scope import dimension_allowed
+
+	return (
+		_item_group_allowed_for_planning(grain.get("item_group"), doc, rules)
+		and all(dimension_allowed(doc, field, grain.get(field)) for field in ("sales_person", "territory", "customer_group"))
+	)
 
 
 def _validate_header(doc):

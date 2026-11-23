@@ -26,7 +26,7 @@ def execute(filters=None):
 def get_columns():
 	qty = {"fieldtype": "Float", "precision": 0, "width": 120}
 	amt = {"fieldtype": "Currency", "precision": 0, "width": 130}
-	incentive_amt = {"fieldtype": "Currency", "precision": 0, "width": 150}
+	incentive_amt = {"fieldtype": "Currency", "precision": 2, "width": 150}
 	pct = {"fieldtype": "Percent", "precision": 0, "width": 150}
 	return [
 		{"fieldname": "period", "label": _("Period"), "fieldtype": "Data", "width": 120},
@@ -38,9 +38,9 @@ def get_columns():
 		{"fieldname": "actual_amount", "label": _("Actual Amount"), **amt},
 		{"fieldname": "amount_achievement_percent", "label": _("Amount Achievement %"), **pct, "width": 160},
 		{"fieldname": "pay_on", "label": _("Pay On"), "fieldtype": "Data", "width": 90},
-		{"fieldname": "incentive_rate_percent", "label": _("Incentive %"), **pct, "width": 110},
-		{"fieldname": "incentive_on_amount", "label": _("Incentive on Amount"), **amt, "width": 160},
-		{"fieldname": "incentive_on_qty", "label": _("Incentive on Qty"), **qty, "width": 150},
+		{"fieldname": "incentive_rate_percent", "label": _("Incentive %"), "fieldtype": "Percent", "precision": 2, "width": 110},
+		{"fieldname": "incentive_on_amount", "label": _("Incentive on Amount"), **incentive_amt, "width": 160},
+		{"fieldname": "incentive_on_qty", "label": _("Incentive on Qty"), "fieldtype": "Float", "precision": 2, "width": 150},
 		{"fieldname": "incentive_amount", "label": _("Payable Incentive"), **incentive_amt},
 		{"fieldname": "incentive_band", "label": _("Incentive Band"), "fieldtype": "Data", "width": 110},
 		{"fieldname": "variance_qty", "label": _("Variance Qty"), **qty, "width": 110},

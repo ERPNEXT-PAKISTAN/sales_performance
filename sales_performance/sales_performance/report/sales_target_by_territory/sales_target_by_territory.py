@@ -69,7 +69,7 @@ def execute(filters=None):
 		)
 		bucket["incentive_band"] = next(iter(bands)) if len(bands) == 1 else ("Mixed" if bands else "")
 		bucket["incentive_rate_percent"] = round_percent(
-			bucket["incentive_amount"] / surplus * 100 if surplus else 0
+			bucket["incentive_amount"] / surplus * 100 if surplus else 0, 2
 		)
 		bucket["_incentive_surplus"] = surplus
 		data.append(bucket)
@@ -96,7 +96,7 @@ def execute(filters=None):
 				"group_value": _("Total"),
 				"pay_on": filters.get("pay_on") or "Amount",
 				"incentive_band": "",
-				"incentive_rate_percent": round_percent(total_incentive / total_surplus * 100 if total_surplus else 0),
+				"incentive_rate_percent": round_percent(total_incentive / total_surplus * 100 if total_surplus else 0, 2),
 				"incentive_amount": total_incentive,
 				"_node": "sales-target-by-territory-total",
 				"_parent_node": "",
@@ -215,7 +215,7 @@ def aggregate_rows(rows):
 			"incentive_amount": incentive_amount,
 			"incentive_band": next(iter(bands)) if len(bands) == 1 else ("Mixed" if bands else ""),
 			"incentive_rate_percent": round_percent(
-				incentive_amount / incentive_surplus * 100 if incentive_surplus else 0
+				incentive_amount / incentive_surplus * 100 if incentive_surplus else 0, 2
 			),
 		}
 	)
@@ -253,8 +253,8 @@ def get_columns(period="Annual"):
 			{"fieldname": "actual_amount", "label": _("Actual Amount"), **amt},
 			{"fieldname": "variance_amount", "label": _("Amount Variance"), **amt},
 			{"fieldname": "amount_achievement_percent", "label": _("Amount Achievement %"), **pct},
-			{"fieldname": "incentive_rate_percent", "label": _("Incentive %"), "fieldtype": "Percent", "precision": 1, "width": 110},
-			{"fieldname": "incentive_amount", "label": _("Allocated Incentive"), "fieldtype": "Currency", "precision": 0, "width": 150},
+			{"fieldname": "incentive_rate_percent", "label": _("Incentive %"), "fieldtype": "Percent", "precision": 2, "width": 110},
+			{"fieldname": "incentive_amount", "label": _("Allocated Incentive"), "fieldtype": "Currency", "precision": 2, "width": 150},
 			{"fieldname": "pay_on", "label": _("Pay On"), "fieldtype": "Data", "width": 90},
 			{"fieldname": "incentive_band", "label": _("Incentive Band"), "fieldtype": "Data", "width": 120},
 		]

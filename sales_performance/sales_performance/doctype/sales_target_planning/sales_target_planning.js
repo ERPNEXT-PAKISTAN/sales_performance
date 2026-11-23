@@ -5,6 +5,9 @@ frappe.ui.form.on("Sales Target Planning", {
 		const locked = ["Approved", "Cancelled", "Superseded"].includes(frm.doc.status);
 		frm.set_df_property("proposal_details", "read_only", locked);
 		frm.set_df_property("growth_rules", "read_only", locked);
+		for (const field of ["selected_sales_persons", "selected_territories", "selected_customer_groups"]) {
+			frm.set_df_property(field, "read_only", locked);
+		}
 
 		if (!locked) {
 			frm.page.set_primary_action(__("Get Previous Year Sales"), () => fetch_previous_year_sales(frm));

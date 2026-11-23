@@ -33,7 +33,8 @@ class SalesTargetPlanning(Document):
 
 	def validate(self):
 		self._guard_locked_edits()
-		from sales_performance.services.target_editor import normalize, refresh_actuals
+		from sales_performance.services.target_editor import normalize, refresh_actuals, prune_outside_selection
+		prune_outside_selection(self)
 		normalize(self)
 		refresh_actuals(self)
 		self._validate_business_rules()
@@ -62,6 +63,8 @@ class SalesTargetPlanning(Document):
 			frappe.throw(_("Amendment history is maintained by the system."))
 
 	def _validate_business_rules(self):
+		from sales_performance.services.planning_scope import validate_selections
+		validate_selections(self)
 		if not self.company:
 			frappe.throw(_("Company is required"))
 		if not self.fiscal_year:

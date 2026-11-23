@@ -42,7 +42,7 @@ def get_context():
 @frappe.whitelist()
 def get_people(company, fiscal_year=None, customer_group=None):
     allowed = scope(company)
-    filters = {"is_group": 0}
+    filters = {}
     if allowed is not None:
         filters["name"] = ["in", allowed or [""]]
     return frappe.get_all("Sales Person", filters=filters, pluck="name", order_by="name")

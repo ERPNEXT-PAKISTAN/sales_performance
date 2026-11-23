@@ -37,7 +37,40 @@ def target_rows(company, fiscal_year, approved_only=False):
 	for row in rows:
 		for field in ("sales_person", "territory", "customer_group"):
 			row[field] = row.get(field) or plans[row.parent].get(field)
-	return rows
+	return filter_selected_rows(rows, selected_dimensions(plans))
+
+
+def selected_dimensions(plans):
+	"""Read the current selections so saved targets cannot outlive a narrowed plan."""
+	import frappe
+
+	if not plans:
+		return {}
+	selections = {name: {} for name in plans}
+	for table, field in (("Planning Sales Person", "sales_person"),
+		("Planning Territory", "territory"), ("Planning Customer Group", "customer_group")):
+		doctype = {"sales_person": "Sales Person", "territory": "Territory", "customer_group": "Customer Group"}[field]
+		for row in frappe.get_all(table, filters={"parent": ("in", list(plans)), "parentfield": {
+			"sales_person": "selected_sales_persons", "territory": "selected_territories",
+			"customer_group": "selected_customer_groups"}[field]}, fields=["parent", field]):
+			value = row.get(field)
+			if not value:
+				continue
+			bounds = frappe.db.get_value(doctype, value, ["lft", "rgt", "is_group"], as_dict=True)
+			if bounds and bounds.is_group:
+				values = frappe.get_all(doctype, filters={"lft": [">=", bounds.lft], "rgt": ["<=", bounds.rgt]}, pluck="name")
+			else:
+				values = [value]
+			selections[row.parent].setdefault(field, set()).update(values)
+	return selections
+
+
+def filter_selected_rows(rows, selections):
+	return [row for row in rows if all(
+		not selections.get(row.parent, {}).get(field)
+		or row.get(field) in selections[row.parent][field]
+		for field in ("sales_person", "territory", "customer_group")
+	)]
 
 
 def target_sales_condition(rows, values):

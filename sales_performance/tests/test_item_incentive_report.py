@@ -54,7 +54,7 @@ class TestItemIncentiveReport(unittest.TestCase):
 		forward = allocate_item_incentives(rows, self.slabs, "Amount Achievement", "Amount")
 		reverse = allocate_item_incentives(rows[::-1], self.slabs, "Amount Achievement", "Amount")
 		self.assertEqual({r["item_code"]: r["incentive_amount"] for r in forward}, {r["item_code"]: r["incentive_amount"] for r in reverse})
-		self.assertEqual(sum(r["incentive_amount"] for r in forward), 4)
+		self.assertAlmostEqual(sum(r["incentive_amount"] for r in forward), 4.2)
 		self.assertTrue(all(r["incentive_on_qty"] == 0 for r in forward))
 
 	def test_customer_groups_and_periods_do_not_offset_each_other(self):

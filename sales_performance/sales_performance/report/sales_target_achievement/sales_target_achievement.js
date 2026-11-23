@@ -32,8 +32,9 @@ var hierarchy = filters.group_by || "Month → Sales Person → Territory → It
 var parent_level = filters.period === "Annual" ? 0 : 1;
 var filter_value = function(key, value) { return ["from_date", "to_date"].includes(key) ? frappe.datetime.str_to_user(value) : value; };
 var currency = function(value) { return frappe.format(value || 0, {fieldtype: "Currency", precision: 0}, {for_print: true}); };
+var incentive_currency = function(value) { return frappe.format(value || 0, {fieldtype: "Currency", precision: 2}, {for_print: true}); };
 var quantity = function(value) { return frappe.format(value || 0, {fieldtype: "Float", precision: 0}, {for_print: true}); };
-var percent = function(value) { return frappe.format(value || 0, {fieldtype: "Percent", precision: 0}, {for_print: true}); };
+var percent = function(value) { return frappe.format(value || 0, {fieldtype: "Percent", precision: 2}, {for_print: true}); };
 var include_col = function(col) { return col.name && !col.hidden && col._id !== "_check" && !["pay_on", "incentive_band", "customer_group", "planning"].includes(col.fieldname || col.id); };
 var print_column_style = function(col) { return ["group_value", "item_code"].includes(col.fieldname || col.id) && col.width ? "width:" + Number(col.width) + "px;" : ""; };
 %}
@@ -94,7 +95,7 @@ var print_column_style = function(col) { return ["group_value", "item_code"].inc
     <div class="kpi"><div class="kpi-label">{{ __("Target") }}</div><div class="kpi-pair"><div><span class="kpi-metric-label">{{ __("Amount") }}</span><strong class="kpi-value">{{ currency(summary_values.target_amount) }}</strong></div><div><span class="kpi-metric-label">{{ __("Qty") }}</span><strong class="kpi-value">{{ quantity(summary_values.target_qty) }}</strong></div></div></div>
     <div class="kpi"><div class="kpi-label">{{ __("Actual") }}</div><div class="kpi-pair"><div><span class="kpi-metric-label">{{ __("Amount") }}</span><strong class="kpi-value">{{ currency(summary_values.actual_amount) }}</strong></div><div><span class="kpi-metric-label">{{ __("Qty") }}</span><strong class="kpi-value">{{ quantity(summary_values.actual_qty) }}</strong></div></div></div>
     <div class="kpi"><div class="kpi-label">{{ __("Achievement") }}</div><div class="kpi-pair"><div><span class="kpi-metric-label">{{ __("Amount") }}</span><strong class="kpi-value">{{ percent(summary_values.amount_achievement_percent) }}</strong></div><div><span class="kpi-metric-label">{{ __("Qty") }}</span><strong class="kpi-value">{{ percent(summary_values.qty_achievement_percent) }}</strong></div></div></div>
-    <div class="kpi"><div class="kpi-label">{{ __("Incentive") }}</div><div class="kpi-pair"><div><span class="kpi-metric-label">{{ __("Amount") }}</span><strong class="kpi-value">{{ currency(summary_values.incentive_amount) }}</strong></div><div><span class="kpi-metric-label">{{ __("Rate %") }}</span><strong class="kpi-value">{{ percent(summary_values.incentive_rate_percent) }}</strong></div></div></div>
+    <div class="kpi"><div class="kpi-label">{{ __("Incentive") }}</div><div class="kpi-pair"><div><span class="kpi-metric-label">{{ __("Amount") }}</span><strong class="kpi-value">{{ incentive_currency(summary_values.incentive_amount) }}</strong></div><div><span class="kpi-metric-label">{{ __("Rate %") }}</span><strong class="kpi-value">{{ percent(summary_values.incentive_rate_percent) }}</strong></div></div></div>
   </section>
   <section class="report-panel">
     <div class="toolbar"><div><strong>{{ __("Achievement details") }}</strong><div class="count">{{ __("{0} groups · {1} item rows · Grouped by {2}", [num(visible_groups), num(visible_items), __(hierarchy)]) }}</div></div></div>
@@ -320,6 +321,10 @@ frappe.query_reports["Sales Target Achievement"] = {
 		let formatted = (window.sales_performance && sales_performance.report_formatter)
 			? sales_performance.report_formatter(value, row, column, data, default_formatter)
 			: default_formatter(value, row, column, data);
+		if (column.fieldname === "incentive_rate_percent") {
+			const raw = data && data.incentive_rate_percent != null ? data.incentive_rate_percent : value;
+			formatted = raw == null || raw === "" ? "" : `${format_number(Number(raw), null, 2)}%`;
+		}
 		if (!data) return formatted;
 		if (data.is_total_row) {
 			return `<strong style="color:#312e81;background:#e0e7ff;padding:3px 7px;border-radius:5px;display:inline-block">${formatted}</strong>`;

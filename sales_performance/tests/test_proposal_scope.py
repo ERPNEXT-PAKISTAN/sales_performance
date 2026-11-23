@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 
 import frappe
-from sales_performance.services.plan_selection import target_rows, target_sales_condition
+from sales_performance.services.plan_selection import target_rows, target_sales_condition, filter_selected_rows
 from sales_performance.services.personal_sales import get_people
 from sales_performance.services.analysis_engine import fetch_sales_by_dimension, fetch_monthly_sales
 
@@ -13,12 +13,29 @@ class TestProposalScope(unittest.TestCase):
         plan = frappe._dict(name='Plan', status='Approved', sales_person='Parent', territory='North', customer_group='Market')
         rows = [frappe._dict(parent='Plan', sales_person='Alice', item_code='A'),
                 frappe._dict(parent='Plan', sales_person='', territory='South', customer_group='Export', item_code='B')]
-        with patch.object(frappe, 'get_all', side_effect=[[plan], rows]):
+        with patch.object(frappe, 'get_all', side_effect=[[plan], rows, [], [], []]):
             result = target_rows('Company', '2026')
         self.assertEqual(result[0].sales_person, 'Alice')
         self.assertEqual(result[0].territory, 'North')
         self.assertEqual(result[1].sales_person, 'Parent')
         self.assertEqual(result[1].customer_group, 'Export')
+
+    def test_saved_selection_excludes_stale_proposals(self):
+        rows = [frappe._dict(parent='Plan', sales_person='Alice', territory='North', customer_group='Retail'),
+                frappe._dict(parent='Plan', sales_person='Bob', territory='North', customer_group='Retail')]
+        selected = {'Plan': {'sales_person': {'Alice'}}}
+        self.assertEqual([r.sales_person for r in filter_selected_rows(rows, selected)], ['Alice'])
+        self.assertEqual(len(filter_selected_rows(rows, {'Plan': {}})), 2)
+
+    def test_target_rows_respects_saved_person_selection(self):
+        plan = frappe._dict(name='Plan', status='Approved', sales_person=None, territory=None, customer_group=None)
+        rows = [frappe._dict(parent='Plan', sales_person='Alice', item_code='A'),
+                frappe._dict(parent='Plan', sales_person='Bob', item_code='B')]
+        selected = [frappe._dict(parent='Plan', sales_person='Alice')]
+        with patch.object(frappe, 'get_all', side_effect=[[plan], rows, selected, [], []]), \
+             patch.object(frappe, 'db', unittest.mock.Mock(get_value=unittest.mock.Mock(return_value=None)), create=True):
+            result = target_rows('Company', '2026')
+        self.assertEqual([r.sales_person for r in result], ['Alice'])
 
     def test_scope_keeps_person_item_group_pairs_and_deduplicates(self):
         rows = [dict(sales_person='Alice', item_code='A', customer_group='Market'),
@@ -49,4 +66,4 @@ class TestProposalScope(unittest.TestCase):
              patch('sales_performance.services.plan_selection.target_rows', return_value=rows), \
              patch.object(frappe, 'get_all', return_value=['Alice']) as get_all:
             self.assertEqual(get_people('Company', '2026'), ['Alice'])
-        self.assertEqual(get_all.call_args.kwargs['filters']['name'], ['in', ['Alice']])
+        self.assertEqual(get_all.call_args.kwargs['filters']['name'], ['in', ['Alice', 'Unplanned']])

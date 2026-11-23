@@ -7,7 +7,7 @@ import frappe
 from frappe.utils import cint, get_datetime, now_datetime
 
 from sales_performance.services.target_editor import (
-    HEADERS, TABLES, DIMENSIONS, APPROVAL_TOKEN, apply_snapshot, snapshot, normalize, transfer, number,
+    HEADERS, TABLES, DIMENSIONS, APPROVAL_TOKEN, apply_snapshot, snapshot, normalize, transfer, number, prune_outside_selection,
 )
 from sales_performance.services.planning_engine import make_row_key
 from sales_performance.services.numbers import nflt as flt
@@ -39,7 +39,14 @@ def edited(doc, payload, baseline=None, effective_month=1):
     data = frappe.parse_json(payload) if isinstance(payload, str) else payload
     if not isinstance(data, dict):
         frappe.throw("Invalid target data")
+    repair_stale_territories(data, doc)
     apply_snapshot(doc, data)
+    if effective_month != 1 and any(doc.get(table) for table in ("selected_sales_persons", "selected_territories", "selected_customer_groups")):
+        removed = prune_outside_selection(doc)
+        if removed:
+            frappe.throw("Changing plan selections removes full-year targets. Start an amendment effective from calendar month 1.")
+    else:
+        prune_outside_selection(doc)
     if baseline and (doc.entry_basis == "Monthly" or doc.distribution_method == "Manual Monthly"):
         _apply_annual_amendments_to_months(doc, baseline, effective_month)
     normalize(doc, pricing_start_month=effective_month)
@@ -51,6 +58,27 @@ def edited(doc, payload, baseline=None, effective_month=1):
     doc._validate_business_rules()
     doc.status = status
     return doc
+
+
+def repair_stale_territories(data, approved_doc):
+    """Refresh renamed Territory links in an older amendment from matching live rows."""
+    live = {row.row_key: row for row in approved_doc.proposal_details or [] if row.row_key}
+    repaired = {}
+    for row in data.get("proposal_details") or []:
+        territory = row.get("territory")
+        if not territory or frappe.db.exists("Territory", territory):
+            continue
+        current = live.get(row.get("row_key"))
+        if not current or not current.territory or not frappe.db.exists("Territory", current.territory):
+            frappe.throw("A target uses a Territory that no longer exists. Reopen the amendment to refresh its rows.")
+        if any((row.get(field) or "") != (current.get(field) or "") for field in ("sales_person", "item_code", "customer_group")):
+            frappe.throw("A target's Territory changed and its matching approved row could not be verified. Reopen the amendment.")
+        repaired[row.get("row_key")] = current.territory
+        row["territory"] = current.territory
+    for row in data.get("monthly_details") or []:
+        if row.get("row_key") in repaired:
+            row["territory"] = repaired[row["row_key"]]
+    return len(repaired)
 
 
 def _apply_annual_amendments_to_months(doc, baseline, effective_month):
@@ -145,6 +173,7 @@ def start_amendment(name, reason=None, effective_month=None):
 def amendment_result(record, fallback_doc=None):
     payload = json.loads(record.proposed_values)
     if fallback_doc:
+        repair_stale_territories(payload, fallback_doc)
         from sales_performance.services.target_editor import DISPLAY_FIELDS
         live_rows = {row.row_key: row for row in fallback_doc.proposal_details or [] if row.row_key}
         for row in payload.get("proposal_details", []):
@@ -287,8 +316,8 @@ def amendment_preview(name, amendment):
                 before_amount=old.get(key, (0, 0))[1], after_amount=new.get(key, (0, 0))[1]))
     headers = [{"field": f, "before": before.get(f), "after": after.get(f)} for f in HEADERS if before.get(f) != after.get(f)]
     row_changes = []
-    for table in ("proposal_details", "growth_rules", "custom_percents"):
-        identity = "row_key" if table == "proposal_details" else "item_group" if table == "growth_rules" else "month"
+    for table in ("proposal_details", "growth_rules", "selected_sales_persons", "selected_territories", "selected_customer_groups", "custom_percents"):
+        identity = {"proposal_details": "row_key", "growth_rules": "item_group", "selected_sales_persons": "sales_person", "selected_territories": "territory", "selected_customer_groups": "customer_group", "custom_percents": "month"}[table]
         old_rows = {r.get(identity): r for r in before.get(table, [])}
         new_rows = {r.get(identity): r for r in after.get(table, [])}
         for key in old_rows.keys() | new_rows.keys():

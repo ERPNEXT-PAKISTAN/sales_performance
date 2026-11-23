@@ -1,0 +1,1 @@
+{"doctype":"DocType","name":"Planning Sales Person","module":"Sales Performance","istable":1,"editable_grid":1,"field_order":["sales_person"],"fields":[{"fieldname":"sales_person","fieldtype":"Link","options":"Sales Person","label":"Sales Person","reqd":1,"in_list_view":1}],"permissions":[],"actions":[],"links":[]}
